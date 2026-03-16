@@ -1,0 +1,5 @@
+{
+  "name": "AiCondo360",
+  "description": "A comprehensive multi-tenant SaaS for condominium management, featuring communication, financial tracking, and resource reservations.",
+  "requestFramePermissions": []
+}

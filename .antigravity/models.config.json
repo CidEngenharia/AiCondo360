@@ -1,0 +1,21 @@
+{
+  "providers": {
+    "openrouter": {
+      "apiKey": "${OPENROUTER_API_KEY}"
+    },
+    "openai": {
+      "apiKey": "${OPENAI_API_KEY}"
+    },
+    "anthropic": {
+      "apiKey": "${ANTHROPIC_API_KEY}"
+    }
+  },
+
+  "models": [
+    "openrouter/anthropic/claude-3.5-sonnet",
+    "openrouter/openai/gpt-4o",
+    "openrouter/meta-llama/llama-3-70b",
+    "openrouter/mistralai/mistral-large",
+    "openrouter/google/gemini-pro"
+  ]
+}
