@@ -3,17 +3,24 @@ import { motion } from 'motion/react';
 import { FeatureGrid } from '../components/FeatureGrid';
 import { TrendingUp, Users, AlertCircle, Cloud, Sun, CloudRain, CloudLightning, Moon, ArrowRight, Star, Calendar } from 'lucide-react';
 import { FEATURES, UserRole, PricingPlan } from '../constants';
+import { UpgradeBanner } from '../components/UpgradeBanner';
+import { BoletoService, AnnouncementService, Boleto, Comunicado } from '../services/supabaseService';
 
 interface DashboardProps {
+  userId: string;
   userName: string;
   userRole: UserRole;
   userPlan: PricingPlan;
+  condoId: string;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ userName, userRole, userPlan }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole, userPlan, condoId }) => {
   const [greeting, setGreeting] = useState('');
   const [currentDate, setCurrentDate] = useState('');
   const [weather, setWeather] = useState({ temp: 24, condition: 'Ensolarado', icon: Sun });
+  const [nextBoleto, setNextBoleto] = useState<Boleto | null>(null);
+  const [announcements, setAnnouncements] = useState<Comunicado[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
     const now = new Date();
@@ -38,7 +45,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ userName, userRole, userPl
       { temp: 19, condition: 'Chuvoso', icon: CloudRain },
     ];
     setWeather(mockWeathers[Math.floor(Math.random() * mockWeathers.length)]);
-  }, []);
+
+    // Fetch Real Data
+    const fetchData = async () => {
+      try {
+        const [boleto, comms] = await Promise.all([
+          BoletoService.getNextPendingBoleto(userId),
+          AnnouncementService.getRecentAnnouncements(condoId)
+        ]);
+        setNextBoleto(boleto);
+        setAnnouncements(comms);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoadingData(false);
+      }
+    };
+
+    if (userId && condoId) {
+      fetchData();
+    } else {
+      setLoadingData(false);
+    }
+  }, [userId, condoId]);
 
   const filteredFeatures = FEATURES.filter(feature => {
     if (userRole === 'global_admin') return true;
@@ -66,22 +95,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ userName, userRole, userPl
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp size={16} className="text-emerald-300" />
-              <span className="text-xs font-medium uppercase tracking-wider opacity-80">Financeiro</span>
+              <TrendingUp size={16} className="text-blue-200" />
+              <span className="text-xs font-medium uppercase tracking-wider opacity-80">Próxima Fatura</span>
             </div>
-            <p className="text-lg font-bold">R$ 450,00</p>
-            <p className="text-[10px] opacity-70">Próximo vencimento: 10/04</p>
+            <p className="text-lg font-bold">
+              {nextBoleto ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(nextBoleto.amount) : 'R$ 0,00'}
+            </p>
+            <p className="text-[10px] opacity-70">
+              {nextBoleto ? `Vencimento: ${new Date(nextBoleto.due_date).toLocaleDateString('pt-BR')}` : 'Sem faturas pendentes'}
+            </p>
           </div>
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
             <div className="flex items-center gap-2 mb-2">
               <AlertCircle size={16} className="text-amber-300" />
               <span className="text-xs font-medium uppercase tracking-wider opacity-80">Avisos</span>
             </div>
-            <p className="text-lg font-bold">2 Novos</p>
-            <p className="text-[10px] opacity-70">Mural atualizado há 2h</p>
+            <p className="text-lg font-bold">{announcements.length} Ativos</p>
+            <p className="text-[10px] opacity-70">Mural atualizado</p>
           </div>
         </div>
       </section>
+
+      {/* Upgrade Call to Action */}
+      <UpgradeBanner currentPlan={userPlan} />
 
       {/* Quick Actions Grid */}
       <section>
@@ -96,27 +132,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ userName, userRole, userPl
       <section className="space-y-4">
         <h3 className="font-bold text-slate-800 dark:text-white px-2">Mural de Avisos</h3>
         <div className="space-y-3">
-          {[1, 2].map((i) => (
-            <motion.div 
-              key={i}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex gap-4"
-            >
-              <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center text-slate-400 dark:text-slate-500">
-                <Users size={24} />
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between items-start mb-1">
-                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">Assembleia Geral Extraordinária</h4>
-                  <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">Há 45 min</span>
+          {announcements.length > 0 ? (
+            announcements.map((announcement) => (
+              <motion.div 
+                key={announcement.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex gap-4"
+              >
+                <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center text-slate-400 dark:text-slate-500">
+                  <Users size={24} />
                 </div>
-                <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">
-                  Convocamos todos os moradores para a assembleia que ocorrerá no dia 20/03 às 19h no salão de festas...
-                </p>
-              </div>
-            </motion.div>
-          ))}
+                <div className="flex-1">
+                  <div className="flex justify-between items-start mb-1">
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">{announcement.title}</h4>
+                    <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">
+                      {new Date(announcement.created_at).toLocaleDateString('pt-BR')}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">
+                    {announcement.content}
+                  </p>
+                </div>
+              </motion.div>
+            ))
+          ) : (
+            <p className="text-center text-slate-500 text-xs py-4">Nenhum comunicado recente.</p>
+          )}
         </div>
       </section>
 

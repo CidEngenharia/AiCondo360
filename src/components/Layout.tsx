@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Menu, User, Settings, LogOut, Sun, Moon, MessageCircle, X, ChevronRight, Lock } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Bell, Menu, User, Settings, LogOut, Sun, Moon, MessageCircle, X, ChevronRight, Lock, Sparkles, LayoutDashboard } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { AIChat } from './AIChat';
 import { FEATURES, UserRole, PricingPlan } from '../constants';
 import { cn } from '../lib/utils';
 
@@ -16,6 +18,9 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, onLogout, userRole, userPlan }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (isDarkMode) {
@@ -68,9 +73,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
           {/* Sidebar Header */}
           <div className="h-16 flex items-center justify-between px-6 border-b border-slate-100 dark:border-slate-700">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
-                <Menu size={18} />
-              </div>
+              <img src="/favicon.jpg" alt="AiCondo360 Logo" className="w-8 h-8 object-contain rounded-lg" />
               <span className="font-bold text-slate-900 dark:text-white">AiCondo360</span>
             </div>
             <button onClick={toggleSidebar} className="lg:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">
@@ -79,39 +82,87 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
           </div>
 
           {/* Sidebar Links */}
-          <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto py-2 px-3 space-y-1 custom-scrollbar">
             <div className="px-3 mb-2 flex items-center justify-between">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Menu Principal</p>
               <span className="text-[8px] font-bold bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded uppercase">{userPlan}</span>
             </div>
+
+            {/* Home/Dashboard Link */}
+            <button
+              onClick={() => navigate('/')}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group relative",
+                location.pathname === '/' 
+                  ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" 
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+              )}
+            >
+              <div className={cn(
+                "p-2 rounded-lg transition-colors",
+                location.pathname === '/' ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400"
+              )}>
+                <LayoutDashboard size={18} />
+              </div>
+              <span className="text-sm font-medium flex-1 text-left">Dashboard</span>
+            </button>
+
+            {/* Settings Link */}
+            <button
+              onClick={() => navigate('/settings')}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group relative",
+                location.pathname === '/settings' 
+                  ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" 
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+              )}
+            >
+              <div className={cn(
+                "p-2 rounded-lg transition-colors",
+                location.pathname === '/settings' ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400"
+              )}>
+                <Settings size={18} />
+              </div>
+              <span className="text-sm font-medium flex-1 text-left">Configurações</span>
+            </button>
+
+            <div className="my-4 border-t border-slate-100 dark:border-slate-800" />
             
+            <div className="px-3 mb-2">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Funcionalidades</p>
+            </div>
+
             {filteredFeatures.map((feature) => {
               const hasAccess = userRole === 'global_admin' || feature.plans.includes(userPlan);
+              const isActive = location.pathname === `/feature/${feature.id}`;
               
               return (
                 <button
                   key={feature.id}
                   disabled={!hasAccess}
+                  onClick={() => navigate(`/feature/${feature.id}`)}
                   className={cn(
                     "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group relative",
-                    hasAccess 
-                      ? "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-blue-600 dark:hover:text-blue-400" 
-                      : "text-slate-300 dark:text-slate-600 cursor-not-allowed"
+                    isActive
+                      ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                      : hasAccess 
+                        ? "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-blue-600 dark:hover:text-blue-400" 
+                        : "text-slate-300 dark:text-slate-600 cursor-not-allowed"
                   )}
                 >
                   <div className={cn(
                     "p-2 rounded-lg transition-colors", 
-                    hasAccess 
-                      ? "text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" 
-                      : "text-slate-300 dark:text-slate-600"
+                    isActive
+                      ? "text-blue-600 dark:text-blue-400"
+                      : hasAccess 
+                        ? "text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" 
+                        : "text-slate-300 dark:text-slate-600"
                   )}>
                     <feature.icon size={18} />
                   </div>
                   <span className="text-sm font-medium flex-1 text-left">{feature.label}</span>
-                  {!hasAccess ? (
+                  {!hasAccess && (
                     <Lock size={12} className="text-slate-300 dark:text-slate-600" />
-                  ) : (
-                    <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
                   )}
                 </button>
               );
@@ -154,6 +205,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
               >
                 <Menu size={20} className="text-slate-600 dark:text-slate-300" />
               </button>
+              <img src="/favicon.jpg" alt="AiCondo360 Logo" className="w-8 h-8 object-contain rounded-lg lg:hidden" />
               <div className="flex flex-col">
                 <h1 className="text-sm font-bold text-slate-900 dark:text-white leading-none">AiCondo360</h1>
                 <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wider truncate max-w-[150px]">{condoName}</span>
@@ -169,6 +221,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
                 {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
               </button>
               
+              <button 
+                onClick={() => setIsChatOpen(true)}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full text-blue-600 dark:text-blue-400 transition-colors"
+                title="Assistente IA"
+              >
+                <Sparkles size={20} />
+              </button>
+
               <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full relative">
                 <Bell size={20} className="text-slate-600 dark:text-slate-300" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-800"></span>
@@ -212,6 +272,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
             <Menu size={20} />
             <span className="text-[10px] font-medium">Início</span>
           </button>
+          <button 
+            onClick={() => setIsChatOpen(true)}
+            className="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500"
+          >
+            <Sparkles size={20} />
+            <span className="text-[10px] font-medium">IA</span>
+          </button>
           <button className="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500">
             <Bell size={20} />
             <span className="text-[10px] font-medium">Avisos</span>
@@ -228,6 +295,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
             <span className="text-[10px] font-medium">Menu</span>
           </button>
         </nav>
+
+        <AIChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} userName={userName} />
       </div>
     </div>
   );

@@ -1,167 +1,127 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Check, ArrowRight, Building2, Shield, Zap, Globe } from 'lucide-react';
-import { PLANS } from '../constants';
+import { ShieldCheck, ArrowRight, Building2, Shield, Zap, Globe, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { LoginForm } from '../components/LoginForm';
 
-export const LandingPage: React.FC = () => {
+export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUser }) => {
   const navigate = useNavigate();
 
+  const benefits = [
+    { icon: Building2, text: "Gestão completa de unidades e moradores" },
+    { icon: Shield, text: "Segurança e monitoramento de acesso" },
+    { icon: Zap, text: "Automação de processos e boletos" },
+    { icon: Globe, text: "Comunicação em tempo real" }
+  ];
+
   return (
-    <div className="min-h-screen bg-white text-slate-900">
-      {/* Hero Section */}
-      <header className="relative overflow-hidden pt-20 pb-32 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-4 relative z-10">
-          <div className="flex flex-col items-center text-center">
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white mb-8"
-            >
-              <Building2 size={32} />
-            </motion.div>
-            <motion.h1 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6"
-            >
-              Gestão Condominial <br />
-              <span className="text-blue-600">Sem Complicações</span>
-            </motion.h1>
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-xl text-slate-600 max-w-2xl mb-10"
-            >
-              O AiCondo360 é a plataforma definitiva para síndicos, administradores e moradores. 
-              Tudo o que seu condomínio precisa em um só lugar.
-            </motion.p>
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="flex gap-4"
-            >
-              <button 
-                onClick={() => navigate('/login')}
-                className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all flex items-center gap-2"
-              >
-                Começar Agora
-                <ArrowRight size={20} />
-              </button>
-              <button className="bg-white text-slate-900 px-8 py-4 rounded-2xl font-bold border border-slate-200 hover:bg-slate-50 transition-all">
-                Ver Demonstração
-              </button>
-            </motion.div>
-          </div>
-        </div>
+    <div className="relative min-h-screen w-full flex flex-col md:flex-row overflow-hidden bg-slate-950 font-['Inter']">
+      {/* Background Image with Parallax effect if possible, or just fixed */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-[20s] ease-linear hover:scale-110"
+        style={{ backgroundImage: 'url("/bg-login.png")' }}
+      />
+      
+      {/* Overlays */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-950/90 via-slate-900/60 to-transparent md:bg-gradient-to-r md:from-slate-950 md:via-slate-950/80 md:to-transparent" />
+      <div className="absolute inset-0 backdrop-blur-[2px]" />
+
+      {/* Main Content Container */}
+      <div className="relative z-10 flex flex-col md:flex-row w-full max-w-7xl mx-auto px-6 py-12 md:py-0 items-center justify-between gap-12">
         
-        {/* Background Elements */}
-        <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden opacity-20">
-          <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-400 rounded-full blur-3xl"></div>
-          <div className="absolute top-1/2 -right-24 w-96 h-96 bg-indigo-400 rounded-full blur-3xl"></div>
-        </div>
-      </header>
-
-      {/* Plans Section */}
-      <section className="py-24 max-w-7xl mx-auto px-4">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold mb-4">Planos que cabem no seu condomínio</h2>
-          <p className="text-slate-600">Escolha a melhor opção para a sua necessidade.</p>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-8">
-          {PLANS.map((plan, index) => (
-            <motion.div
-              key={plan.id}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              className={`p-8 rounded-[2.5rem] border ${plan.id === 'enterprise' ? 'border-blue-500 ring-4 ring-blue-50 shadow-xl' : 'border-slate-100 shadow-sm'} bg-white flex flex-col`}
-            >
-              {plan.id === 'enterprise' && (
-                <span className="bg-blue-600 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full w-fit mb-6">Mais Popular</span>
-              )}
-              <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
-              <div className="flex items-baseline gap-1 mb-6">
-                <span className="text-4xl font-black">R${plan.price}</span>
-                <span className="text-slate-500 text-sm">/mês</span>
-              </div>
-              <p className="text-sm text-slate-600 mb-8">{plan.features}</p>
-              
-              <ul className="space-y-4 mb-10 flex-1">
-                <li className="flex items-center gap-3 text-sm">
-                  <Check size={18} className="text-emerald-500" />
-                  <span>Acesso Moradores</span>
-                </li>
-                <li className="flex items-center gap-3 text-sm">
-                  <Check size={18} className="text-emerald-500" />
-                  <span>Boletos e Financeiro</span>
-                </li>
-                {plan.id !== 'basic' && (
-                  <>
-                    <li className="flex items-center gap-3 text-sm">
-                      <Check size={18} className="text-emerald-500" />
-                      <span>Mercado Interno</span>
-                    </li>
-                    <li className="flex items-center gap-3 text-sm">
-                      <Check size={18} className="text-emerald-500" />
-                      <span>Gestão de Visitantes</span>
-                    </li>
-                  </>
-                )}
-                {plan.id === 'premium' && (
-                  <li className="flex items-center gap-3 text-sm">
-                    <Check size={18} className="text-emerald-500" />
-                    <span>Módulo Meus Pets</span>
-                  </li>
-                )}
-              </ul>
-
-              <button 
-                onClick={() => navigate('/login')}
-                className={`w-full py-4 rounded-2xl font-bold transition-all ${plan.id === 'enterprise' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 hover:bg-blue-700' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
-              >
-                Assinar Agora
-              </button>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-slate-900 text-white py-20">
-        <div className="max-w-7xl mx-auto px-4 grid md:grid-cols-4 gap-12">
-          <div className="col-span-2">
-            <div className="flex items-center gap-2 mb-6 text-2xl font-bold">
-              <Building2 size={32} className="text-blue-500" />
-              AiCondo360
+        {/* Left Side: Presentation */}
+        <div className="w-full md:w-1/2 text-white space-y-8 flex flex-col justify-center">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-3 group"
+          >
+            <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center p-2 border border-white/20 group-hover:border-blue-500/50 transition-colors">
+              <img src="/favicon.jpg" alt="Logo" className="w-full h-full object-contain" />
             </div>
-            <p className="text-slate-400 max-w-md">
-              Transformando a convivência em condomínios através da tecnologia e transparência.
-            </p>
+            <h1 className="text-2xl font-black tracking-tight text-white/90">AiCondo<span className="text-blue-500">360</span></h1>
+          </motion.div>
+
+          <div className="space-y-6">
+            <motion.h2 
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-4xl md:text-6xl font-black tracking-tight leading-[1.1]"
+            >
+              A Nova Era da <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Vida em Condomínio</span>
+            </motion.h2>
+
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="text-lg text-slate-300 max-w-lg leading-relaxed font-light"
+            >
+              Software inteligente para uma gestão 360º. Mais transparência para o síndico, mais comodidade para o morador.
+            </motion.p>
           </div>
-          <div>
-            <h4 className="font-bold mb-6">Produto</h4>
-            <ul className="space-y-4 text-slate-400 text-sm">
-              <li>Funcionalidades</li>
-              <li>Planos</li>
-              <li>Segurança</li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-bold mb-6">Suporte</h4>
-            <ul className="space-y-4 text-slate-400 text-sm">
-              <li>Ajuda</li>
-              <li>Contato</li>
-              <li>Privacidade</li>
-            </ul>
-          </div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+          >
+            {benefits.map((item, i) => (
+              <div key={i} className="flex items-center gap-3 p-4 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-colors">
+                <div className="p-2 rounded-lg bg-blue-500/20 text-blue-400">
+                  <item.icon size={18} />
+                </div>
+                <span className="text-sm font-medium text-slate-200">{item.text}</span>
+              </div>
+            ))}
+          </motion.div>
         </div>
-      </footer>
+
+        {/* Right Side: Login Form Card */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9, x: 50 }}
+          animate={{ opacity: 1, scale: 1, x: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="w-full md:w-[440px] bg-white/95 dark:bg-slate-950/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] border border-white/20 dark:border-slate-800/50 p-8 md:p-10"
+        >
+          <LoginForm setUser={setUser} />
+          
+          <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800 flex flex-col items-center gap-4">
+            <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">Ainda não usa o AiCondo360 no seu condomínio?</p>
+            <button 
+              onClick={() => {
+                alert("Redirecionando para nossos planos... \n\nAtualmente operando em modo experimental. Para mais informações, contate nosso suporte.");
+              }}
+              className="group text-blue-600 dark:text-blue-400 font-bold text-sm flex items-center gap-2 hover:gap-3 transition-all"
+            >
+              Conheça nossos planos experimentais
+              <ArrowRight size={16} />
+            </button>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Subtle Admin Link */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 md:left-6 md:translate-x-0 z-10">
+        <button 
+          onClick={() => navigate('/admin-exclusivo')}
+          className="text-[10px] text-slate-500 hover:text-blue-400 font-bold uppercase tracking-widest transition-colors opacity-30 hover:opacity-100 p-2"
+        >
+          Acesso Administrador Exclusivo
+        </button>
+      </div>
+
+      {/* Floating Sparkles/Particles (SVG) */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <svg className="absolute w-full h-full opacity-30" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <circle cx="20" cy="30" r="0.1" fill="white" className="animate-pulse" />
+          <circle cx="80" cy="10" r="0.1" fill="white" className="animate-pulse delay-700" />
+          <circle cx="50" cy="80" r="0.1" fill="white" className="animate-pulse delay-1000" />
+        </svg>
+      </div>
     </div>
   );
 };

@@ -35,25 +35,18 @@ export interface Feature {
 }
 
 export const FEATURES: Feature[] = [
-  { id: 'boletos', label: 'Boletos (2ª via)', icon: CreditCard, color: 'bg-blue-500', category: 'financial', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
-  { id: 'comunicados', label: 'Comunicados', icon: Megaphone, color: 'bg-orange-500', category: 'communication', roles: ['admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
+  { id: 'boletos', label: 'Financeiro', icon: CreditCard, color: 'bg-emerald-500', category: 'financial', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
+  { id: 'comunicados', label: 'Mensagens', icon: MessageSquare, color: 'bg-blue-500', category: 'communication', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
+  { id: 'mural', label: 'Mural', icon: Megaphone, color: 'bg-amber-500', category: 'communication', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
   { id: 'reservas', label: 'Reservas', icon: Calendar, color: 'bg-purple-500', category: 'operations', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
-  { id: 'encomendas', label: 'Encomendas', icon: Package, color: 'bg-amber-600', category: 'operations', roles: ['resident', 'admin', 'syndic'], plans: ['enterprise', 'premium'] },
-  { id: 'ocorrencias', label: 'Ocorrências', icon: ShieldAlert, color: 'bg-red-500', category: 'communication', roles: ['admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
-  { id: 'documentos', label: 'Documentos', icon: FileText, color: 'bg-slate-600', category: 'operations', roles: ['admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
-  { id: 'manutencao', label: 'Manutenção', icon: Wrench, color: 'bg-cyan-600', category: 'operations', roles: ['admin', 'syndic'], plans: ['enterprise', 'premium'] },
-  { id: 'mercado', label: 'Mercado Interno', icon: ShoppingCart, color: 'bg-emerald-500', category: 'social', roles: ['resident', 'admin', 'syndic'], plans: ['enterprise', 'premium'] },
-  { id: 'assembleia', label: 'Assembleia Virtual', icon: Users, color: 'bg-indigo-600', category: 'communication', roles: ['admin', 'syndic'], plans: ['enterprise', 'premium'] },
+  { id: 'ocorrencias', label: 'Ocorrências', icon: ShieldAlert, color: 'bg-red-500', category: 'communication', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
   { id: 'pets', label: 'Meus Pets', icon: Dog, color: 'bg-rose-500', category: 'social', roles: ['resident', 'admin', 'syndic'], plans: ['premium'] },
-  { id: 'veiculos', label: 'Veículos', icon: Car, color: 'bg-zinc-700', category: 'social', roles: ['resident', 'admin', 'syndic'], plans: ['enterprise', 'premium'] },
-  { id: 'achados', label: 'Achados e Perdidos', icon: Search, color: 'bg-teal-500', category: 'social', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
-  { id: 'enquetes', label: 'Enquetes', icon: ClipboardList, color: 'bg-violet-500', category: 'communication', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
-  { id: 'consumo', label: 'Consumo', icon: BarChart3, color: 'bg-lime-600', category: 'financial', roles: ['resident', 'admin', 'syndic'], plans: ['premium'] },
+  { id: 'encomendas', label: 'Encomendas', icon: Package, color: 'bg-orange-600', category: 'operations', roles: ['resident', 'admin', 'syndic'], plans: ['enterprise', 'premium'] },
   { id: 'visitantes', label: 'Visitantes', icon: UserPlus, color: 'bg-sky-500', category: 'operations', roles: ['resident', 'admin', 'syndic'], plans: ['enterprise', 'premium'] },
-  { id: 'acordos', label: 'Acordos', icon: Handshake, color: 'bg-emerald-600', category: 'financial', roles: ['syndic'], plans: ['enterprise', 'premium'] },
-  { id: 'unidades', label: 'Unidades', icon: MapPin, color: 'bg-stone-600', category: 'operations', roles: ['admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
-  { id: 'contatos', label: 'Contatos Úteis', icon: Phone, color: 'bg-blue-600', category: 'communication', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
-  { id: 'mural', label: 'Mural de Avisos', icon: LayoutDashboard, color: 'bg-blue-400', category: 'communication', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
+  { id: 'documentos', label: 'Documentos', icon: FileText, color: 'bg-slate-600', category: 'operations', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
+  { id: 'mercado', label: 'Classificados', icon: ShoppingCart, color: 'bg-indigo-500', category: 'social', roles: ['resident', 'admin', 'syndic'], plans: ['enterprise', 'premium'] },
+  { id: 'veiculos', label: 'Garagem', icon: Car, color: 'bg-zinc-700', category: 'social', roles: ['resident', 'admin', 'syndic'], plans: ['enterprise', 'premium'] },
+  { id: 'contatos', label: 'Telefones', icon: Phone, color: 'bg-cyan-600', category: 'communication', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
 ];
 
 export const PLANS = [

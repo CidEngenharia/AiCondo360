@@ -1,29 +1,99 @@
-import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
-import { Login } from './pages/Login';
 import { LandingPage } from './pages/LandingPage';
-import { UserRole, PricingPlan } from './constants';
+import { AdminExclusivoPage } from './pages/AdminExclusivoPage';
+import { Configuracoes } from './pages/Configuracoes';
+import { Boletos } from './pages/Boletos';
+import { FeatureDetail } from './pages/FeatureDetail';
+import { useAuth } from './hooks/useAuth';
+import { PricingPlan } from './constants';
 
 export default function App() {
-  const [user, setUser] = useState<{ name: string; condo: string; role: UserRole; plan: PricingPlan } | null>(null);
+  const { user, loading, logout, setUser } = useAuth();
 
-  const handleLogin = (userData: { name: string; condo: string; role: UserRole; plan: PricingPlan }) => {
-    setUser(userData);
+  const handlePlanChange = (plan: PricingPlan) => {
+    if (user) {
+      setUser({ ...user, plan });
+    }
   };
 
-  const handleLogout = () => {
-    setUser(null);
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <Router>
       <Routes>
-        <Route path="/landing" element={<LandingPage />} />
         <Route 
           path="/login" 
-          element={user ? <Navigate to="/" /> : <Login onLogin={handleLogin} />} 
+          element={user ? <Navigate to="/" /> : <LandingPage setUser={setUser} />} 
+        />
+        <Route 
+          path="/admin-exclusivo" 
+          element={user ? <Navigate to="/" /> : <AdminExclusivoPage setUser={setUser} />} 
+        />
+        <Route 
+          path="/settings" 
+          element={
+            user ? (
+              <Layout 
+                condoName={user.condo} 
+                userName={user.name} 
+                onLogout={logout}
+                userRole={user.role}
+                userPlan={user.plan}
+              >
+                <Configuracoes 
+                  userPlan={user.plan}
+                  userName={user.name}
+                  onPlanChange={handlePlanChange}
+                />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        <Route 
+          path="/feature/boletos" 
+          element={
+            user ? (
+              <Layout 
+                condoName={user.condo} 
+                userName={user.name} 
+                onLogout={logout}
+                userRole={user.role}
+                userPlan={user.plan}
+              >
+                <Boletos />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        <Route 
+          path="/feature/:id" 
+          element={
+            user ? (
+              <Layout 
+                condoName={user.condo} 
+                userName={user.name} 
+                onLogout={logout}
+                userRole={user.role}
+                userPlan={user.plan}
+              >
+                <FeatureDetail />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
         />
         <Route 
           path="/" 
@@ -32,14 +102,16 @@ export default function App() {
               <Layout 
                 condoName={user.condo} 
                 userName={user.name} 
-                onLogout={handleLogout}
+                onLogout={logout}
                 userRole={user.role}
                 userPlan={user.plan}
               >
                 <Dashboard 
+                  userId={user.id}
                   userName={user.name} 
                   userRole={user.role}
                   userPlan={user.plan}
+                  condoId={user.condoId}
                 />
               </Layout>
             ) : (
