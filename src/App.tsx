@@ -5,7 +5,12 @@ import { LandingPage } from './pages/LandingPage';
 import { AdminExclusivoPage } from './pages/AdminExclusivoPage';
 import { Configuracoes } from './pages/Configuracoes';
 import { Boletos } from './pages/Boletos';
+import { Reservas } from './pages/Reservas';
+import { Comunicados } from './pages/Comunicados';
+import { Mural } from './pages/Mural';
 import { FeatureDetail } from './pages/FeatureDetail';
+import { Encomendas } from './pages/Encomendas';
+import { Assembleias } from './pages/Assembleias';
 import { useAuth } from './hooks/useAuth';
 import { PricingPlan } from './constants';
 
@@ -70,7 +75,97 @@ export default function App() {
                 userRole={user.role}
                 userPlan={user.plan}
               >
-                <Boletos />
+                <Boletos userId={user.id} />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        <Route 
+          path="/feature/reservas" 
+          element={
+            user ? (
+              <Layout 
+                condoName={user.condo} 
+                userName={user.name} 
+                onLogout={logout}
+                userRole={user.role}
+                userPlan={user.plan}
+              >
+                <Reservas userId={user.id} condoId={user.condoId} />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        <Route 
+          path="/feature/encomendas" 
+          element={
+            user ? (
+              <Layout 
+                condoName={user.condo} 
+                userName={user.name} 
+                onLogout={logout}
+                userRole={user.role}
+                userPlan={user.plan}
+              >
+                <Encomendas userId={user.id} />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        <Route 
+          path="/feature/comunicados" 
+          element={
+            user ? (
+              <Layout 
+                condoName={user.condo} 
+                userName={user.name} 
+                onLogout={logout}
+                userRole={user.role}
+                userPlan={user.plan}
+              >
+                <Comunicados userId={user.id} />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        <Route 
+          path="/feature/mural" 
+          element={
+            user ? (
+              <Layout 
+                condoName={user.condo} 
+                userName={user.name} 
+                onLogout={logout}
+                userRole={user.role}
+                userPlan={user.plan}
+              >
+                <Mural />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        <Route 
+          path="/feature/assembleias" 
+          element={
+            user ? (
+              <Layout 
+                condoName={user.condo} 
+                userName={user.name} 
+                onLogout={logout}
+                userRole={user.role}
+                userPlan={user.plan}
+              >
+                <Assembleias userId={user.id} condoId={user.condoId} />
               </Layout>
             ) : (
               <Navigate to="/login" />

@@ -105,12 +105,13 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
       </div>
 
       {/* Subtle Admin Link */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 md:left-6 md:translate-x-0 z-10">
+      <div className="absolute bottom-4 right-4 z-20">
         <button 
           onClick={() => navigate('/admin-exclusivo')}
-          className="text-[10px] text-slate-500 hover:text-blue-400 font-bold uppercase tracking-widest transition-colors opacity-30 hover:opacity-100 p-2"
+          className="p-2 text-slate-700 dark:text-slate-500 hover:text-blue-500 transition-all opacity-20 hover:opacity-100"
+          title="Acesso Restrito"
         >
-          Acesso Administrador Exclusivo
+          <Shield size={16} />
         </button>
       </div>
 

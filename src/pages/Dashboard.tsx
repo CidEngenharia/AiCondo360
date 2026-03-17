@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { FeatureGrid } from '../components/FeatureGrid';
-import { TrendingUp, Users, AlertCircle, Cloud, Sun, CloudRain, CloudLightning, Moon, ArrowRight, Star, Calendar } from 'lucide-react';
+import { TrendingUp, Users, AlertCircle, Cloud, Sun, CloudRain, CloudLightning, Moon, ArrowRight, Star, Calendar, Package, FileText } from 'lucide-react';
 import { FEATURES, UserRole, PricingPlan } from '../constants';
 import { UpgradeBanner } from '../components/UpgradeBanner';
-import { BoletoService, AnnouncementService, Boleto, Comunicado } from '../services/supabaseService';
+import { BoletoService, AnnouncementService, ReservationService, PackageService, Boleto, Comunicado, Reserva, Encomenda } from '../services/supabaseService';
 
 interface DashboardProps {
   userId: string;
@@ -20,6 +20,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
   const [weather, setWeather] = useState({ temp: 24, condition: 'Ensolarado', icon: Sun });
   const [nextBoleto, setNextBoleto] = useState<Boleto | null>(null);
   const [announcements, setAnnouncements] = useState<Comunicado[]>([]);
+  const [upcomingReservations, setUpcomingReservations] = useState<Reserva[]>([]);
+  const [pendingPackages, setPendingPackages] = useState<Encomenda[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
@@ -49,12 +51,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
     // Fetch Real Data
     const fetchData = async () => {
       try {
-        const [boleto, comms] = await Promise.all([
+        const [boleto, comms, reservations, packages] = await Promise.all([
           BoletoService.getNextPendingBoleto(userId),
-          AnnouncementService.getRecentAnnouncements(condoId)
+          AnnouncementService.getRecentAnnouncements(condoId),
+          ReservationService.getUpcomingReservations(userId),
+          PackageService.getPendingPackages(userId)
         ]);
+        
         setNextBoleto(boleto);
         setAnnouncements(comms);
+        setUpcomingReservations(reservations);
+        setPendingPackages(packages);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -92,10 +99,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
           </div>
         </div>
         
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp size={16} className="text-blue-200" />
+              <FileText size={16} className="text-blue-200" />
               <span className="text-xs font-medium uppercase tracking-wider opacity-80">Próxima Fatura</span>
             </div>
             <p className="text-lg font-bold">
@@ -112,6 +119,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
             </div>
             <p className="text-lg font-bold">{announcements.length} Ativos</p>
             <p className="text-[10px] opacity-70">Mural atualizado</p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
+            <div className="flex items-center gap-2 mb-2">
+              <Calendar size={16} className="text-emerald-300" />
+              <span className="text-xs font-medium uppercase tracking-wider opacity-80">Reservas</span>
+            </div>
+            <p className="text-lg font-bold">{upcomingReservations.length} Ativas</p>
+            <p className="text-[10px] opacity-70">
+              {upcomingReservations.length > 0 
+                ? `Próxima: ${new Date(upcomingReservations[0].reservation_date).toLocaleDateString('pt-BR')}` 
+                : 'Nenhuma reserva'}
+            </p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
+            <div className="flex items-center gap-2 mb-2">
+              <Package size={16} className="text-purple-300" />
+              <span className="text-xs font-medium uppercase tracking-wider opacity-80">Encomendas</span>
+            </div>
+            <p className="text-lg font-bold">{pendingPackages.length} Pendentes</p>
+            <p className="text-[10px] opacity-70">
+              {pendingPackages.length > 0 ? 'Retire na portaria' : 'Nenhuma pendência'}
+            </p>
           </div>
         </div>
       </section>

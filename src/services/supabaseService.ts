@@ -18,6 +18,9 @@ export interface Boleto {
   amount: number;
   status: 'pending' | 'paid' | 'overdue';
   due_date: string;
+  month: string;
+  year: number;
+  type: string;
   barcode?: string;
   pdf_url?: string;
 }
@@ -28,6 +31,55 @@ export interface Comunicado {
   author_id: string;
   title: string;
   content: string;
+  created_at: string;
+}
+
+export interface Reserva {
+  id: string;
+  condominio_id: string;
+  user_id: string;
+  area_name: string;
+  reservation_date: string;
+  start_time: string;
+  end_time: string;
+  status: 'confirmed' | 'cancelled';
+  created_at: string;
+}
+
+export interface Encomenda {
+  id: string;
+  condominio_id: string;
+  user_id: string;
+  description: string;
+  status: 'pending' | 'delivered';
+  tracking_code?: string;
+  photo_url?: string;
+  arrival_date: string;
+}
+
+export interface MuralPost {
+  id: string;
+  condominio_id: string;
+  author_id: string;
+  author_name: string;
+  author_avatar?: string;
+  author_role: string;
+  content: string;
+  image_url?: string;
+  likes_count: number;
+  comments_count: number;
+  category: 'announcement' | 'lost-found' | 'neighbor';
+  created_at: string;
+}
+
+export interface Assembleia {
+  id: string;
+  condominio_id: string;
+  title: string;
+  description: string;
+  status: 'active' | 'closed';
+  start_date: string;
+  end_date: string;
   created_at: string;
 }
 
@@ -125,5 +177,153 @@ export const AnnouncementService = {
     }
 
     return data as Comunicado[];
+  }
+};
+
+export const ReservationService = {
+  async getUserReservations(userId: string): Promise<Reserva[]> {
+    const { data, error } = await supabase
+      .from('reservas')
+      .select('*')
+      .eq('user_id', userId)
+      .order('reservation_date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching reservations:', error);
+      return [];
+    }
+
+    return data as Reserva[];
+  },
+
+  async getUpcomingReservations(userId: string): Promise<Reserva[]> {
+    const today = new Date().toISOString().split('T')[0];
+    const { data, error } = await supabase
+      .from('reservas')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'confirmed')
+      .gte('reservation_date', today)
+      .order('reservation_date', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching upcoming reservations:', error);
+      return [];
+    }
+
+    return data as Reserva[];
+  }
+};
+
+export const PackageService = {
+  async getUserPackages(userId: string): Promise<Encomenda[]> {
+    const { data, error } = await supabase
+      .from('encomendas')
+      .select('*')
+      .eq('user_id', userId)
+      .order('arrival_date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching packages:', error);
+      return [];
+    }
+
+    return data as Encomenda[];
+  },
+
+  async getPendingPackages(userId: string): Promise<Encomenda[]> {
+    const { data, error } = await supabase
+      .from('encomendas')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'arrived')
+      .order('arrival_date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching pending packages:', error);
+      return [];
+    }
+
+    return data as Encomenda[];
+  }
+};
+
+export const MuralService = {
+  async getPosts(condoId: string): Promise<MuralPost[]> {
+    const { data, error } = await supabase
+      .from('mural_posts')
+      .select('*')
+      .eq('condominio_id', condoId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching mural posts:', error);
+      return [];
+    }
+
+    return data as MuralPost[];
+  },
+
+  async createPost(post: Omit<MuralPost, 'id' | 'created_at' | 'likes_count' | 'comments_count'>) {
+    const { data, error } = await supabase
+      .from('mural_posts')
+      .insert([
+        {
+          ...post,
+          likes_count: 0,
+          comments_count: 0,
+          created_at: new Date().toISOString()
+        }
+      ])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as MuralPost;
+  },
+
+  async likePost(postId: string, currentLikes: number) {
+    const { error } = await supabase
+      .from('mural_posts')
+      .update({ likes_count: currentLikes + 1 })
+      .eq('id', postId);
+
+    if (error) throw error;
+  }
+};
+
+export const AssembleiaService = {
+  async getAssembleias(condoId: string): Promise<Assembleia[]> {
+    const { data, error } = await supabase
+      .from('assembleia')
+      .select('*')
+      .eq('condominio_id', condoId)
+      .order('start_date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching assembleias:', error);
+      return [];
+    }
+
+    return data as Assembleia[];
+  },
+
+  async getUpcomingAssembleia(condoId: string): Promise<Assembleia | null> {
+    const { data, error } = await supabase
+      .from('assembleia')
+      .select('*')
+      .eq('condominio_id', condoId)
+      .eq('status', 'active')
+      .gte('start_date', new Date().toISOString())
+      .order('start_date', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching upcoming assembleia:', error);
+      return null;
+    }
+
+    return data as Assembleia;
   }
 };
