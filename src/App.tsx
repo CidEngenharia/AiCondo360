@@ -11,6 +11,13 @@ import { Mural } from './pages/Mural';
 import { FeatureDetail } from './pages/FeatureDetail';
 import { Encomendas } from './pages/Encomendas';
 import { Assembleias } from './pages/Assembleias';
+import { Ocorrencias } from './pages/Ocorrencias';
+import { Visitantes } from './pages/Visitantes';
+import { Documentos } from './pages/Documentos';
+import { Garagem } from './pages/Garagem';
+import { Telefones } from './pages/Telefones';
+import { Agendamentos } from './pages/Agendamentos';
+import { Animais } from './pages/Animais';
 import { useAuth } from './hooks/useAuth';
 import { PricingPlan } from './constants';
 
@@ -166,6 +173,132 @@ export default function App() {
                 userPlan={user.plan}
               >
                 <Assembleias userId={user.id} condoId={user.condoId} />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        <Route 
+          path="/feature/ocorrencias" 
+          element={
+            user ? (
+              <Layout 
+                condoName={user.condo} 
+                userName={user.name} 
+                onLogout={logout}
+                userRole={user.role}
+                userPlan={user.plan}
+              >
+                <Ocorrencias />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        <Route 
+          path="/feature/visitantes" 
+          element={
+            user ? (
+              <Layout 
+                condoName={user.condo} 
+                userName={user.name} 
+                onLogout={logout}
+                userRole={user.role}
+                userPlan={user.plan}
+              >
+                <Visitantes />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        <Route 
+          path="/feature/documentos" 
+          element={
+            user ? (
+              <Layout 
+                condoName={user.condo} 
+                userName={user.name} 
+                onLogout={logout}
+                userRole={user.role}
+                userPlan={user.plan}
+              >
+                <Documentos />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        <Route 
+          path="/feature/garagem" 
+          element={
+            user ? (
+              <Layout 
+                condoName={user.condo} 
+                userName={user.name} 
+                onLogout={logout}
+                userRole={user.role}
+                userPlan={user.plan}
+              >
+                <Garagem />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        <Route 
+          path="/feature/telefones" 
+          element={
+            user ? (
+              <Layout 
+                condoName={user.condo} 
+                userName={user.name} 
+                onLogout={logout}
+                userRole={user.role}
+                userPlan={user.plan}
+              >
+                <Telefones />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        <Route 
+          path="/feature/agendamentos" 
+          element={
+            user ? (
+              <Layout 
+                condoName={user.condo} 
+                userName={user.name} 
+                onLogout={logout}
+                userRole={user.role}
+                userPlan={user.plan}
+              >
+                <Agendamentos />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        <Route 
+          path="/feature/pets" 
+          element={
+            user ? (
+              <Layout 
+                condoName={user.condo} 
+                userName={user.name} 
+                onLogout={logout}
+                userRole={user.role}
+                userPlan={user.plan}
+              >
+                <Animais />
               </Layout>
             ) : (
               <Navigate to="/login" />
