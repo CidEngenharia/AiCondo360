@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { LandingPage } from './pages/LandingPage';
@@ -18,6 +18,8 @@ import { Garagem } from './pages/Garagem';
 import { Telefones } from './pages/Telefones';
 import { Agendamentos } from './pages/Agendamentos';
 import { Animais } from './pages/Animais';
+import Profile from './pages/Profile';
+import { DigitalKey } from './components/DigitalKey';
 import { useAuth } from './hooks/useAuth';
 import { PricingPlan } from './constants';
 
@@ -29,6 +31,7 @@ export default function App() {
       setUser({ ...user, plan });
     }
   };
+  const navigate = useNavigate();
 
   if (loading) {
     return (
@@ -39,8 +42,7 @@ export default function App() {
   }
 
   return (
-    <Router>
-      <Routes>
+    <Routes>
         <Route 
           path="/login" 
           element={user ? <Navigate to="/" /> : <LandingPage setUser={setUser} />} 
@@ -65,6 +67,24 @@ export default function App() {
                   userName={user.name}
                   onPlanChange={handlePlanChange}
                 />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        <Route 
+          path="/profile" 
+          element={
+            user ? (
+              <Layout 
+                condoName={user.condo} 
+                userName={user.name} 
+                onLogout={logout}
+                userRole={user.role}
+                userPlan={user.plan}
+              >
+                <Profile user={user} setUser={setUser} />
               </Layout>
             ) : (
               <Navigate to="/login" />
@@ -306,6 +326,24 @@ export default function App() {
           } 
         />
         <Route 
+          path="/feature/digital-key" 
+          element={
+            user ? (
+              <Layout 
+                condoName={user.condo} 
+                userName={user.name} 
+                onLogout={logout}
+                userRole={user.role}
+                userPlan={user.plan}
+              >
+                <DigitalKey />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        <Route 
           path="/feature/:id" 
           element={
             user ? (
@@ -340,6 +378,7 @@ export default function App() {
                   userRole={user.role}
                   userPlan={user.plan}
                   condoId={user.condoId}
+                  onNavigate={(page) => navigate(`/feature/${page}`)}
                 />
               </Layout>
             ) : (
@@ -350,6 +389,5 @@ export default function App() {
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-    </Router>
   );
 }

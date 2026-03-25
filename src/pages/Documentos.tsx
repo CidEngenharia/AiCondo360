@@ -1,6 +1,7 @@
 import React from 'react';
-import { FileText, Folder, File, Download, MoreVertical, Search, Filter } from 'lucide-react';
+import { FileText, Folder, File, Download, MoreVertical, Search, Filter, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { FeatureHeader } from '../components/FeatureHeader';
 
 const DOCS = [
   { id: 1, title: 'Regimento Interno 2024', type: 'pdf', size: '2.4 MB', date: '10 Nov 2024', folder: 'Regras' },
@@ -14,14 +15,17 @@ const FOLDERS = ['Regras', 'Atas', 'Financeiro', 'Geral'];
 export const Documentos: React.FC = () => {
   return (
     <div className="p-4 sm:p-6 lg:p-8 pt-6 w-full max-w-7xl mx-auto space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Documentos</h1>
-          <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1">
-            Arquivos e normas importantes do condomínio
-          </p>
-        </div>
-      </div>
+      <FeatureHeader 
+        icon={FileText}
+        title="Documentos"
+        description="Arquivos e normas importantes do condomínio."
+        color="bg-indigo-600"
+      >
+        <button className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-indigo-600/20 active:scale-[0.98]">
+          <Plus size={20} />
+          <span>Novo Documento</span>
+        </button>
+      </FeatureHeader>
 
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-md">

@@ -16,14 +16,12 @@ export const Garagem: React.FC = () => {
         title="Veículos e Garagem"
         description="Gerencie as permissões de acesso à garagem e o cadastro dos seus veículos."
         color="bg-slate-700"
-      />
-
-      <div className="flex justify-end">
-        <button className="flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-sm shadow-slate-700/20 active:scale-[0.98]">
+      >
+        <button className="flex w-full sm:w-auto items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 dark:text-slate-900 text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-sm active:scale-[0.98]">
           <Plus size={18} />
           <span>Cadastrar Veículo</span>
         </button>
-      </div>
+      </FeatureHeader>
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">

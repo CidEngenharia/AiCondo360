@@ -7,9 +7,10 @@ interface FeatureHeaderProps {
   title: string;
   description: string;
   color: string;
+  children?: React.ReactNode;
 }
 
-export const FeatureHeader: React.FC<FeatureHeaderProps> = ({ icon: Icon, title, description, color }) => {
+export const FeatureHeader: React.FC<FeatureHeaderProps> = ({ icon: Icon, title, description, color, children }) => {
   return (
     <div className="mb-8 p-6 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors overflow-hidden relative">
       <div className={`absolute top-0 right-0 w-32 h-32 ${color} opacity-5 blur-3xl -mr-16 -mt-16 rounded-full`} />
@@ -40,6 +41,12 @@ export const FeatureHeader: React.FC<FeatureHeaderProps> = ({ icon: Icon, title,
             {description}
           </motion.p>
         </div>
+
+        {children && (
+          <div className="mt-4 sm:mt-0 flex shrink-0">
+            {children}
+          </div>
+        )}
       </div>
     </div>
   );

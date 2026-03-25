@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Calendar, Clock, Truck, Hammer, Package, FileText, ChevronRight, X, User } from 'lucide-react';
+import { Plus, Calendar, Clock, Truck, Hammer, Package, FileText, ChevronRight, X, User, Trash2, CheckCircle2 } from 'lucide-react';
+import { FeatureHeader } from '../components/FeatureHeader';
 import { cn } from '../lib/utils';
 
 type ScheduleType = 'mudanca' | 'reforma' | 'entrega' | 'manutencao' | 'outros';
@@ -63,30 +64,59 @@ const STATUS_CONFIG = {
 
 export const Agendamentos: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'ativos' | 'historico'>('ativos');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [schedules, setSchedules] = useState<Schedule[]>(MOCK_SCHEDULES);
+  const [newSchedule, setNewSchedule] = useState<Omit<Schedule, 'id' | 'status'>>({
+    title: '',
+    type: 'outros',
+    date: '',
+    time: '',
+    description: '',
+  });
 
-  const filteredSchedules = MOCK_SCHEDULES.filter(s => {
+  const filteredSchedules = schedules.filter(s => {
     if (activeTab === 'ativos') {
       return s.status === 'pendente' || s.status === 'aprovado';
     }
     return s.status === 'concluido' || s.status === 'rejeitado';
   });
 
+  const handleCreateSchedule = (e: React.FormEvent) => {
+    e.preventDefault();
+    const schedule: Schedule = {
+      ...newSchedule,
+      id: Math.random().toString(36).substr(2, 9),
+      status: 'pendente',
+    };
+    setSchedules([schedule, ...schedules]);
+    setIsModalOpen(false);
+    setNewSchedule({ title: '', type: 'outros', date: '', time: '', description: '' });
+  };
+
+  const handleApprove = (id: string) => {
+    setSchedules(prev => prev.map(s => s.id === id ? { ...s, status: 'aprovado' } : s));
+  };
+
+  const handleDelete = (id: string) => {
+    setSchedules(prev => prev.filter(s => s.id !== id));
+  };
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 pt-6 sm:pt-8 w-full max-w-7xl mx-auto space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Agendamentos</h1>
-          <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1">
-            Gerencie mudanças, reformas e serviços na sua unidade
-          </p>
-        </div>
-        
-        <button className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-sm shadow-blue-500/20 active:scale-[0.98]">
-          <Plus size={18} />
+      <FeatureHeader
+        icon={Calendar}
+        title="Agendamentos"
+        description="Gerencie mudanças, reformas e serviços na sua unidade."
+        color="bg-blue-600"
+      >
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-blue-600/20 active:scale-[0.98]"
+        >
+          <Plus size={20} />
           <span>Novo Agendamento</span>
         </button>
-      </div>
+      </FeatureHeader>
 
       {/* Tabs */}
       <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl w-fit">
@@ -129,7 +159,7 @@ export const Agendamentos: React.FC = () => {
                   exit={{ opacity: 0, scale: 0.95 }}
                   className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all group cursor-pointer"
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-4 flex-1">
                     {/* Icon */}
                     <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shrink-0", TYPE_CONFIG[schedule.type].bg, TYPE_CONFIG[schedule.type].color)}>
                       <TypeIcon size={24} />
@@ -167,9 +197,24 @@ export const Agendamentos: React.FC = () => {
                       </p>
                     </div>
 
-                    {/* Chevron */}
-                    <div className="hidden sm:flex items-center shrink-0 text-slate-400 group-hover:text-blue-500 transition-colors ml-4 transform group-hover:translate-x-1 duration-200">
-                      <ChevronRight size={24} />
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 ml-auto sm:ml-4">
+                      {schedule.status === 'pendente' && (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleApprove(schedule.id); }}
+                          className="p-2 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors"
+                          title="Aprovar"
+                        >
+                          <CheckCircle2 size={20} />
+                        </button>
+                      )}
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleDelete(schedule.id); }}
+                        className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                        title="Excluir"
+                      >
+                        <Trash2 size={20} />
+                      </button>
                     </div>
                   </div>
                 </motion.div>
@@ -194,6 +239,117 @@ export const Agendamentos: React.FC = () => {
           </p>
         </motion.div>
       )}
+
+      {/* New Appointment Modal */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-white dark:bg-slate-800 w-full max-w-lg rounded-3xl shadow-2xl relative z-10 overflow-hidden"
+            >
+              <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">Novo Agendamento</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Preencha os dados abaixo</p>
+                </div>
+                <button 
+                  onClick={() => setIsModalOpen(false)}
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full text-slate-400 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateSchedule} className="p-6 space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Assunto</label>
+                  <input
+                    required
+                    value={newSchedule.title}
+                    onChange={e => setNewSchedule(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Ex: Mudança de Entrada"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-2xl px-4 py-3 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 transition-all"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Tipo</label>
+                    <select
+                      value={newSchedule.type}
+                      onChange={e => setNewSchedule(prev => ({ ...prev, type: e.target.value as ScheduleType }))}
+                      className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-2xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all appearance-none"
+                    >
+                      {Object.entries(TYPE_CONFIG).map(([key, value]) => (
+                        <option key={key} value={key}>{value.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Data</label>
+                    <input
+                      required
+                      type="date"
+                      value={newSchedule.date}
+                      onChange={e => setNewSchedule(prev => ({ ...prev, date: e.target.value }))}
+                      className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-2xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Horário</label>
+                  <input
+                    required
+                    placeholder="Ex: 08:00 - 18:00"
+                    value={newSchedule.time}
+                    onChange={e => setNewSchedule(prev => ({ ...prev, time: e.target.value }))}
+                    className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-2xl px-4 py-3 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 transition-all"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Descrição</label>
+                  <textarea
+                    rows={3}
+                    value={newSchedule.description}
+                    onChange={e => setNewSchedule(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Detalhes adicionais..."
+                    className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-2xl px-4 py-3 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 transition-all resize-none"
+                  />
+                </div>
+
+                <div className="pt-4 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="flex-1 px-6 py-3 rounded-2xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-blue-600/20 active:scale-[0.98]"
+                  >
+                    Confirmar
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -212,6 +212,39 @@ export const ReservationService = {
     }
 
     return data as Reserva[];
+  },
+
+  async getAreaReservations(condoId: string, areaName: string): Promise<Reserva[]> {
+    const { data, error } = await supabase
+      .from('reservas')
+      .select('*')
+      .eq('condominio_id', condoId)
+      .eq('area_name', areaName)
+      .order('reservation_date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching area reservations:', error);
+      return [];
+    }
+
+    return data as Reserva[];
+  },
+
+  async createReservation(reservation: Omit<Reserva, 'id' | 'created_at'>) {
+    const { data, error } = await supabase
+      .from('reservas')
+      .insert([
+        {
+          ...reservation,
+          status: 'confirmed',
+          created_at: new Date().toISOString()
+        }
+      ])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Reserva;
   }
 };
 

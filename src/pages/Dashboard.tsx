@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { FeatureGrid } from '../components/FeatureGrid';
-import { TrendingUp, Users, AlertCircle, Cloud, Sun, CloudRain, CloudLightning, Moon, ArrowRight, Star, Calendar, Package, FileText } from 'lucide-react';
+import { TrendingUp, Users, AlertCircle, Cloud, Sun, CloudRain, CloudLightning, Moon, ArrowRight, Star, Calendar, Package, FileText, Key } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { FEATURES, UserRole, PricingPlan } from '../constants';
 import { UpgradeBanner } from '../components/UpgradeBanner';
 import { BoletoService, AnnouncementService, ReservationService, PackageService, Boleto, Comunicado, Reserva, Encomenda } from '../services/supabaseService';
@@ -12,9 +13,10 @@ interface DashboardProps {
   userRole: UserRole;
   userPlan: PricingPlan;
   condoId: string;
+  onNavigate: (page: string) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole, userPlan, condoId }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole, userPlan, condoId, onNavigate }) => {
   const [greeting, setGreeting] = useState('');
   const [currentDate, setCurrentDate] = useState('');
   const [weather, setWeather] = useState({ temp: 24, condition: 'Ensolarado', icon: Sun });
@@ -99,8 +101,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
           </div>
         </div>
         
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
+        <div className="flex flex-col gap-4 mb-6">
+           <Link 
+            to="/feature/digital-key"
+            className="w-full bg-white text-blue-700 dark:bg-slate-700 dark:text-white py-4 rounded-2xl flex items-center justify-center gap-3 font-bold shadow-xl shadow-blue-900/20 active:scale-95 transition-transform"
+          >
+            <div className="bg-blue-100 dark:bg-slate-600 p-2 rounded-lg">
+              <Key size={18} className="text-blue-600 dark:text-blue-400" />
+            </div>
+            Abrir Portas / Chave Digital
+          </Link>
+        </div>
+        
+         <div className="grid grid-cols-2 gap-3">
+          <Link to="/feature/boletos" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform">
             <div className="flex items-center gap-2 mb-2">
               <FileText size={16} className="text-blue-200" />
               <span className="text-xs font-medium uppercase tracking-wider opacity-80">Próxima Fatura</span>
@@ -111,16 +125,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
             <p className="text-[10px] opacity-70">
               {nextBoleto ? `Vencimento: ${new Date(nextBoleto.due_date).toLocaleDateString('pt-BR')}` : 'Sem faturas pendentes'}
             </p>
-          </div>
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
+          </Link>
+          <Link to="/feature/comunicados" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform">
             <div className="flex items-center gap-2 mb-2">
               <AlertCircle size={16} className="text-amber-300" />
               <span className="text-xs font-medium uppercase tracking-wider opacity-80">Avisos</span>
             </div>
             <p className="text-lg font-bold">{announcements.length} Ativos</p>
             <p className="text-[10px] opacity-70">Mural atualizado</p>
-          </div>
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
+          </Link>
+          <Link to="/feature/reservas" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform">
             <div className="flex items-center gap-2 mb-2">
               <Calendar size={16} className="text-emerald-300" />
               <span className="text-xs font-medium uppercase tracking-wider opacity-80">Reservas</span>
@@ -131,8 +145,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
                 ? `Próxima: ${new Date(upcomingReservations[0].reservation_date).toLocaleDateString('pt-BR')}` 
                 : 'Nenhuma reserva'}
             </p>
-          </div>
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
+          </Link>
+          <Link to="/feature/encomendas" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform">
             <div className="flex items-center gap-2 mb-2">
               <Package size={16} className="text-purple-300" />
               <span className="text-xs font-medium uppercase tracking-wider opacity-80">Encomendas</span>
@@ -141,7 +155,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
             <p className="text-[10px] opacity-70">
               {pendingPackages.length > 0 ? 'Retire na portaria' : 'Nenhuma pendência'}
             </p>
-          </div>
+          </Link>
         </div>
       </section>
 
@@ -150,9 +164,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
 
       {/* Quick Actions Grid */}
       <section>
-        <div className="flex items-center justify-between mb-4 px-2">
+         <div className="flex items-center justify-between mb-4 px-2">
           <h3 className="font-bold text-slate-800 dark:text-white">Acesso Rápido</h3>
-          <button className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">Ver todos</button>
+          <Link to="/features" className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">Ver todos</Link>
         </div>
         <FeatureGrid features={filteredFeatures} userPlan={userPlan} userRole={userRole} />
       </section>

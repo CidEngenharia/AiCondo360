@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, MessageSquare, AlertTriangle, AlertCircle, Info, ChevronRight, MessageCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { FeatureHeader } from '../components/FeatureHeader';
 
 type Priority = 'low' | 'medium' | 'high';
 type Status = 'open' | 'in_progress' | 'resolved';
@@ -42,18 +43,17 @@ export const Ocorrencias: React.FC = () => {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 pt-6 sm:pt-8 w-full max-w-7xl mx-auto space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Ocorrências</h1>
-          <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1">
-            Abra ou acompanhe chamados e registros
-          </p>
-        </div>
-        <button className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-sm shadow-blue-500/20 active:scale-[0.98]">
-          <Plus size={18} />
+      <FeatureHeader 
+        icon={AlertCircle}
+        title="Ocorrências"
+        description="Abra ou acompanhe chamados e registros."
+        color="bg-rose-500"
+      >
+        <button className="flex items-center justify-center gap-2 bg-rose-500 hover:bg-rose-400 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-rose-600/20 active:scale-[0.98]">
+          <Plus size={20} />
           <span>Nova Ocorrência</span>
         </button>
-      </div>
+      </FeatureHeader>
 
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
         {(['all', 'open', 'in_progress', 'resolved'] as const).map(f => (

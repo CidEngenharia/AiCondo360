@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Bell, Menu, User, Settings, LogOut, Sun, Moon, MessageCircle, X, ChevronRight, Lock, Sparkles, LayoutDashboard } from 'lucide-react';
+import { Bell, Menu, User, Settings, LogOut, Sun, Moon, MessageCircle, X, ChevronRight, Lock, Sparkles, LayoutDashboard, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AIChat } from './AIChat';
 import { FEATURES, UserRole, PricingPlan } from '../constants';
@@ -107,6 +107,25 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
               <span className="text-sm font-medium flex-1 text-left">Dashboard</span>
             </button>
 
+            {/* Profile Link */}
+            <button
+              onClick={() => navigate('/profile')}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group relative",
+                location.pathname === '/profile' 
+                  ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" 
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+              )}
+            >
+              <div className={cn(
+                "p-2 rounded-lg transition-colors",
+                location.pathname === '/profile' ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400"
+              )}>
+                <User size={18} />
+              </div>
+              <span className="text-sm font-medium flex-1 text-left line-clamp-1">Meu Perfil</span>
+            </button>
+
             {/* Settings Link */}
             <button
               onClick={() => navigate('/settings')}
@@ -167,7 +186,23 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
                 </button>
               );
             })}
+
+          {/* Suporte Link */}
+          <div className="px-3 pt-4 pb-2 border-t border-slate-100 dark:border-slate-800 mt-4">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ajuda & Suporte</p>
           </div>
+          <a
+            href="https://www.condovibe.com.br/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-blue-600 dark:hover:text-blue-400"
+          >
+            <div className="p-2 rounded-lg transition-colors text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+              <HelpCircle size={18} />
+            </div>
+            <span className="text-sm font-medium flex-1 text-left">Suporte</span>
+          </a>
+        </div>
 
           {/* Sidebar Footer */}
           <div className="p-4 border-t border-slate-100 dark:border-slate-700">
@@ -234,15 +269,18 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-800"></span>
               </button>
               <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
-              <div className="hidden sm:flex items-center gap-2 pl-1">
-                <div className="flex flex-col items-end">
+              <button 
+                onClick={() => navigate('/profile')}
+                className="flex items-center gap-2 pl-1 hover:opacity-80 transition-opacity"
+              >
+                <div className="hidden sm:flex flex-col items-end">
                   <span className="text-xs font-medium text-slate-900 dark:text-white">{userName}</span>
                   <span className="text-[10px] text-slate-500 dark:text-slate-400">{getRoleLabel(userRole)}</span>
                 </div>
                 <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold text-xs">
                   {userName.charAt(0)}
                 </div>
-              </div>
+              </button>
             </div>
           </div>
         </header>
@@ -267,29 +305,54 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
         </motion.a>
 
         {/* Bottom Navigation (Mobile) */}
-        <nav className="lg:hidden bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 px-6 py-3 flex justify-between items-center sticky bottom-0 transition-colors">
-          <button className="flex flex-col items-center gap-1 text-blue-600 dark:text-blue-400">
-            <Menu size={20} />
+        <nav className="lg:hidden bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 px-6 py-3 flex justify-between items-center sticky bottom-0 transition-colors shadow-lg z-50">
+          <button 
+            onClick={() => navigate('/')}
+            className={cn(
+              "flex flex-col items-center gap-1 transition-colors",
+              location.pathname === '/' ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"
+            )}
+          >
+            <LayoutDashboard size={20} />
             <span className="text-[10px] font-medium">Início</span>
           </button>
           <button 
             onClick={() => setIsChatOpen(true)}
-            className="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500"
+            className={cn(
+              "flex flex-col items-center gap-1 transition-colors",
+              isChatOpen ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"
+            )}
           >
             <Sparkles size={20} />
             <span className="text-[10px] font-medium">IA</span>
           </button>
-          <button className="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500">
+          <button 
+            onClick={() => navigate('/notifications')}
+            className={cn(
+              "flex flex-col items-center gap-1 transition-colors relative",
+              location.pathname === '/notifications' ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"
+            )}
+          >
             <Bell size={20} />
+            <span className="absolute top-0 right-1 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-slate-800"></span>
             <span className="text-[10px] font-medium">Avisos</span>
           </button>
-          <button className="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500">
+          <button 
+            onClick={() => navigate('/settings')}
+            className={cn(
+              "flex flex-col items-center gap-1 transition-colors",
+              location.pathname === '/settings' ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"
+            )}
+          >
             <Settings size={20} />
             <span className="text-[10px] font-medium">Ajustes</span>
           </button>
           <button 
             onClick={toggleSidebar}
-            className="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500"
+            className={cn(
+              "flex flex-col items-center gap-1 transition-colors",
+              isSidebarOpen ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"
+            )}
           >
             <Menu size={20} />
             <span className="text-[10px] font-medium">Menu</span>

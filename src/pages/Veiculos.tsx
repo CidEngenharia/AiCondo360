@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Car, Plus, Key, CreditCard, Clock, 
-  Trash2, Edit3, CheckCircle2, AlertTriangle, FileText
+  Trash2, Edit3, CheckCircle2, AlertTriangle, FileText, Search
 } from 'lucide-react';
 import { FeatureHeader } from '../components/FeatureHeader';
 
@@ -42,10 +42,16 @@ const MOCK_VEHICLES: Vehicle[] = [
 
 export const Veiculos: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'ativos' | 'inativos'>('ativos');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredVehicles = MOCK_VEHICLES.filter(v => 
-    activeTab === 'ativos' ? v.status === 'Ativo' : v.status === 'Inativo'
-  );
+  const filteredVehicles = MOCK_VEHICLES.filter(v => {
+    const matchesTab = activeTab === 'ativos' ? v.status === 'Ativo' : v.status === 'Inativo';
+    const query = searchQuery.toLowerCase();
+    const matchesSearch = v.model.toLowerCase().includes(query) || 
+                          v.brand.toLowerCase().includes(query) ||
+                          v.plate.toLowerCase().includes(query);
+    return matchesTab && matchesSearch;
+  });
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 pt-6 w-full max-w-7xl mx-auto space-y-8">
@@ -54,7 +60,12 @@ export const Veiculos: React.FC = () => {
         title="Meus Veículos"
         description="Gerencie os veículos da sua unidade, vagas de garagem e controle de acesso."
         color="bg-sky-600"
-      />
+      >
+        <button className="flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-500 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-sky-600/20 active:scale-[0.98]">
+          <Plus size={20} />
+          <span>Novo Veículo</span>
+        </button>
+      </FeatureHeader>
 
       {/* Estatísticas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -96,7 +107,7 @@ export const Veiculos: React.FC = () => {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 w-full sm:w-auto">
+        <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 w-full sm:w-auto overflow-x-auto hide-scrollbar">
           <button 
             onClick={() => setActiveTab('ativos')}
             className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
@@ -120,10 +131,16 @@ export const Veiculos: React.FC = () => {
         </div>
 
         <div className="flex w-full sm:w-auto gap-3">
-          <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-sky-600/20 hover:shadow-sky-600/40 active:scale-[0.98]">
-            <Plus size={20} />
-            <span>Novo Veículo</span>
-          </button>
+          <div className="relative flex-1 sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input 
+              type="text" 
+              placeholder="Buscar veículo..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50 text-slate-700 dark:text-slate-300 transition-all font-medium"
+            />
+          </div>
         </div>
       </div>
 
@@ -138,10 +155,10 @@ export const Veiculos: React.FC = () => {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: 20 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
-                className="group bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/60 dark:border-slate-700/60 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-sky-500/10 hover:border-sky-200 dark:hover:border-sky-800 transition-all duration-500 relative"
+                className="group bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/60 dark:border-slate-700/60 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-sky-500/10 hover:border-sky-200 dark:hover:border-sky-800 transition-all duration-500 relative flex flex-col h-full"
               >
                 {/* Decorational Background */}
-                <div className="absolute -right-6 -top-6 w-32 h-32 bg-sky-50 dark:bg-sky-900/20 rounded-full blur-3xl opacity-50 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute right-0 top-0 w-32 h-32 bg-gradient-to-br from-sky-500/10 to-transparent dark:from-sky-400/5 dark:to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                 
                 <div className="p-6 relative z-10">
                   <div className="flex justify-between items-start mb-6">
@@ -156,7 +173,7 @@ export const Veiculos: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="mb-6">
+                  <div className="mb-6 flex-grow">
                     <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">{vehicle.model}</h3>
                     <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">{vehicle.brand} • {vehicle.color}</p>
                   </div>
@@ -176,15 +193,16 @@ export const Veiculos: React.FC = () => {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-2 pt-4 border-t border-slate-100 dark:border-slate-700/50">
-                    <button className="flex-1 flex justify-center items-center gap-2 bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400 px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-sky-100 dark:hover:bg-sky-900/40 transition-colors">
-                      <CreditCard size={16} />
+                  <div className="flex items-center gap-2 pt-4 border-t border-slate-100 dark:border-slate-700/50 mt-auto">
+                    <button className="flex-1 flex justify-center items-center gap-2 bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-sky-100 dark:hover:bg-sky-500/20 transition-colors">
+                      <CreditCard size={18} />
                       <span className="hidden sm:inline">TAG Acesso</span>
+                      <span className="sm:hidden">TAG</span>
                     </button>
-                    <button className="p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
+                    <button className="p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-xl transition-colors">
                       <Edit3 size={18} />
                     </button>
-                    <button className="p-2.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-colors">
+                    <button className="p-2.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-colors">
                       <Trash2 size={18} />
                     </button>
                   </div>

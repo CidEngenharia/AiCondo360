@@ -19,7 +19,8 @@ import {
   Handshake,
   MapPin,
   Phone,
-  Vote
+  Vote,
+  Key
 } from 'lucide-react';
 
 export type UserRole = 'resident' | 'admin' | 'syndic' | 'global_admin';
@@ -49,6 +50,7 @@ export const FEATURES: Feature[] = [
   { id: 'veiculos', label: 'Garagem', icon: Car, color: 'bg-zinc-700', category: 'social', roles: ['resident', 'admin', 'syndic'], plans: ['enterprise', 'premium'] },
   { id: 'contatos', label: 'Telefones', icon: Phone, color: 'bg-cyan-600', category: 'communication', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
   { id: 'assembleias', label: 'Assembleias', icon: Vote, color: 'bg-teal-500', category: 'social', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
+  { id: 'digital-key', label: 'Chave Digital', icon: Key, color: 'bg-yellow-500', category: 'operations', roles: ['resident', 'admin', 'syndic'], plans: ['premium'] },
 ];
 
 export const PLANS = [
