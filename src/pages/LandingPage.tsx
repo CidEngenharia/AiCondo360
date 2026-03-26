@@ -152,11 +152,14 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
           {/* Left: Branding & Message */}
           <div className="space-y-12">
             <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="mb-8"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10"
             >
-              <img src="/AICondo1_L.fw.png" alt="Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
+              <div className="w-12 h-12 rounded-xl overflow-hidden border border-white/20 bg-white/5 flex items-center justify-center">
+                <img src="/AICondo1_L.fw.png" alt="Logo" className="w-full h-full object-contain" />
+              </div>
+              <span className="text-sm font-black text-white tracking-widest uppercase">AiCondo<span className="text-blue-500">360</span></span>
             </motion.div>
 
             <div className="space-y-6">
@@ -167,8 +170,8 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
                 className="text-5xl md:text-7xl font-black text-white leading-[0.95] tracking-tighter"
               >
                 Inteligência <br />
-                que Transforma <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-600 animate-gradient">Condomínios em Família</span>
+                que Transforma a <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-600 animate-gradient">Vila em Família</span>
               </motion.h1>
               <motion.p 
                 initial={{ opacity: 0 }}
@@ -350,8 +353,11 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-20">
             <div className="space-y-8">
-              <div className="flex items-center">
-                <img src="/AICondo1_L.fw.png" alt="Logo" className="w-12 h-12 object-contain" />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                  <img src="/AICondo1_L.fw.png" alt="Logo" className="w-7 h-7 object-contain" />
+                </div>
+                <span className="text-lg font-black text-white tracking-widest uppercase">AiCondo<span className="text-blue-500">360</span></span>
               </div>
               <p className="text-slate-500 text-sm leading-relaxed">Software de gestão inteligente que conecta síndicos e moradores em uma experiência 360º.</p>
               <div className="flex gap-4">
@@ -387,29 +393,15 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
               <ul className="space-y-6">
                 <li className="flex items-start gap-3">
                   <Mail size={18} className="text-blue-500 shrink-0" />
-                  <div className="flex flex-col">
-                    <span className="text-white/40 text-[10px] font-black uppercase tracking-widest leading-none mb-1">Desenvolvedor</span>
-                    <span className="text-slate-500 text-sm">cidengenharia@gmail.com</span>
-                  </div>
+                  <span className="text-slate-500 text-sm">contato@aicondo360.com.br</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <Phone size={18} className="text-blue-500 shrink-0" />
-                  <span className="text-slate-500 text-sm">(71) 98418-4782</span>
+                  <span className="text-slate-500 text-sm">(11) 4004-3600</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <MapPin size={18} className="text-blue-500 shrink-0" />
-                  <span className="text-slate-500 text-sm">Cajazeiras - Salvador - BA</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Globe size={18} className="text-blue-500 shrink-0" />
-                  <a 
-                    href="https://cidengenharia.vercel.app" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-slate-500 text-sm hover:text-white transition-colors decoration-blue-500/30 underline-offset-4 hover:underline"
-                  >
-                    cidengenharia.vercel.app
-                  </a>
+                  <span className="text-slate-500 text-sm">Av. Paulista, 1000 - São Paulo, SP</span>
                 </li>
               </ul>
             </div>
