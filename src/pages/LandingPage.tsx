@@ -156,8 +156,8 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
               animate={{ opacity: 1, x: 0 }}
               className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10"
             >
-              <div className="w-8 h-8 rounded-lg overflow-hidden border border-white/20">
-                <img src="/favicon.jpg" alt="Logo" className="w-full h-full object-cover" />
+              <div className="w-12 h-12 rounded-xl overflow-hidden border border-white/20 bg-white/5 flex items-center justify-center">
+                <img src="/AICondo1_L.fw.png" alt="Logo" className="w-full h-full object-contain" />
               </div>
               <span className="text-sm font-black text-white tracking-widest uppercase">AiCondo<span className="text-blue-500">360</span></span>
             </motion.div>
@@ -302,21 +302,21 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-center">
             <PricingCard 
-              title="Starter" 
-              price="299" 
+              title="Basic" 
+              price="199,00" 
               features={["Até 50 unidades", "Gestão de moradores", "Mural digital", "Suporte email"]} 
               delay={0.1}
             />
             <PricingCard 
-              title="Pro" 
-              price="599" 
+              title="Enterprise" 
+              price="299,00" 
               features={["Unidades ilimitadas", "Boletos automáticos", "Assembleias virtuais", "Suporte 24/7", "App Personalizado"]} 
               highlighted={true}
               delay={0.2}
             />
             <PricingCard 
-              title="Enterprise" 
-              price="Consultar" 
+              title="Premium" 
+              price="499,99" 
               features={["Customização total", "API aberta", "Integração hardware", "Gerente de conta", "Treinamento presencial"]} 
               delay={0.3}
             />
@@ -355,7 +355,7 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
             <div className="space-y-8">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-                  <img src="/favicon.jpg" alt="Logo" className="w-6 h-6 object-cover" />
+                  <img src="/AICondo1_L.fw.png" alt="Logo" className="w-7 h-7 object-contain" />
                 </div>
                 <span className="text-lg font-black text-white tracking-widest uppercase">AiCondo<span className="text-blue-500">360</span></span>
               </div>
