@@ -72,6 +72,17 @@ export interface MuralPost {
   created_at: string;
 }
 
+export interface MuralComment {
+  id: string;
+  post_id: string;
+  author_id: string;
+  author_name: string;
+  author_avatar?: string;
+  author_role: string;
+  content: string;
+  created_at: string;
+}
+
 export interface Assembleia {
   id: string;
   condominio_id: string;
@@ -82,6 +93,23 @@ export interface Assembleia {
   end_date: string;
   created_at: string;
 }
+
+export interface MercadoItem {
+  id: string;
+  condominio_id: string;
+  user_id: string;
+  seller_name: string;
+  seller_avatar?: string;
+  title: string;
+  description: string;
+  price: number;
+  category: string;
+  condition: 'new' | 'used';
+  image_url?: string;
+  status: 'active' | 'sold';
+  created_at: string;
+}
+
 
 export const ProfileService = {
   async getProfile(userId: string): Promise<UserProfile | null> {
@@ -322,6 +350,52 @@ export const MuralService = {
       .eq('id', postId);
 
     if (error) throw error;
+  },
+
+  async getComments(postId: string): Promise<MuralComment[]> {
+    const { data, error } = await supabase
+      .from('mural_comments')
+      .select('*')
+      .eq('post_id', postId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching mural comments:', error);
+      return [];
+    }
+
+    return data as MuralComment[];
+  },
+
+  async createComment(comment: Omit<MuralComment, 'id' | 'created_at'>) {
+    const { data, error } = await supabase
+      .from('mural_comments')
+      .insert([
+        {
+          ...comment,
+          created_at: new Date().toISOString()
+        }
+      ])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Increment comment count on the post
+    const { data: postData } = await supabase
+      .from('mural_posts')
+      .select('comments_count')
+      .eq('id', comment.post_id)
+      .single();
+    
+    if (postData) {
+      await supabase
+        .from('mural_posts')
+        .update({ comments_count: (postData.comments_count || 0) + 1 })
+        .eq('id', comment.post_id);
+    }
+
+    return data as MuralComment;
   }
 };
 
@@ -360,3 +434,39 @@ export const AssembleiaService = {
     return data as Assembleia;
   }
 };
+
+export const MercadoService = {
+  async getItems(condoId: string): Promise<MercadoItem[]> {
+    const { data, error } = await supabase
+      .from('mercado_items')
+      .select('*')
+      .eq('condominio_id', condoId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching mercado items:', error);
+      return [];
+    }
+
+    return data as MercadoItem[];
+  },
+
+  async getRecentItems(condoId: string, limit = 4): Promise<MercadoItem[]> {
+    const { data, error } = await supabase
+      .from('mercado_items')
+      .select('*')
+      .eq('condominio_id', condoId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching recent mercado items:', error);
+      return [];
+    }
+
+    return data as MercadoItem[];
+  }
+};
+

@@ -5,7 +5,20 @@ import { TrendingUp, Users, AlertCircle, Cloud, Sun, CloudRain, CloudLightning, 
 import { Link } from 'react-router-dom';
 import { FEATURES, UserRole, PricingPlan } from '../constants';
 import { UpgradeBanner } from '../components/UpgradeBanner';
-import { BoletoService, AnnouncementService, ReservationService, PackageService, Boleto, Comunicado, Reserva, Encomenda } from '../services/supabaseService';
+import { 
+  BoletoService, 
+  AnnouncementService, 
+  ReservationService, 
+  PackageService, 
+  AssembleiaService,
+  MercadoService,
+  Boleto, 
+  Comunicado, 
+  Reserva, 
+  Encomenda,
+  Assembleia,
+  MercadoItem
+} from '../services/supabaseService';
 
 interface DashboardProps {
   userId: string;
@@ -24,6 +37,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
   const [announcements, setAnnouncements] = useState<Comunicado[]>([]);
   const [upcomingReservations, setUpcomingReservations] = useState<Reserva[]>([]);
   const [pendingPackages, setPendingPackages] = useState<Encomenda[]>([]);
+  const [upcomingAssembleia, setUpcomingAssembleia] = useState<Assembleia | null>(null);
+  const [recentMercadoItems, setRecentMercadoItems] = useState<MercadoItem[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
@@ -50,20 +65,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
     ];
     setWeather(mockWeathers[Math.floor(Math.random() * mockWeathers.length)]);
 
-    // Fetch Real Data
     const fetchData = async () => {
       try {
-        const [boleto, comms, reservations, packages] = await Promise.all([
+        const [boleto, comms, reservations, packages, assembleia, mercado] = await Promise.all([
           BoletoService.getNextPendingBoleto(userId),
           AnnouncementService.getRecentAnnouncements(condoId),
           ReservationService.getUpcomingReservations(userId),
-          PackageService.getPendingPackages(userId)
+          PackageService.getPendingPackages(userId),
+          AssembleiaService.getUpcomingAssembleia(condoId),
+          MercadoService.getRecentItems(condoId)
         ]);
         
         setNextBoleto(boleto);
         setAnnouncements(comms);
         setUpcomingReservations(reservations);
         setPendingPackages(packages);
+        setUpcomingAssembleia(assembleia);
+        setRecentMercadoItems(mercado);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -157,7 +175,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
             </p>
           </Link>
         </div>
+        
+        {upcomingAssembleia && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-6 p-4 bg-amber-500/20 backdrop-blur-md border border-amber-500/30 rounded-2xl"
+          >
+            <div className="flex items-center gap-3">
+              <div className="bg-amber-500 p-2 rounded-xl text-white">
+                <Users size={18} />
+              </div>
+              <div className="flex-1">
+                <p className="text-[10px] uppercase font-bold text-amber-200 tracking-wider">Próxima Assembleia</p>
+                <h4 className="text-sm font-bold">{upcomingAssembleia.title}</h4>
+                <p className="text-xs opacity-80">{new Date(upcomingAssembleia.start_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })}</p>
+              </div>
+              <Link to="/feature/assembleias" className="bg-white text-amber-700 px-3 py-1.5 rounded-lg text-[10px] font-bold">Ver</Link>
+            </div>
+          </motion.div>
+        )}
       </section>
+
 
       {/* Upgrade Call to Action */}
       <UpgradeBanner currentPlan={userPlan} />
@@ -205,6 +244,38 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
         </div>
       </section>
 
+      {/* Marketplace Sneak Peek */}
+      {recentMercadoItems.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-center justify-between mb-4 px-2">
+            <h3 className="font-bold text-slate-800 dark:text-white">Classificados</h3>
+            <Link to="/feature/classificados" className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">Ver todos</Link>
+          </div>
+          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide px-2">
+            {recentMercadoItems.map((item) => (
+              <motion.div 
+                key={item.id}
+                className="min-w-[160px] bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden"
+              >
+                {item.image_url ? (
+                  <img src={item.image_url} alt={item.title} className="w-full h-24 object-cover" />
+                ) : (
+                  <div className="w-full h-24 bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-400">
+                    <TrendingUp size={24} />
+                  </div>
+                )}
+                <div className="p-3">
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-white truncate">{item.title}</h4>
+                  <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold mt-1">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.price)}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Promo Banner */}
       <section className="relative overflow-hidden rounded-3xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 p-6">
         <div className="relative z-10">
@@ -215,6 +286,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
         </div>
         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-200/30 dark:bg-emerald-400/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
       </section>
+
     </div>
   );
 };

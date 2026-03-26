@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, MessageSquare, AlertTriangle, AlertCircle, Info, ChevronRight, MessageCircle } from 'lucide-react';
+import { Plus, MessageSquare, AlertTriangle, AlertCircle, Info, ChevronRight, MessageCircle, Edit2, Trash2, Eye, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { FeatureHeader } from '../components/FeatureHeader';
+import { useAuth } from '../hooks/useAuth';
 
 type Priority = 'low' | 'medium' | 'high';
 type Status = 'open' | 'in_progress' | 'resolved';
@@ -37,9 +38,14 @@ const statusConfig = {
 };
 
 export const Ocorrencias: React.FC = () => {
+  const { user } = useAuth();
   const [filter, setFilter] = useState<Status | 'all'>('all');
+  const [selectedOccurrence, setSelectedOccurrence] = useState<Occurrence | null>(null);
+  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
 
   const filtered = filter === 'all' ? MOCK_DATA : MOCK_DATA.filter(o => o.status === filter);
+
+  const canManage = user?.role === 'syndic' || user?.role === 'admin';
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 pt-6 sm:pt-8 w-full max-w-7xl mx-auto space-y-8">
@@ -49,7 +55,10 @@ export const Ocorrencias: React.FC = () => {
         description="Abra ou acompanhe chamados e registros."
         color="bg-rose-500"
       >
-        <button className="flex items-center justify-center gap-2 bg-rose-500 hover:bg-rose-400 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-rose-600/20 active:scale-[0.98]">
+        <button 
+          onClick={() => setIsNewModalOpen(true)}
+          className="flex items-center justify-center gap-2 bg-rose-500 hover:bg-rose-400 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-rose-600/20 active:scale-[0.98]"
+        >
           <Plus size={20} />
           <span>Nova Ocorrência</span>
         </button>
@@ -115,12 +124,44 @@ export const Ocorrencias: React.FC = () => {
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-6 sm:w-32 shrink-0 border-t border-slate-100 dark:border-slate-700/50 pt-4 sm:pt-0 sm:border-t-0 mt-2 sm:mt-0">
-                    <div className="flex items-center gap-1.5 text-slate-400">
-                      <MessageCircle size={16} />
-                      <span className="text-sm font-medium">{item.messages}</span>
+                  <div className="flex items-center justify-between sm:justify-end gap-3 sm:w-auto shrink-0 border-t border-slate-100 dark:border-slate-700/50 pt-4 sm:pt-0 sm:border-t-0 mt-2 sm:mt-0">
+                    <div className="flex items-center gap-4 mr-2">
+                      <div className="flex items-center gap-1.5 text-slate-400">
+                        <MessageCircle size={16} />
+                        <span className="text-sm font-medium">{item.messages}</span>
+                      </div>
                     </div>
-                    <ChevronRight size={20} className="text-slate-300 group-hover:text-blue-500 transition-colors transform group-hover:translate-x-1 duration-200" />
+
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setSelectedOccurrence(item); }}
+                        className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-blue-500 transition-colors"
+                        title="Visualizar"
+                      >
+                        <Eye size={18} />
+                      </button>
+
+                      {canManage && (
+                        <>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); /* Logic for edit */ }}
+                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-amber-500 transition-colors"
+                            title="Editar"
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); /* Logic for delete */ }}
+                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
+                            title="Excluir"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </>
+                      )}
+                      
+                      <ChevronRight size={20} className="text-slate-300 group-hover:text-blue-500 transition-colors transform group-hover:translate-x-1 duration-200" />
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -128,6 +169,98 @@ export const Ocorrencias: React.FC = () => {
           })}
         </AnimatePresence>
       </div>
+
+      {/* Modal de Detalhes */}
+      <AnimatePresence>
+        {selectedOccurrence && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl"
+            >
+              <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold dark:text-white">{selectedOccurrence.title}</h3>
+                  <p className="text-sm text-slate-500">#{selectedOccurrence.id} • {selectedOccurrence.category}</p>
+                </div>
+                <button onClick={() => setSelectedOccurrence(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
+                  <X size={24} className="text-slate-400" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="flex gap-4">
+                  <div className={cn("px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider", statusConfig[selectedOccurrence.status].bg, statusConfig[selectedOccurrence.status].color)}>
+                    {statusConfig[selectedOccurrence.status].label}
+                  </div>
+                  <div className={cn("px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5", priorityConfig[selectedOccurrence.priority].bg, priorityConfig[selectedOccurrence.priority].color)}>
+                    {React.createElement(priorityConfig[selectedOccurrence.priority].icon, { size: 12 })}
+                    Prioridade {selectedOccurrence.priority === 'high' ? 'Alta' : selectedOccurrence.priority === 'medium' ? 'Média' : 'Baixa'}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">Descrição</h4>
+                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+                    {selectedOccurrence.description}
+                  </p>
+                </div>
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
+                  <button className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold py-3 rounded-2xl hover:opacity-90 transition-opacity">
+                    Abrir Mensagens ({selectedOccurrence.messages})
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Nova Ocorrência (Placeholder) */}
+      <AnimatePresence>
+        {isNewModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl"
+            >
+              <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                <h3 className="text-xl font-bold dark:text-white">Relatar Ocorrência</h3>
+                <button onClick={() => setIsNewModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
+                  <X size={24} className="text-slate-400" />
+                </button>
+              </div>
+              <form className="p-6 space-y-4" onSubmit={(e) => e.preventDefault()}>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Título</label>
+                  <input type="text" className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-rose-500 transition-all" placeholder="Resumo do problema" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Categoria</label>
+                  <select className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-rose-500 transition-all">
+                    <option>Convivência</option>
+                    <option>Manutenção</option>
+                    <option>Segurança</option>
+                    <option>Infraestrutura</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Descrição</label>
+                  <textarea rows={4} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-rose-500 transition-all" placeholder="Detalhes da ocorrência..." />
+                </div>
+                <button 
+                  onClick={() => setIsNewModalOpen(false)}
+                  className="w-full bg-rose-500 text-white font-bold py-4 rounded-2xl hover:bg-rose-600 transition-colors shadow-lg shadow-rose-600/20"
+                >
+                  Enviar Ocorrência
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
