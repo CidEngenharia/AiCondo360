@@ -79,7 +79,7 @@ export interface Encomenda {
   condominio_id: string;
   user_id: string;
   description: string;
-  status: 'pending' | 'delivered' | 'entregue' | 'pendente';
+  status: 'pending' | 'delivered' | 'returned' | 'entregue' | 'pendente' | 'devolvida';
   arrival_date: string;
   delivery_date?: string;
   tracking_code?: string;
@@ -87,6 +87,7 @@ export interface Encomenda {
   resident_whatsapp?: string;
   image_url?: string;
   photo_url?: string;
+  observation?: string;
   created_at?: string;
 }
 

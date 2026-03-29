@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Package, Search, Calendar, User, CheckCircle2, AlertCircle, Plus, X, Upload, Tag, Maximize2, Trash2, Edit2, FileText, Download, Eye, ArrowLeftRight } from 'lucide-react';
-import { FeatureHeader } from '../components/Header';
+import { FeatureHeader } from '../components/FeatureHeader';
 import { PackageService, Encomenda as BaseEncomenda } from '../services/supabaseService';
 
 interface Encomenda extends BaseEncomenda {
@@ -135,15 +135,19 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, userRole }) => {
     try {
         if (selectedPackage) {
             // Update existing
-            await PackageService.updatePackage(selectedPackage.id, formData);
+            await PackageService.updatePackage(selectedPackage.id, {
+                ...formData,
+                photo_url: formData.image_url
+            });
         } else {
             // Create new
             await PackageService.createPackage({
                 ...formData,
                 user_id: userId,
-                condominio_id: 'fake-condo', // Replace with real combo id if available
+                condominio_id: 'fake-condo',
                 status: formData.status as any,
-                arrival_date: new Date().toISOString()
+                arrival_date: new Date().toISOString(),
+                photo_url: formData.image_url
             } as any);
         }
         setShowForm(false);
