@@ -18,6 +18,7 @@ import { Garagem } from './pages/Garagem';
 import { Telefones } from './pages/Telefones';
 import { Agendamentos } from './pages/Agendamentos';
 import { Animais } from './pages/Animais';
+import { Classificados } from './pages/Classificados';
 import Profile from './pages/Profile';
 import { DigitalKey } from './components/DigitalKey';
 import { useAuth } from './hooks/useAuth';
@@ -138,7 +139,7 @@ export default function App() {
                 userRole={user.role}
                 userPlan={user.plan}
               >
-                <Encomendas userId={user.id} />
+                <Encomendas userId={user.id} userRole={user.role} />
               </Layout>
             ) : (
               <Navigate to="/login" />
@@ -308,6 +309,28 @@ export default function App() {
           } 
         />
         <Route 
+          path="/feature/classificados" 
+          element={
+            user ? (
+              <Layout 
+                condoName={user.condo} 
+                userName={user.name} 
+                onLogout={logout}
+                userRole={user.role}
+                userPlan={user.plan}
+              >
+                <Classificados />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        <Route 
+          path="/feature/mercado" 
+          element={<Navigate to="/feature/classificados" />} 
+        />
+        <Route 
           path="/feature/pets" 
           element={
             user ? (
@@ -326,7 +349,7 @@ export default function App() {
           } 
         />
         <Route 
-          path="/feature/digital-key" 
+          path="/feature/visitantes" 
           element={
             user ? (
               <Layout 
@@ -336,7 +359,25 @@ export default function App() {
                 userRole={user.role}
                 userPlan={user.plan}
               >
-                <DigitalKey />
+                <Visitantes userId={user.id} condoId={user.condoId} />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        <Route 
+          path="/feature/veiculos" 
+          element={
+            user ? (
+              <Layout 
+                condoName={user.condo} 
+                userName={user.name} 
+                onLogout={logout}
+                userRole={user.role}
+                userPlan={user.plan}
+              >
+                <Garagem userId={user.id} condoId={user.condoId} />
               </Layout>
             ) : (
               <Navigate to="/login" />

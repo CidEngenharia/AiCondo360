@@ -42,10 +42,56 @@ export const Ocorrencias: React.FC = () => {
   const [filter, setFilter] = useState<Status | 'all'>('all');
   const [selectedOccurrence, setSelectedOccurrence] = useState<Occurrence | null>(null);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [ocorrencias, setOcorrencias] = useState<Occurrence[]>(MOCK_DATA);
+  
+  const [newTitle, setNewTitle] = useState('');
+  const [newCat, setNewCat] = useState('Convivência');
+  const [newDesc, setNewDesc] = useState('');
 
-  const filtered = filter === 'all' ? MOCK_DATA : MOCK_DATA.filter(o => o.status === filter);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const filtered = filter === 'all' ? ocorrencias : ocorrencias.filter(o => o.status === filter);
 
   const canManage = user?.role === 'syndic' || user?.role === 'admin';
+
+  const handleCreateNew = () => {
+    if(!newTitle.trim() || !newDesc.trim()) return;
+    
+    if (editingId) {
+      setOcorrencias(ocorrencias.map(o => o.id === editingId ? { ...o, title: newTitle, category: newCat, description: newDesc } : o));
+    } else {
+      const newOcc: Occurrence = {
+        id: Math.random().toString(36).substr(2, 9),
+        title: newTitle,
+        category: newCat,
+        date: 'Agora',
+        status: 'open',
+        priority: 'medium',
+        description: newDesc,
+        messages: 0
+      };
+      setOcorrencias([newOcc, ...ocorrencias]);
+    }
+    
+    setIsNewModalOpen(false);
+    setNewTitle('');
+    setNewDesc('');
+    setEditingId(null);
+  };
+
+  const handleEdit = (item: Occurrence) => {
+    setNewTitle(item.title);
+    setNewCat(item.category);
+    setNewDesc(item.description);
+    setEditingId(item.id);
+    setIsNewModalOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    if (window.confirm('Tem certeza que deseja excluir esta ocorrência?')) {
+      setOcorrencias(ocorrencias.filter(o => o.id !== id));
+    }
+  };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 pt-6 sm:pt-8 w-full max-w-7xl mx-auto space-y-8">
@@ -144,14 +190,14 @@ export const Ocorrencias: React.FC = () => {
                       {canManage && (
                         <>
                           <button 
-                            onClick={(e) => { e.stopPropagation(); /* Logic for edit */ }}
+                            onClick={(e) => { e.stopPropagation(); handleEdit(item); }}
                             className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-amber-500 transition-colors"
                             title="Editar"
                           >
                             <Edit2 size={18} />
                           </button>
                           <button 
-                            onClick={(e) => { e.stopPropagation(); /* Logic for delete */ }}
+                            onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
                             className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
                             title="Excluir"
                           >
@@ -227,19 +273,19 @@ export const Ocorrencias: React.FC = () => {
               className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl"
             >
               <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                <h3 className="text-xl font-bold dark:text-white">Relatar Ocorrência</h3>
-                <button onClick={() => setIsNewModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
+                <h3 className="text-xl font-bold dark:text-white">{editingId ? 'Editar Ocorrência' : 'Relatar Ocorrência'}</h3>
+                <button onClick={() => { setIsNewModalOpen(false); setEditingId(null); setNewTitle(''); setNewDesc(''); }} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
                   <X size={24} className="text-slate-400" />
                 </button>
               </div>
-              <form className="p-6 space-y-4" onSubmit={(e) => e.preventDefault()}>
+              <form className="p-6 space-y-4" onSubmit={(e) => { e.preventDefault(); handleCreateNew(); }}>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Título</label>
-                  <input type="text" className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-rose-500 transition-all" placeholder="Resumo do problema" />
+                  <input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-rose-500 transition-all" placeholder="Resumo do problema" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Categoria</label>
-                  <select className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-rose-500 transition-all">
+                  <select value={newCat} onChange={e => setNewCat(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-rose-500 transition-all">
                     <option>Convivência</option>
                     <option>Manutenção</option>
                     <option>Segurança</option>
@@ -248,13 +294,13 @@ export const Ocorrencias: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Descrição</label>
-                  <textarea rows={4} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-rose-500 transition-all" placeholder="Detalhes da ocorrência..." />
+                  <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} rows={4} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-rose-500 transition-all" placeholder="Detalhes da ocorrência..." />
                 </div>
                 <button 
-                  onClick={() => setIsNewModalOpen(false)}
+                  type="submit"
                   className="w-full bg-rose-500 text-white font-bold py-4 rounded-2xl hover:bg-rose-600 transition-colors shadow-lg shadow-rose-600/20"
                 >
-                  Enviar Ocorrência
+                  {editingId ? 'Salvar Alterações' : 'Enviar Ocorrência'}
                 </button>
               </form>
             </motion.div>

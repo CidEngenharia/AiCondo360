@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { FeatureGrid } from '../components/FeatureGrid';
-import { TrendingUp, Users, AlertCircle, Cloud, Sun, CloudRain, CloudLightning, Moon, ArrowRight, Star, Calendar, Package, FileText, Key } from 'lucide-react';
+import { TrendingUp, Users, AlertCircle, Cloud, Sun, CloudRain, CloudLightning, Moon, ArrowRight, Star, Calendar, Package, FileText, Key, UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { FEATURES, UserRole, PricingPlan } from '../constants';
 import { UpgradeBanner } from '../components/UpgradeBanner';
@@ -12,12 +12,14 @@ import {
   PackageService, 
   AssembleiaService,
   MercadoService,
+  VisitorService,
   Boleto, 
   Comunicado, 
   Reserva, 
   Encomenda,
   Assembleia,
-  MercadoItem
+  MercadoItem,
+  Visitante
 } from '../services/supabaseService';
 
 interface DashboardProps {
@@ -39,6 +41,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
   const [pendingPackages, setPendingPackages] = useState<Encomenda[]>([]);
   const [upcomingAssembleia, setUpcomingAssembleia] = useState<Assembleia | null>(null);
   const [recentMercadoItems, setRecentMercadoItems] = useState<MercadoItem[]>([]);
+  const [expectedVisitors, setExpectedVisitors] = useState<Visitante[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
@@ -67,13 +70,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
 
     const fetchData = async () => {
       try {
-        const [boleto, comms, reservations, packages, assembleia, mercado] = await Promise.all([
+        const [boleto, comms, reservations, packages, assembleia, mercado, visitors] = await Promise.all([
           BoletoService.getNextPendingBoleto(userId),
           AnnouncementService.getRecentAnnouncements(condoId),
           ReservationService.getUpcomingReservations(userId),
-          PackageService.getPendingPackages(userId),
+          (userRole === 'admin' || userRole === 'syndic' || userRole === 'global_admin') 
+            ? PackageService.getCondoPackages(condoId)
+            : PackageService.getPendingPackages(userId),
           AssembleiaService.getUpcomingAssembleia(condoId),
-          MercadoService.getRecentItems(condoId)
+          MercadoService.getRecentItems(condoId),
+          VisitorService.getUserVisitors(userId)
         ]);
         
         setNextBoleto(boleto);
@@ -82,6 +88,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
         setPendingPackages(packages);
         setUpcomingAssembleia(assembleia);
         setRecentMercadoItems(mercado);
+        setExpectedVisitors(visitors.filter(v => v.status !== 'finalizado'));
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -169,10 +176,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
               <Package size={16} className="text-purple-300" />
               <span className="text-xs font-medium uppercase tracking-wider opacity-80">Encomendas</span>
             </div>
-            <p className="text-lg font-bold">{pendingPackages.length} Pendentes</p>
-            <p className="text-[10px] opacity-70">
-              {pendingPackages.length > 0 ? 'Retire na portaria' : 'Nenhuma pendência'}
+            <p className="text-lg font-bold">
+              {pendingPackages.length} {(userRole === 'admin' || userRole === 'syndic' || userRole === 'global_admin') ? 'Registradas' : 'Pendentes'}
             </p>
+            <p className="text-[10px] opacity-70">
+              {(userRole === 'admin' || userRole === 'syndic' || userRole === 'global_admin') 
+                ? 'Gerencie entregas' 
+                : (pendingPackages.length > 0 ? 'Retire na portaria' : 'Nenhuma pendência')}
+            </p>
+          </Link>
+          <Link to="/feature/visitantes" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform">
+            <div className="flex items-center gap-2 mb-2">
+              <UserPlus size={16} className="text-sky-300" />
+              <span className="text-xs font-medium uppercase tracking-wider opacity-80">Visitantes</span>
+            </div>
+            <p className="text-lg font-bold">{expectedVisitors.length} Esperados</p>
+            <p className="text-[10px] opacity-70">Liberações ativas</p>
           </Link>
         </div>
         
