@@ -140,6 +140,11 @@ export interface Veiculo {
   model: string;
   plate: string;
   color: string;
+  owner_name: string;
+  observation?: string;
+  garage_number?: string;
+  unit_number?: string;
+  image_url?: string;
   type: 'car' | 'motorcycle' | 'bicycle';
   created_at?: string;
 }
