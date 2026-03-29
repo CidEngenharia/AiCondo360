@@ -360,7 +360,7 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, userRole }) => {
       {/* Modal - Registrar / Editar Encomenda */}
       <AnimatePresence>
         {showForm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -519,7 +519,7 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, userRole }) => {
       {/* Modal - Detalhes (Leitura e Notificação) */}
       <AnimatePresence>
         {selectedPackage && !showForm && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md" onClick={() => setSelectedPackage(null)}>
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md" onClick={() => setSelectedPackage(null)}>
                 <motion.div 
                     initial={{ opacity: 0, y: 50 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -606,7 +606,7 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, userRole }) => {
       {/* Modal Zoom Foto */}
       <AnimatePresence>
           {selectedImageUrl && (
-              <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-xl" onClick={() => setSelectedImageUrl(null)}>
+              <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-xl" onClick={() => setSelectedImageUrl(null)}>
                   <motion.div 
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -626,12 +626,12 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, userRole }) => {
       {/* Modal Relatório */}
       <AnimatePresence>
           {showReportModal.show && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-2xl">
+              <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-2xl">
                   <motion.div 
                     initial={{ opacity: 0, y: 100 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 100 }}
-                    className="bg-white dark:bg-slate-900 w-full max-w-4xl rounded-[48px] overflow-hidden shadow-2xl border border-white/10"
+                    className="bg-white dark:bg-slate-900 w-full max-w-[95vw] md:max-w-4xl rounded-[48px] overflow-hidden shadow-2xl border border-white/10"
                   >
                        <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                            <div>
