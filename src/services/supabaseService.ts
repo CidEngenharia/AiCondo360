@@ -87,13 +87,16 @@ export interface Encomenda {
   id: string;
   condominio_id: string;
   user_id: string;
-  resident_name: string;
   description: string;
-  status: 'entregue' | 'pendente';
-  delivery_date: string;
+  status: 'pending' | 'delivered' | 'entregue' | 'pendente';
+  arrival_date: string;
+  delivery_date?: string;
+  tracking_code?: string;
+  resident_name?: string;
+  resident_whatsapp?: string;
+  image_url?: string;
   photo_url?: string;
-  whatsapp?: string;
-  created_at: string;
+  created_at?: string;
 }
 
 export interface Ocorrencia {

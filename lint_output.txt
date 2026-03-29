@@ -1,0 +1,9 @@
+
+> react-example@0.0.0 lint
+> tsc --noEmit
+
+src/pages/Encomendas.tsx(7,11): error TS2430: Interface 'Encomenda' incorrectly extends interface 'import("C:/Users/Sidney/Downloads/Projetos/AiCondo360/src/services/supabaseService").Encomenda'.
+  Property 'resident_name' is optional in type 'Encomenda' but required in type 'Encomenda'.
+src/pages/Encomendas.tsx(46,13): error TS2352: Conversion of type '{ id: string; description: string; arrival_date: string; status: "pending"; resident_name: string; resident_whatsapp: string; }' to type 'Encomenda' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ id: string; description: string; arrival_date: string; status: "pending"; resident_name: string; resident_whatsapp: string; }' is missing the following properties from type 'Encomenda': condominio_id, user_id, delivery_date, created_at
+src/pages/Encomendas.tsx(100,7): error TS2353: Object literal may only specify known properties, and 'arrival_date' does not exist in type 'Encomenda'.
