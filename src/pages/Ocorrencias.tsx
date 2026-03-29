@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, MessageSquare, AlertTriangle, AlertCircle, Info, ChevronRight, MessageCircle, Edit2, Trash2, Eye, X } from 'lucide-react';
+import { Plus, AlertTriangle, AlertCircle, Info, ChevronRight, MessageCircle, Edit2, Trash2, Eye, X, FileText, Download } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { FeatureHeader } from '../components/FeatureHeader';
 import { useAuth } from '../hooks/useAuth';
@@ -20,9 +20,9 @@ interface Occurrence {
 }
 
 const MOCK_DATA: Occurrence[] = [
-  { id: '1', title: 'Barulho Excessivo', category: 'Convivência', date: 'Hoje, 14:20', status: 'open', priority: 'medium', description: 'Morador do apartamento de cima fazendo obra fora do horário permitido.', messages: 2 },
-  { id: '2', title: 'Lâmpada Queimada', category: 'Manutenção', date: 'Ontem', status: 'resolved', priority: 'low', description: 'Lâmpada do corredor do 5º andar queimada.', messages: 1 },
-  { id: '3', title: 'Vazamento na Garagem', category: 'Infraestrutura', date: '12/11/2024', status: 'in_progress', priority: 'high', description: 'Vazamento de água próximo à vaga 42.', messages: 5 }
+  { id: '1', title: 'Barulho Excessivo', category: 'Convivência', date: '2026-03-29', status: 'open', priority: 'medium', description: 'Morador do apartamento de cima fazendo obra fora do horário permitido.', messages: 2 },
+  { id: '2', title: 'Lâmpada Queimada', category: 'Manutenção', date: '2026-03-28', status: 'resolved', priority: 'low', description: 'Lâmpada do corredor do 5º andar queimada.', messages: 1 },
+  { id: '3', title: 'Vazamento na Garagem', category: 'Infraestrutura', date: '2026-03-20', status: 'in_progress', priority: 'high', description: 'Vazamento de água próximo à vaga 42.', messages: 5 }
 ];
 
 const priorityConfig = {
@@ -43,6 +43,7 @@ export const Ocorrencias: React.FC = () => {
   const [selectedOccurrence, setSelectedOccurrence] = useState<Occurrence | null>(null);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [ocorrencias, setOcorrencias] = useState<Occurrence[]>(MOCK_DATA);
+  const [showReportModal, setShowReportModal] = useState<{show: boolean, days: number}>({show: false, days: 0});
   
   const [newTitle, setNewTitle] = useState('');
   const [newCat, setNewCat] = useState('Convivência');
@@ -64,7 +65,7 @@ export const Ocorrencias: React.FC = () => {
         id: Math.random().toString(36).substr(2, 9),
         title: newTitle,
         category: newCat,
-        date: 'Agora',
+        date: new Date().toISOString().split('T')[0],
         status: 'open',
         priority: 'medium',
         description: newDesc,
@@ -93,6 +94,12 @@ export const Ocorrencias: React.FC = () => {
     }
   };
 
+  const getReportData = (days: number) => {
+    const cutOff = new Date();
+    cutOff.setDate(cutOff.getDate() - days);
+    return ocorrencias.filter(o => new Date(o.date) >= cutOff);
+  };
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 pt-6 sm:pt-8 w-full max-w-7xl mx-auto space-y-8">
       <FeatureHeader 
@@ -110,16 +117,32 @@ export const Ocorrencias: React.FC = () => {
         </button>
       </FeatureHeader>
 
+       {/* Botões de Relatório */}
+       <div className="flex justify-end gap-2 px-2">
+          <button 
+            onClick={() => setShowReportModal({show: true, days: 7})}
+            className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-rose-500 flex items-center gap-1 transition-colors px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full"
+          >
+              <FileText size={12} /> Relatório 7 Dias
+          </button>
+          <button 
+            onClick={() => setShowReportModal({show: true, days: 15})}
+            className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-rose-500 flex items-center gap-1 transition-colors px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full"
+          >
+              <FileText size={12} /> Relatório 15 Dias
+          </button>
+      </div>
+
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
         {(['all', 'open', 'in_progress', 'resolved'] as const).map(f => (
           <button
             key={f}
             onClick={() => setFilter(f)}
             className={cn(
-              "px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors",
+              "px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors",
               filter === f 
-                ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900" 
-                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg" 
+                : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
             )}
           >
             {f === 'all' ? 'Todas' : statusConfig[f as Status].label}
@@ -140,48 +163,48 @@ export const Ocorrencias: React.FC = () => {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+                className="bg-white dark:bg-slate-800 rounded-[32px] p-6 border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-xl hover:shadow-rose-500/10 transition-all cursor-pointer group"
               >
                 <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
-                  <div className={cn("hidden sm:flex w-12 h-12 rounded-full shrink-0 items-center justify-center", priorityConfig[item.priority].bg)}>
-                    <PriorityIcon size={24} className={priorityConfig[item.priority].color} />
+                  <div className={cn("hidden sm:flex w-14 h-14 rounded-full shrink-0 items-center justify-center", priorityConfig[item.priority].bg)}>
+                    <PriorityIcon size={28} className={priorityConfig[item.priority].color} />
                   </div>
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-4 mb-1">
                       <div className="flex items-center gap-2 overflow-hidden">
-                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 truncate">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 truncate">
                           #{item.id} • {item.category}
                         </span>
-                        <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600 shrink-0" />
-                        <span className="text-xs text-slate-500 whitespace-nowrap">{item.date}</span>
+                        <span className="w-1 h-1 rounded-full bg-slate-200" />
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">{new Date(item.date).toLocaleDateString()}</span>
                       </div>
-                      <span className={cn("px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap", statusConfig[item.status].bg, statusConfig[item.status].color)}>
+                      <span className={cn("px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest", statusConfig[item.status].bg, statusConfig[item.status].color)}>
                         {statusLabel}
                       </span>
                     </div>
                     
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white truncate">
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white truncate uppercase tracking-tighter">
                       {item.title}
                     </h3>
                     
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 line-clamp-2 sm:line-clamp-1">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 line-clamp-2 sm:line-clamp-1 italic font-medium">
                       {item.description}
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-3 sm:w-auto shrink-0 border-t border-slate-100 dark:border-slate-700/50 pt-4 sm:pt-0 sm:border-t-0 mt-2 sm:mt-0">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 sm:w-auto shrink-0 border-t border-slate-50 dark:border-slate-700/50 pt-4 sm:pt-0 sm:border-t-0 mt-2 sm:mt-0">
                     <div className="flex items-center gap-4 mr-2">
                       <div className="flex items-center gap-1.5 text-slate-400">
-                        <MessageCircle size={16} />
-                        <span className="text-sm font-medium">{item.messages}</span>
+                        <MessageCircle size={18} />
+                        <span className="text-sm font-bold">{item.messages}</span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <button 
                         onClick={(e) => { e.stopPropagation(); setSelectedOccurrence(item); }}
-                        className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-blue-500 transition-colors"
+                        className="p-3 bg-slate-50 dark:bg-slate-700 hover:bg-rose-500 hover:text-white rounded-2xl text-slate-400 transition-all"
                         title="Visualizar"
                       >
                         <Eye size={18} />
@@ -191,14 +214,14 @@ export const Ocorrencias: React.FC = () => {
                         <>
                           <button 
                             onClick={(e) => { e.stopPropagation(); handleEdit(item); }}
-                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-amber-500 transition-colors"
+                            className="p-3 bg-slate-50 dark:bg-slate-700 hover:bg-amber-500 hover:text-white rounded-2xl text-slate-400 transition-all"
                             title="Editar"
                           >
                             <Edit2 size={18} />
                           </button>
                           <button 
                             onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
-                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
+                            className="p-3 bg-slate-50 dark:bg-slate-700 hover:bg-red-500 hover:text-white rounded-2xl text-slate-400 transition-all"
                             title="Excluir"
                           >
                             <Trash2 size={18} />
@@ -206,7 +229,7 @@ export const Ocorrencias: React.FC = () => {
                         </>
                       )}
                       
-                      <ChevronRight size={20} className="text-slate-300 group-hover:text-blue-500 transition-colors transform group-hover:translate-x-1 duration-200" />
+                      <ChevronRight size={24} className="text-slate-200 group-hover:text-rose-500 transition-colors transform group-hover:translate-x-1 duration-300" />
                     </div>
                   </div>
                 </div>
@@ -219,41 +242,41 @@ export const Ocorrencias: React.FC = () => {
       {/* Modal de Detalhes */}
       <AnimatePresence>
         {selectedOccurrence && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-white dark:bg-slate-800 rounded-[48px] w-full max-w-2xl overflow-hidden shadow-2xl"
             >
-              <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+              <div className="p-8 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold dark:text-white">{selectedOccurrence.title}</h3>
-                  <p className="text-sm text-slate-500">#{selectedOccurrence.id} • {selectedOccurrence.category}</p>
+                  <h3 className="text-2xl font-black dark:text-white uppercase tracking-tighter">{selectedOccurrence.title}</h3>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">#{selectedOccurrence.id} • {selectedOccurrence.category}</p>
                 </div>
-                <button onClick={() => setSelectedOccurrence(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
-                  <X size={24} className="text-slate-400" />
+                <button onClick={() => setSelectedOccurrence(null)} className="p-3 bg-slate-50 dark:bg-slate-700 hover:bg-rose-500 hover:text-white rounded-2xl transition-all">
+                  <X size={20} className="text-slate-400" />
                 </button>
               </div>
-              <div className="p-6 space-y-4">
+              <div className="p-10 space-y-8">
                 <div className="flex gap-4">
-                  <div className={cn("px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider", statusConfig[selectedOccurrence.status].bg, statusConfig[selectedOccurrence.status].color)}>
+                  <div className={cn("px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl", statusConfig[selectedOccurrence.status].bg, statusConfig[selectedOccurrence.status].color)}>
                     {statusConfig[selectedOccurrence.status].label}
                   </div>
-                  <div className={cn("px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5", priorityConfig[selectedOccurrence.priority].bg, priorityConfig[selectedOccurrence.priority].color)}>
+                  <div className={cn("px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-xl", priorityConfig[selectedOccurrence.priority].bg, priorityConfig[selectedOccurrence.priority].color)}>
                     {React.createElement(priorityConfig[selectedOccurrence.priority].icon, { size: 12 })}
                     Prioridade {selectedOccurrence.priority === 'high' ? 'Alta' : selectedOccurrence.priority === 'medium' ? 'Média' : 'Baixa'}
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">Descrição</h4>
-                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
-                    {selectedOccurrence.description}
-                  </p>
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Descrição do Registro</h4>
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-8 rounded-[32px] border border-slate-100 dark:border-slate-800 font-bold italic leading-relaxed text-slate-700 dark:text-slate-300">
+                    "{selectedOccurrence.description}"
+                  </div>
                 </div>
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
-                  <button className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold py-3 rounded-2xl hover:opacity-90 transition-opacity">
-                    Abrir Mensagens ({selectedOccurrence.messages})
+                <div className="pt-4">
+                  <button className="w-full bg-zinc-900 border-2 border-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-black px-8 py-5 rounded-[24px] uppercase text-xs tracking-widest transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2">
+                    <MessageCircle size={18} /> Abrir Chamado de Mensagens ({selectedOccurrence.messages})
                   </button>
                 </div>
               </div>
@@ -262,30 +285,33 @@ export const Ocorrencias: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Modal de Nova Ocorrência (Placeholder) */}
+      {/* Modal Nova Ocorrência */}
       <AnimatePresence>
         {isNewModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
             <motion.div
               initial={{ opacity: 0, y: 100 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 100 }}
-              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl"
+              className="bg-white dark:bg-slate-800 rounded-[40px] w-full max-w-lg overflow-hidden shadow-2xl"
             >
-              <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                <h3 className="text-xl font-bold dark:text-white">{editingId ? 'Editar Ocorrência' : 'Relatar Ocorrência'}</h3>
-                <button onClick={() => { setIsNewModalOpen(false); setEditingId(null); setNewTitle(''); setNewDesc(''); }} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
-                  <X size={24} className="text-slate-400" />
+              <div className="p-8 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                <div>
+                    <h3 className="text-2xl font-black dark:text-white uppercase tracking-tighter italic">{editingId ? 'Editar Ocorrência' : 'Relatar Ocorrência'}</h3>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Canal Direto com a Gestão</p>
+                </div>
+                <button onClick={() => { setIsNewModalOpen(false); setEditingId(null); setNewTitle(''); setNewDesc(''); }} className="p-3 bg-slate-50 dark:bg-slate-700 hover:bg-rose-500 hover:text-white rounded-2xl transition-all group">
+                  <X size={20} className="group-hover:rotate-90 transition-all text-slate-400" />
                 </button>
               </div>
-              <form className="p-6 space-y-4" onSubmit={(e) => { e.preventDefault(); handleCreateNew(); }}>
+              <form className="p-8 space-y-6" onSubmit={(e) => { e.preventDefault(); handleCreateNew(); }}>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Título</label>
-                  <input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-rose-500 transition-all" placeholder="Resumo do problema" />
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Título do Chamado</label>
+                  <input type="text" required value={newTitle} onChange={e => setNewTitle(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all font-bold" placeholder="Resumo do problema" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Categoria</label>
-                  <select value={newCat} onChange={e => setNewCat(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-rose-500 transition-all">
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Categoria</label>
+                  <select value={newCat} onChange={e => setNewCat(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all font-bold appearance-none">
                     <option>Convivência</option>
                     <option>Manutenção</option>
                     <option>Segurança</option>
@@ -293,21 +319,91 @@ export const Ocorrencias: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Descrição</label>
-                  <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} rows={4} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-rose-500 transition-all" placeholder="Detalhes da ocorrência..." />
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Detalhamento</label>
+                  <textarea value={newDesc} required onChange={e => setNewDesc(e.target.value)} rows={4} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all font-bold resize-none" placeholder="Conte-nos o que aconteceu..." />
                 </div>
-                <button 
-                  type="submit"
-                  className="w-full bg-rose-500 text-white font-bold py-4 rounded-2xl hover:bg-rose-600 transition-colors shadow-lg shadow-rose-600/20"
-                >
-                  {editingId ? 'Salvar Alterações' : 'Enviar Ocorrência'}
-                </button>
+                <div className="flex gap-4 pt-4">
+                    <button 
+                        type="button" 
+                        onClick={() => setIsNewModalOpen(false)}
+                        className="flex-1 px-8 py-5 rounded-[24px] border-2 border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-black uppercase text-xs tracking-widest hover:bg-slate-50 dark:hover:bg-slate-900 transition-all"
+                    >
+                        Cancelar
+                    </button>
+                    <button 
+                        type="submit"
+                        className="flex-1 bg-rose-500 text-white font-black uppercase text-xs tracking-widest px-8 py-5 rounded-[24px] hover:bg-rose-600 transition-all shadow-2xl shadow-rose-500/40 active:scale-95"
+                    >
+                        {editingId ? 'Salvar Alterações' : 'Enviar Registro'}
+                    </button>
+                </div>
               </form>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+
+      {/* Modal Relatório */}
+      <AnimatePresence>
+          {showReportModal.show && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-2xl">
+                  <motion.div 
+                    initial={{ opacity: 0, y: 100 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 100 }}
+                    className="bg-white dark:bg-slate-900 w-full max-w-4xl rounded-[48px] overflow-hidden shadow-2xl border border-white/10"
+                  >
+                       <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                           <div>
+                               <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Relatório de Ocorrências</h3>
+                               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Período: Últimos {showReportModal.days} dias</p>
+                           </div>
+                           <button onClick={() => setShowReportModal({show: false, days: 0})} className="p-4 bg-slate-100 dark:bg-slate-800 rounded-full hover:bg-rose-500 hover:text-white transition-all">
+                               <X size={20} />
+                           </button>
+                       </div>
+
+                       <div className="p-8 max-h-[60vh] overflow-y-auto">
+                            <table className="w-full border-collapse">
+                                <thead>
+                                    <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-slate-800">
+                                        <th className="text-left py-4 px-2">Data</th>
+                                        <th className="text-left py-4 px-2">Título</th>
+                                        <th className="text-left py-4 px-2">Categoria</th>
+                                        <th className="text-left py-4 px-2">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {getReportData(showReportModal.days).map(o => (
+                                        <tr key={o.id} className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                            <td className="py-4 px-2 text-xs font-bold text-slate-600 dark:text-slate-400">{new Date(o.date).toLocaleDateString()}</td>
+                                            <td className="py-4 px-2 text-xs font-black text-slate-900 dark:text-white uppercase">{o.title}</td>
+                                            <td className="py-4 px-2 text-xs font-bold text-slate-500">{o.category}</td>
+                                            <td className="py-4 px-2">
+                                                <span className={cn("text-[9px] font-black uppercase px-2 py-1 rounded-full", statusConfig[o.status].bg, statusConfig[o.status].color)}>
+                                                    {statusConfig[o.status].label}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                       </div>
+
+                       <div className="p-8 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                Total: {getReportData(showReportModal.days).length} registros encontrados
+                            </p>
+                            <div className="flex gap-4">
+                               <button className="flex items-center gap-2 bg-zinc-900 text-white px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all">
+                                   <Download size={16} /> Baixar PDF
+                               </button>
+                            </div>
+                       </div>
+                  </motion.div>
+              </div>
+          )}
+      </AnimatePresence>
     </div>
   );
 };
-

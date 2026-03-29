@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, Search, Calendar, Clock, CheckCircle2, Shield, Trash2, Plus, X, Edit2, Phone, Briefcase, Truck, MoreHorizontal } from 'lucide-react';
+import { User, Search, Calendar, Clock, CheckCircle2, Shield, Trash2, Plus, X, Edit2, Phone, Briefcase, Truck, MoreHorizontal, FileText, Download } from 'lucide-react';
 import { FeatureHeader } from '../components/FeatureHeader';
 import { VisitorService, Visitante as IVisitante } from '../services/supabaseService';
 
@@ -14,6 +14,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId }) => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'expected' | 'historic'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showReportModal, setShowReportModal] = useState<{show: boolean, days: number}>({show: false, days: 0});
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
@@ -125,6 +126,15 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId }) => {
     }
   };
 
+  const getReportData = (days: number) => {
+    const cutOff = new Date();
+    cutOff.setDate(cutOff.getDate() - days);
+    return visitors.filter(v => {
+        const visitDate = new Date(v.date || v.created_at || '');
+        return visitDate >= cutOff;
+    });
+  };
+
   return (
     <div className="max-w-6xl mx-auto py-6 px-4">
       <FeatureHeader 
@@ -134,13 +144,29 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId }) => {
         color="bg-sky-600"
       />
 
+       {/* Botões de Relatório */}
+       <div className="flex justify-end gap-2 mb-4">
+          <button 
+            onClick={() => setShowReportModal({show: true, days: 7})}
+            className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-sky-600 flex items-center gap-1 transition-colors px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full"
+          >
+              <FileText size={12} /> Relatório 7 Dias
+          </button>
+          <button 
+            onClick={() => setShowReportModal({show: true, days: 15})}
+            className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-sky-600 flex items-center gap-1 transition-colors px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full"
+          >
+              <FileText size={12} /> Relatório 15 Dias
+          </button>
+      </div>
+
       <div className="flex flex-col md:flex-row gap-4 mb-8">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
           <input 
             type="text"
             placeholder="Buscar por nome ou tipo..."
-            className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all font-medium text-sm"
+            className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all font-medium text-sm text-slate-700 dark:text-slate-300 placeholder:text-slate-400"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -237,8 +263,8 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId }) => {
                   <h3 className="font-bold text-xl text-slate-900 dark:text-white group-hover:text-sky-600 transition-colors">
                     {visitor.name}
                   </h3>
-                  <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
-                    <span className="font-bold text-sky-600/70">{visitor.type}</span>
+                  <div className="flex items-center gap-2 text-sm text-slate-500 mt-1 font-bold italic opacity-80 uppercase tracking-tight">
+                    <span className="text-sky-600 font-black">{visitor.type}</span>
                     {visitor.observation && (
                       <>
                         <span className="w-1 h-1 rounded-full bg-slate-200"></span>
@@ -271,7 +297,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId }) => {
                    {visitor.status !== 'finalizado' && (
                      <button 
                         onClick={() => updateStatus(visitor.id, 'finalizado')}
-                        className="flex-1 bg-slate-100 dark:bg-slate-700 hover:bg-sky-600 dark:hover:bg-sky-600 hover:text-white text-slate-600 dark:text-slate-300 px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2"
+                        className="flex-1 bg-slate-100 dark:bg-slate-700 hover:bg-sky-600 dark:hover:bg-sky-600 hover:text-white text-slate-600 dark:text-slate-300 px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 mt-2"
                      >
                        <CheckCircle2 size={14} /> Finalizar
                      </button>
@@ -279,7 +305,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId }) => {
                    {visitor.status === 'pendente' && (
                      <button 
                         onClick={() => updateStatus(visitor.id, 'autorizado')}
-                        className="flex-1 bg-sky-600 hover:bg-sky-700 text-white px-4 py-3 rounded-2xl text-xs font-bold transition-all shadow-lg shadow-sky-500/20 flex items-center justify-center gap-2"
+                        className="flex-1 bg-sky-600 hover:bg-sky-700 text-white px-4 py-3 rounded-2xl text-xs font-bold transition-all shadow-lg shadow-sky-500/20 flex items-center justify-center gap-2 mt-2"
                      >
                        <Shield size={14} /> Liberar Entrada
                      </button>
@@ -322,7 +348,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId }) => {
                   <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
                     {editingVisitor ? 'Editar Liberação' : 'Nova Liberação'}
                   </h3>
-                  <p className="text-xs text-slate-500 font-medium">Dados do convidado</p>
+                  <p className="text-xs text-slate-500 font-medium font-bold uppercase tracking-widest opacity-60">Dados do convidado</p>
                 </div>
                 <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all">
                   <X size={20} className="text-slate-400" />
@@ -423,6 +449,72 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId }) => {
             </motion.div>
           </div>
         )}
+      </AnimatePresence>
+
+      {/* Modal Relatório */}
+      <AnimatePresence>
+          {showReportModal.show && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-2xl">
+                  <motion.div 
+                    initial={{ opacity: 0, y: 100 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 100 }}
+                    className="bg-white dark:bg-slate-900 w-full max-w-4xl rounded-[48px] overflow-hidden shadow-2xl border border-white/10"
+                  >
+                       <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                           <div>
+                               <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Relatório de Visitantes</h3>
+                               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Período: Últimos {showReportModal.days} dias</p>
+                           </div>
+                           <button onClick={() => setShowReportModal({show: false, days: 0})} className="p-4 bg-slate-100 dark:bg-slate-800 rounded-full hover:bg-rose-500 hover:text-white transition-all">
+                               <X size={20} />
+                           </button>
+                       </div>
+
+                       <div className="p-8 max-h-[60vh] overflow-y-auto">
+                            <table className="w-full border-collapse">
+                                <thead>
+                                    <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-slate-800">
+                                        <th className="text-left py-4 px-2">Data</th>
+                                        <th className="text-left py-4 px-2">Nome</th>
+                                        <th className="text-left py-4 px-2">Tipo</th>
+                                        <th className="text-left py-4 px-2">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {getReportData(showReportModal.days).map(v => (
+                                        <tr key={v.id} className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                            <td className="py-4 px-2 text-xs font-bold text-slate-600 dark:text-slate-400">{new Date(v.date || v.created_at || '').toLocaleDateString()}</td>
+                                            <td className="py-4 px-2 text-xs font-black text-slate-900 dark:text-white uppercase">{v.name}</td>
+                                            <td className="py-4 px-2 text-xs font-bold text-slate-500">{v.type}</td>
+                                            <td className="py-4 px-2">
+                                                <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-full ${
+                                                    v.status === 'autorizado' ? 'bg-emerald-100 text-emerald-600' : 
+                                                    v.status === 'pendente' ? 'bg-amber-100 text-amber-600' : 
+                                                    'bg-slate-100 text-slate-400'
+                                                }`}>
+                                                    {v.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                       </div>
+
+                       <div className="p-8 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                Total: {getReportData(showReportModal.days).length} registros encontrados
+                            </p>
+                            <div className="flex gap-4">
+                               <button className="flex items-center gap-2 bg-zinc-900 text-white px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all">
+                                   <Download size={16} /> Baixar PDF
+                               </button>
+                            </div>
+                       </div>
+                  </motion.div>
+              </div>
+          )}
       </AnimatePresence>
 
       {/* Security Tip */}
