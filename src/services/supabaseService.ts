@@ -370,6 +370,22 @@ export const ReservationService = {
     }
 
     return data as Reserva[];
+  },
+
+  async getCondoReservations(condoId: string): Promise<Reserva[]> {
+    const { data, error } = await supabase
+      .from('reservas')
+      .select('*')
+      .eq('condominio_id', condoId)
+      .gte('reservation_date', new Date().toISOString())
+      .order('reservation_date', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching condo reservations:', error);
+      return [];
+    }
+
+    return data as Reserva[];
   }
 };
 
@@ -561,6 +577,21 @@ export const VisitorService = {
     return data as Visitante[];
   },
 
+  async getCondoVisitors(condoId: string): Promise<Visitante[]> {
+    const { data, error } = await supabase
+      .from('visitantes')
+      .select('*')
+      .eq('condominio_id', condoId)
+      .order('date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching condo visitors:', error);
+      return [];
+    }
+
+    return data as Visitante[];
+  },
+
   async createVisitor(visitor: Omit<Visitante, 'id' | 'created_at'>) {
     const { data, error } = await supabase
       .from('visitantes')
@@ -644,6 +675,77 @@ export const VehicleService = {
       .from('veiculos')
       .delete()
       .eq('id', vehicleId);
+
+    if (error) throw error;
+  }
+};
+
+export const OcorrenciaService = {
+  async getUserOcorrencias(userId: string): Promise<Ocorrencia[]> {
+    const { data, error } = await supabase
+      .from('ocorrencias')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching user ocorrencias:', error);
+      return [];
+    }
+
+    return data as Ocorrencia[];
+  },
+
+  async getCondoOcorrencias(condoId: string): Promise<Ocorrencia[]> {
+    const { data, error } = await supabase
+      .from('ocorrencias')
+      .select('*')
+      .eq('condominio_id', condoId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching condo ocorrencias:', error);
+      return [];
+    }
+
+    return data as Ocorrencia[];
+  },
+
+  async createOcorrencia(ocorrencia: Omit<Ocorrencia, 'id' | 'created_at' | 'updated_at'>) {
+    const { data, error } = await supabase
+      .from('ocorrencias')
+      .insert([{
+        ...ocorrencia,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Ocorrencia;
+  },
+
+  async updateOcorrencia(id: string, updates: Partial<Ocorrencia>) {
+    const { data, error } = await supabase
+      .from('ocorrencias')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Ocorrencia;
+  },
+
+  async deleteOcorrencia(id: string) {
+    const { error } = await supabase
+      .from('ocorrencias')
+      .delete()
+      .eq('id', id);
 
     if (error) throw error;
   }

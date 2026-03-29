@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { FeatureGrid } from '../components/FeatureGrid';
-import { TrendingUp, Users, AlertCircle, Cloud, Sun, CloudRain, CloudLightning, Moon, ArrowRight, Star, Calendar, Package, FileText, Key, UserPlus } from 'lucide-react';
+import { TrendingUp, Users, AlertCircle, Cloud, Sun, CloudRain, CloudLightning, Moon, ArrowRight, Star, Calendar, Package, FileText, Key, UserPlus, ShieldAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { FEATURES, UserRole, PricingPlan } from '../constants';
 import { UpgradeBanner } from '../components/UpgradeBanner';
@@ -13,13 +13,15 @@ import {
   AssembleiaService,
   MercadoService,
   VisitorService,
+  OcorrenciaService,
   Boleto, 
   Comunicado, 
   Reserva, 
   Encomenda,
   Assembleia,
   MercadoItem,
-  Visitante
+  Visitante,
+  Ocorrencia
 } from '../services/supabaseService';
 
 interface DashboardProps {
@@ -42,9 +44,43 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
   const [upcomingAssembleia, setUpcomingAssembleia] = useState<Assembleia | null>(null);
   const [recentMercadoItems, setRecentMercadoItems] = useState<MercadoItem[]>([]);
   const [expectedVisitors, setExpectedVisitors] = useState<Visitante[]>([]);
+  const [openOcorrencias, setOpenOcorrencias] = useState<Ocorrencia[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
+  const fetchData = async () => {
+    if (!userId || !condoId) return;
+    
+    const isAdmin = userRole === 'admin' || userRole === 'syndic' || userRole === 'global_admin';
+    
+    try {
+      const [boleto, comms, reservations, packages, assembleia, mercado, visitors, ocorrencias] = await Promise.all([
+        BoletoService.getNextPendingBoleto(userId),
+        AnnouncementService.getRecentAnnouncements(condoId),
+        isAdmin ? ReservationService.getCondoReservations(condoId) : ReservationService.getUpcomingReservations(userId),
+        isAdmin ? PackageService.getCondoPackages(condoId) : PackageService.getPendingPackages(userId),
+        AssembleiaService.getUpcomingAssembleia(condoId),
+        MercadoService.getRecentItems(condoId),
+        isAdmin ? VisitorService.getCondoVisitors(condoId) : VisitorService.getUserVisitors(userId),
+        isAdmin ? OcorrenciaService.getCondoOcorrencias(condoId) : OcorrenciaService.getUserOcorrencias(userId)
+      ]);
+      
+      setNextBoleto(boleto);
+      setAnnouncements(comms);
+      setUpcomingReservations(reservations);
+      setPendingPackages(packages);
+      setUpcomingAssembleia(assembleia);
+      setRecentMercadoItems(mercado);
+      setExpectedVisitors(visitors.filter(v => v.status !== 'finalizado'));
+      setOpenOcorrencias(ocorrencias.filter(o => o.status !== 'resolved'));
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
   useEffect(() => {
+    // Basic UI State
     const now = new Date();
     const hour = now.getHours();
     
@@ -60,7 +96,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
     };
     setCurrentDate(now.toLocaleDateString('pt-BR', options));
 
-    // Mock weather logic
     const mockWeathers = [
       { temp: 28, condition: 'Ensolarado', icon: Sun },
       { temp: 22, condition: 'Nublado', icon: Cloud },
@@ -68,38 +103,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
     ];
     setWeather(mockWeathers[Math.floor(Math.random() * mockWeathers.length)]);
 
-    const fetchData = async () => {
-      try {
-        const [boleto, comms, reservations, packages, assembleia, mercado, visitors] = await Promise.all([
-          BoletoService.getNextPendingBoleto(userId),
-          AnnouncementService.getRecentAnnouncements(condoId),
-          ReservationService.getUpcomingReservations(userId),
-          (userRole === 'admin' || userRole === 'syndic' || userRole === 'global_admin') 
-            ? PackageService.getCondoPackages(condoId)
-            : PackageService.getPendingPackages(userId),
-          AssembleiaService.getUpcomingAssembleia(condoId),
-          MercadoService.getRecentItems(condoId),
-          VisitorService.getUserVisitors(userId)
-        ]);
-        
-        setNextBoleto(boleto);
-        setAnnouncements(comms);
-        setUpcomingReservations(reservations);
-        setPendingPackages(packages);
-        setUpcomingAssembleia(assembleia);
-        setRecentMercadoItems(mercado);
-        setExpectedVisitors(visitors.filter(v => v.status !== 'finalizado'));
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-      } finally {
-        setLoadingData(false);
-      }
-    };
+    // Initial Fetch
+    fetchData();
 
+    // Realtime Subscriptions
     if (userId && condoId) {
-      fetchData();
-    } else {
-      setLoadingData(false);
+      let channelPromise: Promise<any> | null = null;
+      
+      import('../lib/supabase').then(({ supabase }) => {
+        const channel = supabase.channel('dashboard-realtime')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'visitantes' }, () => fetchData())
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'reservas' }, () => fetchData())
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'encomendas' }, () => fetchData())
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'comunicados' }, () => fetchData())
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'mercado_items' }, () => fetchData())
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'boletos' }, () => fetchData())
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'ocorrencias' }, () => fetchData())
+          .subscribe();
+        
+        channelPromise = Promise.resolve(channel);
+      });
+
+      return () => {
+        if (channelPromise) {
+          channelPromise.then(c => c && c.unsubscribe());
+        }
+      };
     }
   }, [userId, condoId]);
 
@@ -192,6 +221,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
             </div>
             <p className="text-lg font-bold">{expectedVisitors.length} Esperados</p>
             <p className="text-[10px] opacity-70">Liberações ativas</p>
+          </Link>
+          <Link to="/feature/ocorrencias" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform">
+            <div className="flex items-center gap-2 mb-2">
+              <ShieldAlert size={16} className="text-red-300" />
+              <span className="text-xs font-medium uppercase tracking-wider opacity-80">Ocorrências</span>
+            </div>
+            <p className="text-lg font-bold">{openOcorrencias.length} Abertas</p>
+            <p className="text-[10px] opacity-70">Acompanhamento</p>
           </Link>
         </div>
         
