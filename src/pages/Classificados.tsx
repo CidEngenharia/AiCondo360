@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ShoppingBag, 
@@ -34,23 +34,14 @@ import {
   Edit3,
   Trash2,
   Info,
-  X
+  X,
+  Loader2
 } from 'lucide-react';
 import { FeatureHeader } from '../components/FeatureHeader';
+import { MercadoService, MercadoItem } from '../services/supabaseService';
+import { useAuth } from '../hooks/useAuth';
 
-type Listing = {
-  id: string;
-  title: string;
-  price: string;
-  category: string;
-  author: string;
-  unit: string;
-  imageUrls: string[];
-  description: string;
-  date: string;
-  whatsapp: string;
-  condition: 'novo' | 'usado' | 'doação';
-};
+type Listing = MercadoItem;
 
 const CATEGORIES = [
   { id: 'all', name: 'Todos', icon: Package },
@@ -60,49 +51,66 @@ const CATEGORIES = [
   { id: 'servicos', name: 'Serviços', icon: Hammer },
 ];
 
-const INITIAL_LISTINGS: Listing[] = [
-  { 
-    id: '1', title: 'iPhone 13 Pro 128GB', price: 'R$ 3.800', category: 'eletronicos', author: 'Ricardo', unit: 'Apto 152', 
-    imageUrls: ['https://images.unsplash.com/photo-1632661674596-df8be070a5c5?w=400&h=300&fit=crop'], 
-    description: 'Estado de novo, bateria 92%. Acompanha caixa e cabo original.', date: 'Hoje', condition: 'usado', whatsapp: '5511999999999'
-  },
-  { 
-    id: '2', title: 'Sofá Retrátil 3 Lugares', price: 'R$ 1.200', category: 'moveis', author: 'Sônia', unit: 'Torre B 41', 
-    imageUrls: ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=300&fit=crop'], 
-    description: 'Cinza chumbo, em ótimo estado. Retirada por conta do comprador.', date: 'Ontem', condition: 'usado', whatsapp: '5511999999999'
-  },
-  { 
-    id: '3', title: 'Aulas de Violão p/ Iniciantes', price: 'R$ 80/h', category: 'servicos', author: 'Felipe', unit: 'Apto 88', 
-    imageUrls: ['https://images.unsplash.com/photo-1510915363646-a6217664d442?w=400&h=300&fit=crop'], 
-    description: 'Aulas teóricas e práticas. Experiência de 10 anos.', date: 'Há 2 dias', condition: 'novo', whatsapp: '5511999999999'
-  },
-  { 
-    id: '4', title: 'Smart TV Samsung 50"', price: 'R$ 1.950', category: 'eletronicos', author: 'Mariana', unit: 'Apto 12', 
-    imageUrls: ['https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=400&h=300&fit=crop'], 
-    description: '4K HDR, Crystal UHD. 1 ano de uso, sem detalhes.', date: 'Ontem', condition: 'usado', whatsapp: '5511999999999'
-  },
-];
-
 export const Classificados: React.FC = () => {
+  const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   
-  const [listings, setListings] = useState<Listing[]>(INITIAL_LISTINGS);
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const loadingRef = React.useRef(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
 
-  const [formData, setFormData] = useState<Omit<Listing, 'id' | 'date'>>({
+  const [formData, setFormData] = useState<Partial<Listing>>({
     title: '',
     price: '',
     category: 'eletronicos',
-    author: '',
-    unit: '',
-    imageUrls: [],
+    author: user?.name || '',
+    unit: user?.unit || '',
+    image_url: '',
     description: '',
     condition: 'usado',
     whatsapp: '',
+    contact_name: user?.name || '', // NOVO CAMPO
   });
+
+  const loadListings = async () => {
+    if (!user?.condoId || loadingRef.current) return;
+    
+    console.log("[Classificados] Loading listings for condo:", user.condoId);
+    loadingRef.current = true;
+    setLoading(true);
+    
+    try {
+      const data = await MercadoService.getCondoItems(user.condoId);
+      console.log("[Classificados] Data received:", data.length, "items");
+      setListings(data);
+    } catch (err) {
+      console.error("[Classificados] Error loading listings:", err);
+    } finally {
+      setLoading(false);
+      loadingRef.current = false;
+    }
+  };
+
+  // Sincroniza dados do formulário quando o usuário carrega
+  useEffect(() => {
+    if (user && !formData.author) {
+      setFormData(prev => ({
+        ...prev,
+        author: user.name,
+        unit: user.unit
+      }));
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user?.condoId) {
+      loadListings();
+    }
+  }, [user?.condoId]);
 
   const filteredListings = listings.filter(l => 
     (selectedCategory === 'all' || l.category === selectedCategory) &&
@@ -110,268 +118,318 @@ export const Classificados: React.FC = () => {
   );
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []) as File[];
-    if (formData.imageUrls.length + files.length > 2) {
-      alert('Você pode enviar no máximo 2 fotos.');
-      return;
-    }
-
-    files.forEach((file: File) => {
+    const file = e.target.files?.[0];
+    if (file) {
       if (file.size > 1024 * 1024) {
-        alert(`A imagem ${file.name} deve ter no máximo 1MB (1024KB).`);
+        alert('A imagem deve ter no máximo 1MB.');
         return;
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, imageUrls: [...prev.imageUrls, reader.result as string] }));
+        setFormData(prev => ({ ...prev, image_url: reader.result as string }));
       };
       reader.readAsDataURL(file);
-    });
-  };
-
-  const handleCreateNew = () => {
-    if(!formData.title.trim() || !formData.whatsapp.trim()) {
-      alert("Preencha o título e o WhatsApp!");
-      return;
     }
-    
-    if (editingId) {
-      setListings(listings.map(l => l.id === editingId ? { ...formData, id: editingId, date: l.date } : l));
-    } else {
-      const newListing: Listing = {
-        ...formData,
-        id: Math.random().toString(36).substr(2, 9),
-        date: 'Agora'
-      };
-      setListings([newListing, ...listings]);
-    }
-    closeModal();
   };
 
   const closeModal = () => {
     setShowForm(false);
     setEditingId(null);
-    setFormData({ title: '', price: '', category: 'eletronicos', author: '', unit: '', imageUrls: [], description: '', condition: 'usado', whatsapp: '' });
+    setFormData({
+      title: '',
+      price: '',
+      category: 'eletronicos',
+      author: user?.name || '',
+      unit: user?.unit || '',
+      image_url: '',
+      description: '',
+      condition: 'usado',
+      whatsapp: '',
+      contact_name: user?.name || '',
+    });
+  };
+
+  const handleCreateNew = async () => {
+    console.log("[Classificados] Submitting form with title:", formData.title);
+    if(!formData.title?.trim()) {
+      alert("Por favor, preencha o Título do Anúncio!");
+      return;
+    }
+    if(!formData.whatsapp?.trim() || !formData.contact_name?.trim()) {
+      alert("Por favor, preencha o Nome e o WhatsApp de contato!");
+      return;
+    }
+    if(!user) return;
+    
+    try {
+      const itemData: any = {
+        ...formData,
+        condominio_id: user.condoId,
+        user_id: user.id,
+        author: formData.author || user.name || 'Morador',
+        unit: formData.unit || user.unit || '-',
+        status: 'active'
+      };
+
+      if (editingId) {
+        await MercadoService.updateItem(editingId, itemData);
+      } else {
+        await MercadoService.createItem(itemData);
+      }
+      
+      loadListings();
+      closeModal();
+    } catch (err: any) {
+      console.error('[Classificados] Erro detalhado:', err);
+      alert(`Erro ao salvar anúncio:\n${err?.message || err?.details || JSON.stringify(err)}`);
+    }
   };
 
   const handleEdit = (listing: Listing) => {
-    setFormData({
-      title: listing.title,
-      price: listing.price,
-      category: listing.category,
-      author: listing.author,
-      unit: listing.unit,
-      imageUrls: listing.imageUrls,
-      description: listing.description,
-      condition: listing.condition,
-      whatsapp: listing.whatsapp || '',
-    });
     setEditingId(listing.id);
+    setFormData(listing);
     setShowForm(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Tem certeza que deseja excluir este anúncio?')) {
-      setListings(listings.filter(l => l.id !== id));
+      try {
+        await MercadoService.deleteItem(id);
+        loadListings();
+      } catch (err) {
+        console.error(err);
+        alert("Erro ao excluir.");
+      }
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-      <FeatureHeader 
+    <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950/50 p-4 sm:p-6 lg:p-8">
+      <FeatureHeader
         icon={ShoppingBag}
-        title="Marketplace Interno"
-        description="O classificados exclusivo do AiCondo360. Compre, venda ou troque itens com segurança diretamente com seus vizinhos."
+        title="Classificados"
+        description="Compre e venda itens entre vizinhos com segurança."
+        badge="Marketplace Interno"
         color="bg-amber-500"
       />
 
-      {/* Categories Scroller */}
-      <div className="flex gap-4 mb-12 overflow-x-auto pb-4 scrollbar-hide">
-        {CATEGORIES.map((cat) => (
-          <button
-            key={cat.id}
-            onClick={() => setSelectedCategory(cat.id)}
-            className={`flex items-center gap-3 px-8 py-4 rounded-[28px] text-sm font-black whitespace-nowrap transition-all border-b-4 active:scale-95 ${
-              selectedCategory === cat.id 
-              ? 'bg-amber-500 text-white border-amber-600 shadow-xl shadow-amber-500/20' 
-              : 'bg-white dark:bg-slate-800 text-slate-500 border-slate-100 dark:border-slate-700 hover:bg-slate-50'
-            }`}
-          >
-            <cat.icon size={20} className={selectedCategory === cat.id ? 'animate-bounce' : ''} />
-            {cat.name}
-          </button>
-        ))}
-      </div>
-
-      {/* Global Actions Row */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6 p-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[48px] shadow-xl shadow-blue-500/20 relative overflow-hidden group border border-blue-500/30">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-400/20 rounded-full blur-3xl -mr-32 -mt-32 group-hover:scale-110 transition-transform duration-700" />
-        <div className="flex items-center gap-6 relative z-10 w-full md:w-auto cursor-pointer" onClick={() => setShowForm(true)}>
-          <div className="w-16 h-16 bg-amber-500 hover:bg-amber-400 transition-colors rounded-[28px] flex items-center justify-center text-white shadow-xl shadow-amber-500/30">
-            <Plus size={32} />
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Barra de Ações */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-4 justify-between items-center">
+          <div className="relative w-full sm:w-96">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <input 
+              type="text" 
+              placeholder="O que você está procurando?" 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl focus:ring-2 focus:ring-amber-500 transition-all text-slate-900 dark:text-white"
+            />
           </div>
-          <div>
-            <h4 className="text-xl font-black text-white uppercase tracking-tighter">Anunciar Agora</h4>
-            <p className="text-xs font-bold text-amber-500/80 uppercase tracking-widest leading-none">Venda rápido para quem mora ao lado</p>
-          </div>
-        </div>
-
-        <div className="relative w-full md:w-96">
-          <input 
-            type="text"
-            placeholder="O que você está procurando?"
-            className="w-full bg-white/5 border border-white/10 rounded-[28px] px-12 py-5 text-white font-bold text-sm focus:bg-white/10 focus:ring-2 focus:ring-amber-500 transition-all outline-none"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-white/30" size={20} />
-        </div>
-      </div>
-
-      {/* Listings Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mb-12">
-        <AnimatePresence>
-          {filteredListings.map((listing) => (
-            <motion.div
-              layout
-              key={listing.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-slate-800 rounded-[32px] overflow-hidden border border-slate-100 dark:border-slate-700 hover:shadow-2xl hover:shadow-amber-500/10 transition-all flex flex-col"
+          
+          <div className="flex gap-4 w-full sm:w-auto">
+            <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all font-semibold">
+              <Filter size={20} />
+              <span className="hidden sm:inline">Mais Filtros</span>
+            </button>
+            <button 
+              onClick={() => setShowForm(true)}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-amber-500 text-white rounded-2xl hover:bg-amber-600 transition-all font-semibold shadow-lg shadow-amber-500/20"
             >
-              {/* Card Header Social-like */}
-              <div className="p-6 pb-4 border-b border-slate-100 dark:border-slate-700/50 flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-slate-100 dark:bg-slate-900 rounded-full flex items-center justify-center text-slate-400 border border-slate-200 dark:border-slate-700">
-                    <UserCircle2 size={24} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-slate-800 dark:text-white leading-none mb-1">{listing.author}</p>
-                    <p className="text-[10px] font-medium text-slate-500 uppercase tracking-widest">{listing.unit} • {listing.date}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button onClick={() => handleEdit(listing)} className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-colors">
-                    <Edit3 size={18} />
-                  </button>
-                  <button onClick={() => handleDelete(listing.id)} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-colors">
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Informações */}
-              <div className="p-6 flex-1 flex flex-col">
-                <h5 className="text-xl font-bold text-slate-800 dark:text-white mb-2 leading-snug">{listing.title}</h5>
-                <p className="text-2xl font-black text-amber-600 mb-4 tracking-tighter">{listing.price}</p>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed flex-1">
-                  {listing.description}
-                </p>
-                
-                {/* Miniaturas das Fotos */}
-                {listing.imageUrls && listing.imageUrls.length > 0 && (
-                  <div className="flex gap-3 mb-6">
-                    {listing.imageUrls.map((url, i) => (
-                      <div 
-                        key={i} 
-                        onClick={() => setExpandedImage(url)}
-                        className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden cursor-pointer hover:opacity-80 transition-opacity border border-slate-200 dark:border-slate-700 shadow-sm"
-                      >
-                        <img src={url} alt={`Foto ${i+1}`} className="w-full h-full object-cover" />
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Actions Bottom */}
-                <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700/50">
-                  <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-xl text-[10px] font-bold uppercase text-slate-500 tracking-widest border border-slate-200 dark:border-slate-700">
-                    {listing.condition}
-                  </span>
-                  <a 
-                    href={listing.whatsapp ? `https://wa.me/${listing.whatsapp.replace(/\D/g, '')}` : '#'} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    title="Falar no WhatsApp"
-                    className="p-2.5 text-slate-400 hover:text-[#25D366] hover:bg-[#25D366]/10 rounded-full transition-colors flex items-center justify-center shrink-0"
-                  >
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                    </svg>
-                  </a>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-
-        {filteredListings.length === 0 && (
-          <div className="col-span-full py-32 text-center opacity-30 flex flex-col items-center">
-            <ShoppingBag size={80} className="mb-6" />
-            <h4 className="text-2xl font-black uppercase tracking-tighter">Nenhum anúncio por aqui</h4>
-            <p className="text-sm font-bold uppercase tracking-widest mt-2">Seja o primeiro a anunciar nessa categoria!</p>
+              <Plus size={20} />
+              Anunciar
+            </button>
           </div>
+        </div>
+
+        {/* Categorias */}
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          {CATEGORIES.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-full whitespace-nowrap transition-all font-medium border ${
+                selectedCategory === cat.id
+                  ? 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-500/20 translate-y-[-2px]'
+                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-amber-500/50 hover:text-amber-500'
+              }`}
+            >
+              <cat.icon size={18} />
+              {cat.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Grid de Itens */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 grayscale opacity-50">
+             <Loader2 className="animate-spin mb-4" size={40} />
+             <p className="text-slate-500">Carregando anúncios...</p>
+          </div>
+        ) : filteredListings.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <AnimatePresence mode="popLayout">
+              {filteredListings.map((listing) => (
+                <motion.div
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  key={listing.id}
+                  className="group bg-white dark:bg-slate-900 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-black/20 transition-all duration-300"
+                >
+                  <div className="p-5 flex justify-between items-center border-b border-slate-50 dark:border-slate-800/50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 overflow-hidden">
+                        <UserCircle2 size={24} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-800 dark:text-white leading-none mb-1">{listing.author}</p>
+                        <p className="text-[10px] font-medium text-slate-500 uppercase tracking-widest">{listing.unit} • {listing.created_at ? new Date(listing.created_at).toLocaleDateString() : 'Hoje'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => handleEdit(listing)} className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-colors">
+                        <Edit3 size={18} />
+                      </button>
+                      <button onClick={() => handleDelete(listing.id)} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-colors">
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="p-6">
+                    <div className="flex justify-between items-start mb-3">
+                      <h3 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-amber-500 transition-colors line-clamp-1">{listing.title}</h3>
+                      <div className="px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full text-xs font-bold whitespace-nowrap">
+                        {listing.price}
+                      </div>
+                    </div>
+                    
+                    <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 mb-6 h-10">
+                      {listing.description}
+                    </p>
+                    
+                    {/* Foto do Produto */}
+                    {listing.image_url && (
+                      <div className="px-6 mb-4">
+                        <div 
+                          onClick={() => setExpandedImage(listing.image_url)}
+                          className="aspect-video w-full rounded-2xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity border border-slate-200 dark:border-slate-700 shadow-sm"
+                        >
+                          <img src={listing.image_url} alt={listing.title} className="w-full h-full object-cover" />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="pt-6 border-t border-slate-50 dark:border-slate-800/50 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                          listing.condition === 'novo' ? 'bg-emerald-100 text-emerald-700' : 
+                          listing.condition === 'doação' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {listing.condition}
+                        </span>
+                      </div>
+                      <a 
+                        href={`https://wa.me/${listing.whatsapp}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-all font-bold text-sm shadow-md shadow-emerald-500/20"
+                      >
+                        <MessageSquare size={16} />
+                        WhatsApp
+                      </a>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        ) : (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 text-center px-4"
+          >
+            <div className="w-24 h-24 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
+              <ShoppingBag className="text-slate-300" size={48} />
+            </div>
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Nenhum anúncio encontrado</h3>
+            <p className="text-slate-500 max-w-sm mb-8">
+              Seja o primeiro a desapegar de algo ou oferecer um serviço para seus vizinhos.
+            </p>
+            <button 
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-2 px-8 py-4 bg-amber-500 text-white rounded-2xl hover:bg-amber-600 transition-all font-bold shadow-lg shadow-amber-500/20"
+            >
+              <Plus size={20} />
+              Criar o Primeiro Anúncio
+            </button>
+          </motion.div>
         )}
       </div>
 
-      {/* Aviso de Responsabilidade */}
-      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 rounded-[40px] text-white flex flex-col md:flex-row items-center gap-8 shadow-xl shadow-blue-500/20 mb-12">
-        <div className="bg-white/10 p-4 rounded-3xl backdrop-blur-md shrink-0 focus-within:ring-2 focus-within:ring-amber-500">
-          <Info size={40} className="text-amber-500 drop-shadow-md" />
-        </div>
-        <div className="text-center md:text-left">
-          <h4 className="text-xl font-bold mb-2">Aviso de Responsabilidade</h4>
-          <p className="opacity-80 text-sm max-w-4xl leading-relaxed">
-            A administração do Sistema AiCondo360, o Síndico do Condomínio e o Administrador do Condomínio não se responsabilizam por quaisquer transações realizadas entre os condôminos na plataforma interna de Marketplace do Condomínio AiCondo360.
-          </p>
-        </div>
-      </div>
-
-      {/* Modal - Cadastrar/Editar Anúncio */}
+      {/* Modal de Cadastro/Edição */}
       <AnimatePresence>
         {showForm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <motion.div
-              initial={{ opacity: 0, y: 100 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 100 }}
-              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={closeModal}
+              className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
             >
-              <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
-                <h3 className="text-xl font-bold dark:text-white flex items-center gap-2">
-                  <Tag className="text-amber-500" /> {editingId ? 'Editar Anúncio' : 'Novo Anúncio'}
-                </h3>
-                <button onClick={closeModal} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
-                  <X size={24} className="text-slate-400" />
+              <div className="p-6 sm:p-8 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 text-amber-500 rounded-2xl flex items-center justify-center">
+                    <Tag size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                      {editingId ? 'Editar Anúncio' : 'Novo Anúncio'}
+                    </h2>
+                    <p className="text-slate-500 text-sm">Preencha os dados do seu produto ou serviço.</p>
+                  </div>
+                </div>
+                <button onClick={closeModal} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all">
+                  <X size={24} />
                 </button>
               </div>
-              <form className="p-6 space-y-5" onSubmit={(e) => { e.preventDefault(); handleCreateNew(); }}>
+
+              <form className="p-6 sm:p-8 space-y-5 max-h-[70vh] overflow-y-auto" onSubmit={(e) => { e.preventDefault(); handleCreateNew(); }}>
                 
-                {/* Imagens (Até 2) */}
+                {/* Imagem (Max 1MB) */}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Fotos do Produto (Até 2 - Max 1MB/cada)
+                    Foto do Produto (Max 1MB)
                   </label>
                   <div className="flex gap-4 items-center">
-                    {formData.imageUrls.map((url, i) => (
-                      <div key={i} className="relative w-24 h-24 rounded-2xl overflow-hidden border-2 border-slate-200 dark:border-slate-600">
-                        <img src={url} alt={`Preview ${i+1}`} className="w-full h-full object-cover" />
+                    {formData.image_url && (
+                      <div className="relative w-24 h-24 rounded-2xl overflow-hidden border-2 border-slate-200 dark:border-slate-600">
+                        <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" />
                         <button 
                           type="button" 
-                          onClick={() => setFormData(p => ({ ...p, imageUrls: p.imageUrls.filter((_, idx) => idx !== i) }))}
+                          onClick={() => setFormData(p => ({ ...p, image_url: '' }))}
                           className="absolute top-1 right-1 bg-rose-500 text-white rounded-full p-1"
                         >
                           <X size={12} />
                         </button>
                       </div>
-                    ))}
-                    {formData.imageUrls.length < 2 && (
+                    )}
+                    {!formData.image_url && (
                       <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center relative hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                         <Camera size={28} className="text-slate-400" />
                         <input 
                           type="file" 
                           accept="image/*"
-                          multiple
                           onChange={handleImageUpload}
                           className="absolute inset-0 opacity-0 cursor-pointer"
                         />
@@ -380,78 +438,143 @@ export const Classificados: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Título do Anúncio *</label>
-                    <input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-amber-500 transition-all text-sm" placeholder="Ex: Bicicleta Caloi" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Preço</label>
-                    <input type="text" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} required className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-amber-500 transition-all text-sm" placeholder="Ex: R$ 450,00" />
-                  </div>
-                </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="col-span-full">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Título do Anúncio</label>
+                      <input 
+                        type="text" 
+                        placeholder="Ex: iPhone 13 Pro 128GB"
+                        value={formData.title}
+                        onChange={(e) => setFormData({...formData, title: e.target.value})}
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all font-medium"
+                        required
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Pequena Descrição *</label>
-                  <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} required rows={3} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-amber-500 transition-all text-sm" placeholder="Detalhes do seu produto..." />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Nome para Contato</label>
+                      <input 
+                        type="text" 
+                        placeholder="Seu nome"
+                        value={formData.contact_name}
+                        onChange={(e) => setFormData({...formData, contact_name: e.target.value})}
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all font-medium"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">WhatsApp</label>
+                      <input 
+                        type="text" 
+                        placeholder="Ex: 719..."
+                        value={formData.whatsapp}
+                        onChange={(e) => setFormData({...formData, whatsapp: e.target.value})}
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all font-medium"
+                        required
+                      />
+                    </div>
+                  </div>
+                  
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Categoria</label>
-                    <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-amber-500 transition-all text-sm">
-                      <option value="eletronicos">Eletrônicos</option>
-                      <option value="moveis">Móveis</option>
-                      <option value="utilidades">Utilidades</option>
-                      <option value="servicos">Serviços</option>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Preço (ou R$ a combinar)</label>
+                    <input 
+                      type="text" 
+                      placeholder="Ex: R$ 3.800"
+                      value={formData.price}
+                      onChange={(e) => setFormData({...formData, price: e.target.value})}
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Categoria</label>
+                    <select 
+                      value={formData.category}
+                      onChange={(e) => setFormData({...formData, category: e.target.value})}
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all font-medium"
+                    >
+                      {CATEGORIES.filter(c => c.id !== 'all').map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
                     </select>
                   </div>
+
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Seu WhatsApp *</label>
-                    <input type="text" value={formData.whatsapp} onChange={e => setFormData({...formData, whatsapp: e.target.value})} required className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-amber-500 transition-all text-sm" placeholder="Ex: 11999999999" />
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Condição</label>
+                    <select 
+                      value={formData.condition}
+                      onChange={(e) => setFormData({...formData, condition: e.target.value})}
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all font-medium"
+                    >
+                      <option value="novo">Novo</option>
+                      <option value="usado">Usado</option>
+                      <option value="doação">Doação</option>
+                    </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Seu Nome</label>
-                    <input type="text" value={formData.author} onChange={e => setFormData({...formData, author: e.target.value})} required className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-amber-500 transition-all text-sm" placeholder="Seu nome" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Unidade/Apt</label>
-                    <input type="text" value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-amber-500 transition-all text-sm" placeholder="Sua unidade" />
-                  </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Descrição</label>
+                  <textarea 
+                    rows={3}
+                    placeholder="Conte mais sobre o produto..."
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all"
+                    required
+                  ></textarea>
                 </div>
 
-                <button 
-                  type="submit"
-                  className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 rounded-2xl transition-colors shadow-lg shadow-amber-500/20 mt-4 outline-none border-none"
-                >
-                  {editingId ? 'Salvar Alterações' : 'Publicar Anúncio'}
-                </button>
+                <div className="pt-4 flex gap-3">
+                  <button 
+                    type="button"
+                    onClick={closeModal}
+                    className="flex-1 px-6 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl hover:bg-slate-200 transition-all font-bold"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit"
+                    className="flex-[2] px-6 py-4 bg-amber-500 text-white rounded-2xl hover:bg-amber-600 transition-all font-bold shadow-lg shadow-amber-500/20"
+                  >
+                    {editingId ? 'Salvar Alterações' : 'Publicar Anúncio'}
+                  </button>
+                </div>
               </form>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      {/* Modal - Ampliar Foto */}
+      {/* Visualizador de Imagem Ampliada */}
       <AnimatePresence>
         {expandedImage && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md" onClick={() => setExpandedImage(null)}>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setExpandedImage(null)}
+            className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-lg flex items-center justify-center p-4"
+          >
+            <motion.button
+              initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="relative max-w-4xl max-h-[90vh] w-full"
-              onClick={e => e.stopPropagation()}
+              exit={{ opacity: 0, scale: 0.5 }}
+              className="absolute top-8 right-8 text-white/50 hover:text-white transition-all bg-white/10 p-4 rounded-full backdrop-blur-md"
             >
-              <button 
-                onClick={() => setExpandedImage(null)} 
-                className="absolute -top-12 right-0 p-2 text-white/70 hover:text-white transition-colors"
-              >
-                <X size={32} />
-              </button>
-              <img src={expandedImage} alt="Ampliada" className="w-full h-full object-contain rounded-xl" />
-            </motion.div>
-          </div>
+              <X size={32} />
+            </motion.button>
+            <motion.img
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              src={expandedImage}
+              alt="Ampliada"
+              className="max-w-full max-h-full rounded-3xl shadow-2xl border-4 border-white/10"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

@@ -19,8 +19,7 @@ import {
   Handshake,
   MapPin,
   Phone,
-  Vote,
-  Key
+  Vote
 } from 'lucide-react';
 
 export type UserRole = 'resident' | 'admin' | 'syndic' | 'global_admin';
@@ -39,7 +38,6 @@ export interface Feature {
 export const FEATURES: Feature[] = [
   { id: 'boletos', label: 'Financeiro', icon: CreditCard, color: 'bg-emerald-500', category: 'financial', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
   { id: 'comunicados', label: 'Mensagens', icon: MessageSquare, color: 'bg-blue-500', category: 'communication', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
-  { id: 'mural', label: 'Mural', icon: Megaphone, color: 'bg-amber-500', category: 'communication', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
   { id: 'reservas', label: 'Reservas', icon: Calendar, color: 'bg-purple-500', category: 'operations', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
   { id: 'ocorrencias', label: 'Ocorrências', icon: ShieldAlert, color: 'bg-red-500', category: 'communication', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
   { id: 'pets', label: 'Meus Pets', icon: Dog, color: 'bg-rose-500', category: 'social', roles: ['resident', 'admin', 'syndic'], plans: ['premium'] },
@@ -48,9 +46,8 @@ export const FEATURES: Feature[] = [
   { id: 'documentos', label: 'Documentos', icon: FileText, color: 'bg-slate-600', category: 'operations', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
   { id: 'mercado', label: 'Classificados', icon: ShoppingCart, color: 'bg-indigo-500', category: 'social', roles: ['resident', 'admin', 'syndic'], plans: ['enterprise', 'premium'] },
   { id: 'veiculos', label: 'Garagem', icon: Car, color: 'bg-zinc-700', category: 'social', roles: ['resident', 'admin', 'syndic'], plans: ['enterprise', 'premium'] },
-  { id: 'contatos', label: 'Telefones', icon: Phone, color: 'bg-cyan-600', category: 'communication', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
+  { id: 'telefones', label: 'Telefones', icon: Phone, color: 'bg-cyan-600', category: 'communication', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
   { id: 'assembleias', label: 'Assembleias', icon: Vote, color: 'bg-teal-500', category: 'social', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
-  { id: 'digital-key', label: 'Chave Digital', icon: Key, color: 'bg-yellow-500', category: 'operations', roles: ['resident', 'admin', 'syndic'], plans: ['premium'] },
 ];
 
 export const PLANS = [

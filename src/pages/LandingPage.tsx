@@ -1,16 +1,17 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { 
-  Building2, 
-  Shield, 
-  Zap, 
-  Globe, 
-  Check, 
-  ArrowRight, 
-  Users, 
-  MessageSquare, 
-  Calendar, 
-  Package, 
+import { useNavigate, Link } from 'react-router-dom';
+import {
+  Building2,
+  Shield,
+  Zap,
+  Globe,
+  Check,
+  ArrowRight,
+  Users,
+  MessageSquare,
+  Calendar,
+  Package,
   CreditCard,
   Mail,
   Phone,
@@ -18,9 +19,10 @@ import {
   Facebook,
   Twitter,
   Instagram,
-  Linkedin
+  Linkedin,
+  ChevronUp,
+  X
 } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
 import { LoginForm } from '../components/LoginForm';
 
 const FeatureCard = ({ icon: Icon, title, description, delay = 0 }: any) => (
@@ -61,50 +63,90 @@ const TestimonialCard = ({ quote, author, role, avatar, delay = 0 }: any) => (
   </motion.div>
 );
 
-const PricingCard = ({ title, price, features, highlighted = false, delay = 0 }: any) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true }}
-    transition={{ delay }}
-    className={`p-10 rounded-[2.5rem] border ${
-      highlighted 
-        ? 'bg-blue-600 border-blue-400 shadow-[0_32px_64px_-16px_rgba(59,130,246,0.3)]' 
-        : 'bg-slate-900/50 border-white/5 backdrop-blur-sm shadow-xl'
-    } relative flex flex-col h-full`}
-  >
-    {highlighted && (
-      <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-white text-blue-600 text-[10px] font-black uppercase tracking-widest rounded-full">
-        Mais Popular
-      </div>
-    )}
-    <h3 className={`text-xl font-black mb-2 ${highlighted ? 'text-white' : 'text-slate-100'}`}>{title}</h3>
-    <div className="flex items-baseline gap-1 mb-6">
-      <span className={`text-4xl font-black ${highlighted ? 'text-white' : 'text-slate-100'}`}>R${price}</span>
-      <span className={highlighted ? 'text-blue-100' : 'text-slate-500'}>/mês</span>
+const Modal = ({ isOpen, onClose, children }: any) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="relative bg-slate-900 border border-white/10 rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl"
+      >
+        <button onClick={onClose} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-white transition-colors">
+          <X size={20} />
+        </button>
+        {children}
+      </motion.div>
     </div>
-    <div className="space-y-4 mb-8 flex-grow">
-      {features.map((feature: string, i: number) => (
-        <div key={i} className="flex items-center gap-3">
-          <div className={`p-1 rounded-full ${highlighted ? 'bg-white/20 text-white' : 'bg-blue-500/20 text-blue-400'}`}>
-            <Check size={12} />
-          </div>
-          <span className={`text-sm ${highlighted ? 'text-blue-50' : 'text-slate-400'}`}>{feature}</span>
+  );
+};
+
+const PricingCard = ({ title, price, features, highlighted = false, delay = 0, variant = "slate", stripeLink }: any) => {
+  const getVariantStyles = () => {
+    switch (variant) {
+      case "plan-light": // Essencial
+        return "bg-gradient-to-br from-blue-400 to-indigo-500 border-blue-300 shadow-[0_32px_64px_-16px_rgba(96,165,250,0.3)]";
+      case "plan-medium": // Profissional
+        return "bg-gradient-to-br from-blue-600 to-indigo-800 border-indigo-400 shadow-[0_32px_64px_-16px_rgba(59,130,246,0.4)]";
+      case "plan-dark": // Premium
+        return "bg-gradient-to-br from-indigo-900 to-slate-950 border-white/5 shadow-2xl";
+      default:
+        return "bg-slate-900/50 border-white/5 backdrop-blur-sm shadow-xl";
+    }
+  };
+
+  const isLightVersion = variant === "plan-light"; // Lightest variant, use clean text
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay }}
+      className={`p-10 rounded-[2.5rem] border ${getVariantStyles()} relative flex flex-col h-full`}
+    >
+      {highlighted && (
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 font-black uppercase tracking-widest rounded-full text-[10px] bg-white text-blue-600">
+          Mais Popular
         </div>
-      ))}
-    </div>
-    <button className={`w-full py-4 rounded-2xl font-bold transition-all ${
-      highlighted 
-        ? 'bg-white text-blue-600 hover:shadow-lg hover:scale-[1.02]' 
-        : 'bg-blue-600 text-white hover:bg-blue-500'
-    }`}>
-      Começar agora
-    </button>
-  </motion.div>
-);
+      )}
+      <h3 className="text-xl font-black mb-2 text-white">{title}</h3>
+      <div className="flex items-baseline gap-1 mb-6">
+        <span className="text-4xl font-black text-white">R${price}</span>
+        <span className="text-blue-50/70">/mês</span>
+      </div>
+      <div className="space-y-4 mb-8 flex-grow">
+        {features.map((feature: string, i: number) => (
+          <div key={i} className="flex items-center gap-3">
+            <div className="p-1 rounded-full bg-white/20 text-white">
+              <Check size={12} />
+            </div>
+            <span className="text-sm text-white font-medium">{feature}</span>
+          </div>
+        ))}
+      </div>
+      <button 
+        onClick={() => stripeLink && window.open(stripeLink, '_blank')}
+        className={`w-full py-4 rounded-2xl font-bold transition-all ${
+          isLightVersion 
+            ? 'bg-white text-blue-600 hover:shadow-lg hover:scale-[1.02]' 
+            : 'bg-blue-600 text-white hover:bg-blue-500'
+        }`}>
+        Começar agora
+      </button>
+    </motion.div>
+  );
+};
 
 export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUser }) => {
   const navigate = useNavigate();
+  const [isDemoModalOpen, setIsDemoModalOpen] = React.useState(false);
 
   const mainFeatures = [
     { icon: Building2, title: "Gestão Unificada", description: "Controle total de unidades, moradores e veículos em uma única interface intuitiva." },
@@ -117,31 +159,29 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
 
   const testimonials = [
     {
-      quote: "Mudou completamente a dinâmica do nosso prédio. A transparência financeira e a facilidade de reservar o salão de festas são os pontos altos.",
-      author: "Ricardo Silveira",
-      role: "Síndico Executivo",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ricardo"
-    },
-    {
-      quote: "Como morador, me sinto muito mais seguro e informado. Receber notificações de encomendas no celular é uma praticidade sem volta.",
-      author: "Juliana Mendes",
-      role: "Moradora Bloco B",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Juliana"
-    },
-    {
-      quote: "O suporte é impecável e a plataforma é extremamente rápida. Reduzimos a inadimplência em 40% nos primeiros seis meses.",
+      quote: "O suporte é extremamente eficaz, o plano Premium reduziu meu trabalho em 70% com as automações na Gestão do Condomínio, hoje não sei o que seria de mim sem essa plataforma aqui no Condomínio.",
       author: "Carlos Alberto",
       role: "Administrador de Condomínios",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Carlos"
+      avatar: "/avatars/avatar3.png"
+    },
+    {
+      quote: "A plataforma transformou nossa inadimplência. O controle é total e a paz voltou ao condomínio com as prestações de contas transparentes.",
+      author: "Paulo Matiaso",
+      role: "Administrador de Condomínios",
+      avatar: "/avatars/avatar4.png"
     }
   ];
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <div className="bg-slate-950 min-h-screen selection:bg-blue-500/30">
       {/* Hero & Login Section */}
       <section className="relative min-h-screen flex items-center justify-center pt-20 pb-12 overflow-hidden">
         {/* Background Background */}
-        <div 
+        <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-[60s] scale-110 animate-slow-zoom"
           style={{ backgroundImage: 'url("/bg-home-hero.png")' }}
         />
@@ -155,24 +195,25 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
+                className="flex items-center"
               >
                 <img
-                  src="/AICondo1_L.fw.png"
+                  src="/AICondo_Full_v2.png"
                   alt="Logo AiCondo360"
-                  className="h-16 md:h-20 w-auto object-contain"
+                  className="h-32 md:h-48 w-auto object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500"
                 />
               </motion.div>
-              <motion.h1 
+              <motion.h1
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
                 className="text-5xl md:text-7xl font-black text-white leading-[0.95] tracking-tighter"
               >
                 Inteligência <br />
-                que Transforma a <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-600 animate-gradient">Vila em Família</span>
+                que Transforma <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-600 animate-gradient">Condomínios em Família</span>
               </motion.h1>
-              <motion.p 
+              <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
@@ -182,28 +223,28 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
               </motion.p>
             </div>
 
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
               className="flex items-center gap-8"
             >
               <div className="flex -space-x-3">
-                {[1,2,3,4].map(i => (
+                {[1, 2, 3].map(i => (
                   <div key={i} className="w-10 h-10 rounded-full border-2 border-slate-950 bg-slate-800 overflow-hidden shadow-xl">
-                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=user${i}`} alt="user" />
+                    <img src={`/avatars/avatar${i}.png`} alt="user" className="w-full h-full object-cover" />
                   </div>
                 ))}
               </div>
               <div>
-                <p className="text-white font-bold">+500 Condomínios</p>
+                <p className="text-white font-bold">+500 Moradores</p>
                 <p className="text-slate-500 text-xs">Transformando a gestão no Brasil</p>
               </div>
             </motion.div>
           </div>
 
           {/* Right: Login Card */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.9, rotateY: -10 }}
             animate={{ opacity: 1, scale: 1, rotateY: 0 }}
             transition={{ duration: 0.8, ease: "circOut" }}
@@ -213,7 +254,7 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
               <LoginForm setUser={setUser} />
               <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800 text-center space-y-4">
                 <p className="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Acesso Síndico & Administrador</p>
-                <button 
+                <button
                   onClick={() => navigate('/admin-exclusivo')}
                   className="w-full py-4 rounded-2xl bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-bold text-sm hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
                 >
@@ -226,7 +267,7 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
         </div>
 
         {/* Scroll Indicator */}
-        <motion.div 
+        <motion.div
           animate={{ y: [0, 10, 0] }}
           transition={{ repeat: Infinity, duration: 2 }}
           className="absolute bottom-10 left-1/2 -translate-x-1/2 text-slate-500"
@@ -241,7 +282,7 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
       <section className="py-32 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-24 space-y-4">
-            <motion.span 
+            <motion.span
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
@@ -249,13 +290,13 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
             >
               Funcionalidades 360
             </motion.span>
-            <motion.h2 
+            <motion.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               className="text-4xl md:text-5xl font-black text-white tracking-tight"
             >
-              Sua gestão, em <span className="text-blue-500">outro patamar.</span>
+              Abrangência que alcançam <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-600 animate-gradient">todas as áreas.</span>
             </motion.h2>
           </div>
 
@@ -268,55 +309,60 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
       </section>
 
       {/* Testimonials */}
-      <section className="py-32 bg-slate-900/30">
+      <section className="pt-20 pb-32 bg-slate-900/30">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-1 space-y-8 pr-12">
-              <span className="text-blue-500 font-black text-xs uppercase tracking-[0.3em]">DEPOIMENTOS</span>
-              <h2 className="text-4xl font-black text-white leading-tight tracking-tight">O que dizem quem já vive o <span className="text-blue-500">Futuro.</span></h2>
-              <p className="text-slate-400 font-medium">Histórias reais de transformação digital em condomínios de todo o país.</p>
-              <div className="flex items-center gap-4 text-white">
-                <div className="flex text-yellow-500">
-                  {[1,2,3,4,5].map(i => <Check key={i} size={16} />)}
-                </div>
-                <span className="font-bold">4.9/5 nas avaliações</span>
+          <div className="text-center mb-12 space-y-4">
+            <span className="text-blue-500 font-black text-xs uppercase tracking-[0.3em]">DEPOIMENTOS</span>
+            <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">O que dizem quem já vive o <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-600 animate-gradient">Futuro.</span></h2>
+            <p className="text-slate-400 font-medium max-w-2xl mx-auto">Histórias reais de transformação digital em condomínios de todo o país.</p>
+            <div className="flex items-center justify-center gap-4 text-white">
+              <div className="flex text-yellow-500">
+                {[1, 2, 3, 4, 5].map(i => <Check key={i} size={16} />)}
               </div>
+              <span className="font-bold">4.9/5 nas avaliações</span>
             </div>
-            <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
-              {testimonials.map((t, i) => (
-                <TestimonialCard key={i} {...t} delay={i * 0.2} />
-              ))}
-            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {testimonials.map((t, i) => (
+              <TestimonialCard key={i} {...t} delay={i * 0.2} />
+            ))}
           </div>
         </div>
       </section>
 
       {/* Pricing */}
-      <section className="py-32" id="pricing">
+      <section className="pt-20 pb-32" id="pricing">
         <div className="max-w-5xl mx-auto px-6">
-          <div className="text-center mb-24 space-y-4">
+          <div className="text-center mb-16 space-y-2">
             <span className="text-blue-500 font-black text-xs uppercase tracking-[0.3em]">Investimento</span>
-            <h2 className="text-4xl font-black text-white tracking-tight">Planos que acompanham seu <span className="text-blue-500">Crescimento.</span></h2>
+            <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">Planos que acompanham seu <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-600 animate-gradient">Crescimento.</span></h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-center">
-            <PricingCard 
-              title="Basic" 
-              price="199,00" 
-              features={["Até 50 unidades", "Gestão de moradores", "Mural digital", "Suporte email"]} 
+            <PricingCard
+              title="Essencial"
+              price="250,00"
+              features={["Condomínios Pequenos", "Gestão de moradores", "Mural digital", "Suporte email"]}
+              variant="plan-light"
+              stripeLink="https://buy.stripe.com/28EfZad956Je2rgaCuf3a00"
               delay={0.1}
             />
-            <PricingCard 
-              title="Enterprise" 
-              price="299,00" 
-              features={["Unidades ilimitadas", "Boletos automáticos", "Assembleias virtuais", "Suporte 24/7", "App Personalizado"]} 
+            <PricingCard
+              title="Profissional"
+              price="300,00"
+              features={["Até 50 unidades", "Boletos automáticos", "Assembleias virtuais", "Suporte 24/7", "Gestão Inteligente"]}
               highlighted={true}
+              variant="plan-medium"
+              stripeLink="https://buy.stripe.com/00w3co6KHd7C9TI25Yf3a01"
               delay={0.2}
             />
-            <PricingCard 
-              title="Premium" 
-              price="499,99" 
-              features={["Customização total", "API aberta", "Integração hardware", "Gerente de conta", "Treinamento presencial"]} 
+            <PricingCard
+              title="Premium"
+              price="399,00"
+              features={["Customização total", "50+ unidades", "Suporte Assistido", "Controle Geral de acessos", "Treinamento presencial"]}
+              variant="plan-dark"
+              stripeLink="https://buy.stripe.com/28EaEQ3yv5Fa7LAcKCf3a02"
               delay={0.3}
             />
           </div>
@@ -324,36 +370,97 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
       </section>
 
       {/* Contact CTA */}
-      <section className="py-32">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[4rem] p-12 md:p-20 relative overflow-hidden shadow-2xl">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -mr-48 -mt-48 blur-3xl animate-pulse" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/10 rounded-full -ml-32 -mb-32 blur-2xl" />
-            
-            <div className="relative z-10 max-w-2xl">
-              <h2 className="text-4xl md:text-5xl font-black text-white mb-8 tracking-tight">Pronto para a <br /> Revolução 360º?</h2>
-              <p className="text-blue-50 text-xl mb-12 font-medium opacity-90">Agende uma demonstração gratuita com nossos especialistas e descubra como podemos ajudar seu condomínio.</p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button className="px-10 py-5 bg-white text-blue-600 font-bold rounded-2xl hover:bg-blue-50 transition-all flex items-center justify-center gap-3 shadow-xl">
-                  Agende sua Demo
-                  <ArrowRight size={20} />
-                </button>
-                <button className="px-10 py-5 bg-blue-700/50 text-white font-bold rounded-2xl border border-white/20 hover:bg-blue-700/70 transition-all">
-                  Falar com Comercial
-                </button>
-              </div>
+      <section className="py-32 relative overflow-hidden bg-slate-950">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#1a2b4b] to-[#0f172a]" />
+        <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_-30%,rgba(59,130,246,0.5),transparent)]" />
+        
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="text-center max-w-4xl mx-auto space-y-12 py-12">
+            <h2 className="text-4xl md:text-6xl font-black tracking-tight leading-tight">
+              <span className="text-white">Pronto para a </span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-600 animate-gradient">Revolução 360º?</span>
+            </h2>
+            <p className="text-blue-100/80 text-xl font-medium max-w-2xl mx-auto leading-relaxed">
+              Agende uma demonstração gratuita com nossos especialistas e transforme sua gestão.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-6 justify-center pt-8">
+              <button
+                onClick={() => setIsDemoModalOpen(true)}
+                className="px-12 py-5 bg-white text-[#0f172a] font-black rounded-full hover:bg-blue-50 transition-all flex items-center justify-center gap-3 shadow-[0_20px_50px_rgba(59,130,246,0.3)] hover:scale-105 active:scale-95"
+              >
+                Agende sua Demo
+                <ArrowRight size={20} />
+              </button>
+              <button
+                onClick={() => window.open('https://wa.me/5571984184782', '_blank')}
+                className="px-12 py-5 bg-blue-600/20 text-white font-bold rounded-full border border-white/20 hover:bg-blue-600/40 backdrop-blur-md transition-all shadow-xl hover:scale-105 active:scale-95"
+              >
+                Falar com Comercial
+              </button>
             </div>
           </div>
         </div>
       </section>
+
+      {/* Demo Selection Modal */}
+      <Modal isOpen={isDemoModalOpen} onClose={() => setIsDemoModalOpen(false)}>
+        <div className="p-8 md:p-10">
+          <h3 className="text-2xl font-black text-white mb-2">Solicitar Orçamento</h3>
+          <p className="text-slate-400 text-sm mb-8">Preencha os dados abaixo e entraremos em contato.</p>
+
+          <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); alert('Solicitação enviada com sucesso!'); setIsDemoModalOpen(false); }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">E-mail</label>
+                <input type="email" required className="w-full bg-slate-800 border border-white/5 rounded-xl px-4 py-3 text-white focus:border-blue-500 outline-none transition-colors" placeholder="seu@email.com" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Telefone</label>
+                <input type="tel" required className="w-full bg-slate-800 border border-white/5 rounded-xl px-4 py-3 text-white focus:border-blue-500 outline-none transition-colors" placeholder="(00) 00000-0000" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Quantos moradores tem no condomínio?</label>
+              <select required className="w-full bg-slate-800 border border-white/5 rounded-xl px-4 py-3 text-white focus:border-blue-500 outline-none transition-colors appearance-none">
+                <option value="">Selecione...</option>
+                <option value="1-50">Até 50 unidades</option>
+                <option value="51-150">51 a 150 unidades</option>
+                <option value="151-300">151 a 300 unidades</option>
+                <option value="300+">Acima de 300 unidades</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Funcionalidade mais desejada?</label>
+              <select required className="w-full bg-slate-800 border border-white/5 rounded-xl px-4 py-3 text-white focus:border-blue-500 outline-none transition-colors appearance-none">
+                <option value="">Selecione...</option>
+                <option value="financeiro">Gestão Financeira</option>
+                <option value="seguranca">Segurança e Acesso</option>
+                <option value="comunicacao">Comunicação e Mural</option>
+                <option value="encomendas">Controle de Encomendas</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Principal problema enfrentado?</label>
+              <textarea rows={2} required className="w-full bg-slate-800 border border-white/5 rounded-xl px-4 py-3 text-white focus:border-blue-500 outline-none transition-colors resize-none" placeholder="Ex: Inadimplência, falta de organização..." />
+            </div>
+
+            <button type="submit" className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20">
+              Solicitar Orçamento
+            </button>
+          </form>
+        </div>
+      </Modal>
 
       {/* Footer */}
       <footer className="bg-slate-950 border-t border-white/5 pt-24 pb-12">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-20">
             <div className="space-y-8">
-              <div className="flex items-center mb-4">
-                <img src="/AICondo1_L.fw.png" alt="Logo AiCondo360" className="h-20 md:h-24 w-auto object-contain hover:scale-105 transition-transform drop-shadow-md" />
+              <div className="flex items-center mb-8">
+                <img src="/AICondo_Full_v2.png" alt="Logo AiCondo360" className="h-28 md:h-36 w-auto object-contain hover:scale-110 transition-transform drop-shadow-xl" />
               </div>
               <p className="text-slate-500 text-sm leading-relaxed">Software de gestão inteligente que conecta síndicos e moradores em uma experiência 360º.</p>
               <div className="flex gap-4">
@@ -385,11 +492,20 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
             </div>
 
             <div>
-              <h4 className="text-white font-bold mb-8">Contato</h4>
+              <h4 className="text-white font-bold mb-8 flex items-center justify-between">
+                Contato
+                <button
+                  onClick={scrollToTop}
+                  className="p-2 rounded-full bg-slate-900 border border-white/5 text-blue-500 hover:bg-slate-800 transition-all"
+                  aria-label="Voltar para o topo"
+                >
+                  <ChevronUp size={20} />
+                </button>
+              </h4>
               <ul className="space-y-6">
                 <li className="flex items-start gap-3">
                   <Mail size={18} className="text-blue-500 shrink-0 mt-0.5" />
-                  <a href="mailto:cidengenhara@gmail.com" className="text-slate-500 text-sm hover:text-white transition-colors">cidengenhara@gmail.com</a>
+                  <a href="mailto:cidengenharia@gmail.com" className="text-slate-500 text-sm hover:text-white transition-colors">cidengenharia@gmail.com</a>
                 </li>
                 <li className="flex items-start gap-3">
                   <Phone size={18} className="text-blue-500 shrink-0 mt-0.5" />
@@ -423,7 +539,7 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
         aria-label="Fale conosco no WhatsApp"
       >
         <svg viewBox="0 0 24 24" className="w-8 h-8 fill-current drop-shadow-md" xmlns="http://www.w3.org/2000/svg">
-          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.489-1.761-1.663-2.06-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.489-1.761-1.663-2.06-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z" />
         </svg>
       </a>
     </div>

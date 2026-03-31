@@ -80,28 +80,54 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
   };
 
   useEffect(() => {
-    // Basic UI State
-    const now = new Date();
-    const hour = now.getHours();
-    
-    if (hour >= 5 && hour < 12) setGreeting('Bom dia');
-    else if (hour >= 12 && hour < 18) setGreeting('Boa tarde');
-    else setGreeting('Boa noite');
+    // Function to update UI State
+    const updateUIState = () => {
+      const now = new Date();
+      const hour = now.getHours();
+      
+      if (hour >= 5 && hour < 12) setGreeting('Bom dia');
+      else if (hour >= 12 && hour < 18) setGreeting('Boa tarde');
+      else setGreeting('Boa noite');
 
-    const options: Intl.DateTimeFormatOptions = { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+      const options: Intl.DateTimeFormatOptions = { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      };
+      setCurrentDate(now.toLocaleDateString('pt-BR', options));
+
+      // Simulate real-time weather based on hour
+      let currentTemp = 24;
+      let currentCondition = 'Ensolarado';
+      let currentIcon = Sun;
+      
+      if (hour >= 6 && hour < 10) {
+        currentTemp = 20;
+        currentCondition = 'Ameno';
+        currentIcon = Sun;
+      } else if (hour >= 10 && hour < 16) {
+        currentTemp = 28 + Math.floor(Math.random() * 4); // Variety around 28-31
+        currentCondition = 'Ensolarado';
+        currentIcon = Sun;
+      } else if (hour >= 16 && hour < 19) {
+        currentTemp = 26;
+        currentCondition = 'Ensolarado';
+        currentIcon = Sun;
+      } else if (hour >= 19 || hour < 6) {
+          currentTemp = 22;
+          currentCondition = 'Céu Limpo';
+          currentIcon = Moon;
+      }
+
+      setWeather({ temp: currentTemp, condition: currentCondition, icon: currentIcon });
     };
-    setCurrentDate(now.toLocaleDateString('pt-BR', options));
 
-    const mockWeathers = [
-      { temp: 28, condition: 'Ensolarado', icon: Sun },
-      { temp: 22, condition: 'Nublado', icon: Cloud },
-      { temp: 19, condition: 'Chuvoso', icon: CloudRain },
-    ];
-    setWeather(mockWeathers[Math.floor(Math.random() * mockWeathers.length)]);
+    // Initial Update
+    updateUIState();
+    
+    // Set interval for every minute
+    const interval = setInterval(updateUIState, 60000);
 
     // Initial Fetch
     fetchData();
@@ -125,11 +151,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
       });
 
       return () => {
+        clearInterval(interval);
         if (channelPromise) {
           channelPromise.then(c => c && c.unsubscribe());
         }
       };
     }
+    
+    return () => clearInterval(interval);
   }, [userId, condoId]);
 
   const filteredFeatures = FEATURES.filter(feature => {
@@ -140,72 +169,97 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
   return (
     <div className="p-4 space-y-6">
       {/* Welcome Section */}
-      <section className="bg-gradient-to-br from-blue-600 to-indigo-700 dark:from-slate-800 dark:to-slate-950 rounded-3xl p-6 text-white shadow-lg shadow-blue-200 dark:shadow-none">
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <p className="text-blue-100 dark:text-slate-400 text-xs font-medium uppercase tracking-widest mb-1">{currentDate}</p>
-            <h2 className="text-2xl font-bold">{greeting}, {userName.split(' ')[0]}!</h2>
-          </div>
-          <div className="flex flex-col items-end">
-            <div className="flex items-center gap-2">
-              <weather.icon size={24} className="text-amber-300" />
-              <span className="text-xl font-bold">{weather.temp}°C</span>
-            </div>
-            <span className="text-[10px] font-medium opacity-80 uppercase tracking-wider">{weather.condition}</span>
-          </div>
+      <section className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-emerald-600 via-teal-600 to-green-700 p-8 lg:p-12 text-white shadow-2xl shadow-emerald-200/50 dark:shadow-none min-h-[220px] flex flex-col justify-center border border-white/20">
+        {/* Decorative Blurs */}
+        <div className="absolute inset-0 opacity-30 pointer-events-none">
+          <div className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-emerald-400 rounded-full blur-3xl translate-x-1/3 translate-y-1/3" />
         </div>
         
-        <div className="flex flex-col gap-4 mb-6">
-           <Link 
-            to="/feature/digital-key"
-            className="w-full bg-white text-blue-700 dark:bg-slate-700 dark:text-white py-4 rounded-2xl flex items-center justify-center gap-3 font-bold shadow-xl shadow-blue-900/20 active:scale-95 transition-transform"
-          >
-            <div className="bg-blue-100 dark:bg-slate-600 p-2 rounded-lg">
-              <Key size={18} className="text-blue-600 dark:text-blue-400" />
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5 mix-blend-overlay pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col items-center text-center space-y-6">
+          <div className="flex items-center gap-4 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
+            <p className="text-emerald-50 text-[10px] font-medium uppercase tracking-[0.2em]">{currentDate}</p>
+            <div className="w-1.5 h-1.5 rounded-full bg-white/30" />
+            <div className="flex items-center gap-2">
+              <weather.icon size={14} className="text-amber-300" />
+              <span className="text-xs font-medium">{weather.temp}°C {weather.condition}</span>
             </div>
-            Abrir Portas / Chave Digital
-          </Link>
+          </div>
+
+          <h2 className="text-3xl lg:text-4xl font-medium tracking-tight drop-shadow-xl max-w-2xl leading-tight">
+            {greeting}, {userName}! <br className="hidden md:block" />
+            <span className="text-emerald-200 text-sm block mt-2 opacity-90 font-normal">Há comunicados ativos em seu Dashboard.</span>
+          </h2>
         </div>
+
+        <div className="mt-12 backdrop-blur-sm bg-white/5 p-2 rounded-[2rem] border border-white/10 relative z-10">
         
          <div className="grid grid-cols-2 gap-3">
-          <Link to="/feature/boletos" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform">
-            <div className="flex items-center gap-2 mb-2">
-              <FileText size={16} className="text-blue-200" />
+          <Link to="/feature/boletos" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform hover:bg-white/20">
+            <div className="flex items-center gap-2 mb-2 relative">
+              <FileText size={16} className="text-emerald-200" />
+               {nextBoleto && (
+                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                  </span>
+               )}
               <span className="text-xs font-medium uppercase tracking-wider opacity-80">Próxima Fatura</span>
             </div>
-            <p className="text-lg font-bold">
+            <p className="text-lg text-emerald-300">
               {nextBoleto ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(nextBoleto.amount) : 'R$ 0,00'}
             </p>
             <p className="text-[10px] opacity-70">
               {nextBoleto ? `Vencimento: ${new Date(nextBoleto.due_date).toLocaleDateString('pt-BR')}` : 'Sem faturas pendentes'}
             </p>
           </Link>
-          <Link to="/feature/comunicados" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform">
-            <div className="flex items-center gap-2 mb-2">
+          <Link to="/feature/comunicados" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform hover:bg-white/20">
+            <div className="flex items-center gap-2 mb-2 relative">
               <AlertCircle size={16} className="text-amber-300" />
+               {announcements.length > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                  </span>
+                )}
               <span className="text-xs font-medium uppercase tracking-wider opacity-80">Avisos</span>
             </div>
-            <p className="text-lg font-bold">{announcements.length} Ativos</p>
+            <p className="text-lg text-emerald-300">{announcements.length} Ativos</p>
             <p className="text-[10px] opacity-70">Mural atualizado</p>
           </Link>
-          <Link to="/feature/reservas" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform">
-            <div className="flex items-center gap-2 mb-2">
+          <Link to="/feature/reservas" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform hover:bg-white/20">
+            <div className="flex items-center gap-2 mb-2 relative">
               <Calendar size={16} className="text-emerald-300" />
+              {upcomingReservations.length > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                  </span>
+              )}
               <span className="text-xs font-medium uppercase tracking-wider opacity-80">Reservas</span>
             </div>
-            <p className="text-lg font-bold">{upcomingReservations.length} Ativas</p>
+            <p className="text-lg text-emerald-300">{upcomingReservations.length} Ativas</p>
             <p className="text-[10px] opacity-70">
               {upcomingReservations.length > 0 
                 ? `Próxima: ${new Date(upcomingReservations[0].reservation_date).toLocaleDateString('pt-BR')}` 
                 : 'Nenhuma reserva'}
             </p>
           </Link>
-          <Link to="/feature/encomendas" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform">
-            <div className="flex items-center gap-2 mb-2">
+          <Link to="/feature/encomendas" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform hover:bg-white/20">
+            <div className="flex items-center gap-2 mb-2 relative">
               <Package size={16} className="text-purple-300" />
+              {pendingPackages.length > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                  </span>
+               )}
               <span className="text-xs font-medium uppercase tracking-wider opacity-80">Encomendas</span>
             </div>
-            <p className="text-lg font-bold">
+            <p className="text-lg text-emerald-300">
               {pendingPackages.length} {(userRole === 'admin' || userRole === 'syndic' || userRole === 'global_admin') ? 'Registradas' : 'Pendentes'}
             </p>
             <p className="text-[10px] opacity-70">
@@ -214,20 +268,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
                 : (pendingPackages.length > 0 ? 'Retire na portaria' : 'Nenhuma pendência')}
             </p>
           </Link>
-          <Link to="/feature/visitantes" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform">
-            <div className="flex items-center gap-2 mb-2">
+          <Link to="/feature/visitantes" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform hover:bg-white/20">
+            <div className="flex items-center gap-2 mb-2 relative">
               <UserPlus size={16} className="text-sky-300" />
+              {expectedVisitors.length > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                  </span>
+               )}
               <span className="text-xs font-medium uppercase tracking-wider opacity-80">Visitantes</span>
             </div>
-            <p className="text-lg font-bold">{expectedVisitors.length} Esperados</p>
+            <p className="text-lg text-emerald-300">{expectedVisitors.length} Esperados</p>
             <p className="text-[10px] opacity-70">Liberações ativas</p>
           </Link>
-          <Link to="/feature/ocorrencias" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform">
-            <div className="flex items-center gap-2 mb-2">
+          <Link to="/feature/ocorrencias" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform hover:bg-white/20">
+            <div className="flex items-center gap-2 mb-2 relative">
               <ShieldAlert size={16} className="text-red-300" />
+              {openOcorrencias.length > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                  </span>
+              )}
               <span className="text-xs font-medium uppercase tracking-wider opacity-80">Ocorrências</span>
             </div>
-            <p className="text-lg font-bold">{openOcorrencias.length} Abertas</p>
+            <p className="text-lg text-emerald-300">{openOcorrencias.length} Abertas</p>
             <p className="text-[10px] opacity-70">Acompanhamento</p>
           </Link>
         </div>
@@ -236,112 +302,189 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-6 p-4 bg-amber-500/20 backdrop-blur-md border border-amber-500/30 rounded-2xl"
+            className="mt-6 p-4 bg-amber-500/20 backdrop-blur-md border border-amber-500/30 rounded-2xl relative z-10"
           >
             <div className="flex items-center gap-3">
               <div className="bg-amber-500 p-2 rounded-xl text-white">
                 <Users size={18} />
               </div>
               <div className="flex-1">
-                <p className="text-[10px] uppercase font-bold text-amber-200 tracking-wider">Próxima Assembleia</p>
-                <h4 className="text-sm font-bold">{upcomingAssembleia.title}</h4>
+                <p className="text-[10px] uppercase font-medium text-amber-200 tracking-wider">Próxima Assembleia</p>
+                <h4 className="text-sm font-medium">{upcomingAssembleia.title}</h4>
                 <p className="text-xs opacity-80">{new Date(upcomingAssembleia.start_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })}</p>
               </div>
-              <Link to="/feature/assembleias" className="bg-white text-amber-700 px-3 py-1.5 rounded-lg text-[10px] font-bold">Ver</Link>
+              <Link to="/feature/assembleias" className="bg-white text-amber-700 px-3 py-1.5 rounded-lg text-[10px] font-medium">Ver</Link>
             </div>
           </motion.div>
         )}
-      </section>
-
-
-      {/* Upgrade Call to Action */}
-      <UpgradeBanner currentPlan={userPlan} />
-
-      {/* Quick Actions Grid */}
-      <section>
-         <div className="flex items-center justify-between mb-4 px-2">
-          <h3 className="font-bold text-slate-800 dark:text-white">Acesso Rápido</h3>
-          <Link to="/features" className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">Ver todos</Link>
-        </div>
-        <FeatureGrid features={filteredFeatures} userPlan={userPlan} userRole={userRole} />
-      </section>
-
-      {/* Feed Section */}
-      <section className="space-y-4">
-        <h3 className="font-bold text-slate-800 dark:text-white px-2">Mural de Avisos</h3>
-        <div className="space-y-3">
-          {announcements.length > 0 ? (
-            announcements.map((announcement) => (
-              <motion.div 
-                key={announcement.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex gap-4"
-              >
-                <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center text-slate-400 dark:text-slate-500">
-                  <Users size={24} />
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between items-start mb-1">
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">{announcement.title}</h4>
-                    <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">
-                      {new Date(announcement.created_at).toLocaleDateString('pt-BR')}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">
-                    {announcement.content}
-                  </p>
-                </div>
-              </motion.div>
-            ))
-          ) : (
-            <p className="text-center text-slate-500 text-xs py-4">Nenhum comunicado recente.</p>
-          )}
-        </div>
-      </section>
-
-      {/* Marketplace Sneak Peek */}
-      {recentMercadoItems.length > 0 && (
-        <section className="space-y-4">
-          <div className="flex items-center justify-between mb-4 px-2">
-            <h3 className="font-bold text-slate-800 dark:text-white">Classificados</h3>
-            <Link to="/feature/classificados" className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">Ver todos</Link>
+         </div>
+        </section>
+        
+        {/* Upgrade Call to Action */}
+        <UpgradeBanner currentPlan={userPlan} />
+        
+        {/* Quick Actions Grid */}
+        <section>
+           <div className="flex items-center justify-between mb-4 px-2">
+            <h3 className="font-medium text-slate-800 dark:text-white uppercase text-[10px] font-bold tracking-widest text-slate-400">Acesso Rápido</h3>
+            <Link to="/features" className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline uppercase tracking-widest">Ver todos</Link>
           </div>
-          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide px-2">
-            {recentMercadoItems.map((item) => (
-              <motion.div 
-                key={item.id}
-                className="min-w-[160px] bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden"
-              >
-                {item.image_url ? (
-                  <img src={item.image_url} alt={item.title} className="w-full h-24 object-cover" />
-                ) : (
-                  <div className="w-full h-24 bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-400">
-                    <TrendingUp size={24} />
-                  </div>
-                )}
-                <div className="p-3">
-                  <h4 className="text-xs font-bold text-slate-800 dark:text-white truncate">{item.title}</h4>
-                  <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold mt-1">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.price)}
-                  </p>
+          <FeatureGrid features={filteredFeatures} userPlan={userPlan} userRole={userRole} />
+        </section>
+
+        {/* Visual Analytics Dashboard (Moved Below) */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-12">
+          <div className="md:col-span-2 bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-700 shadow-sm relative overflow-hidden">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="font-bold text-slate-800 dark:text-white text-lg">Fluxo Financeiro</h3>
+                <p className="text-xs text-slate-400 font-medium tracking-tight">Receita vs Despesas do mês</p>
+              </div>
+              <TrendingUp size={20} className="text-emerald-500" />
+            </div>
+            
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs font-bold uppercase tracking-widest px-1">
+                  <span className="text-slate-400">Receita Arrecadada</span>
+                  <span className="text-emerald-500">R$ 48.450 / 85%</span>
                 </div>
-              </motion.div>
-            ))}
+                <div className="h-2 w-full bg-slate-100 dark:bg-slate-700/50 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: '85%' }}
+                    transition={{ duration: 1.5, ease: "easeOut" }}
+                    className="h-full bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs font-bold uppercase tracking-widest px-1">
+                  <span className="text-slate-400">Despesas Totais</span>
+                  <span className="text-rose-500">R$ 32.780 / 62%</span>
+                </div>
+                <div className="h-2 w-full bg-slate-100 dark:bg-slate-700/50 rounded-full overflow-hidden">
+                  <motion.div 
+                   initial={{ width: 0 }}
+                   animate={{ width: '62%' }}
+                   transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }}
+                   className="h-full bg-gradient-to-r from-rose-400 to-orange-500 rounded-full"
+                  />
+                </div>
+              </div>
+              
+              <div className="pt-4 grid grid-cols-2 gap-4">
+                <div className="p-4 rounded-3xl bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800">
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Inadimplência</p>
+                  <p className="text-lg font-bold text-slate-700 dark:text-slate-200">12%</p>
+                  <div className="mt-1 flex items-center gap-1 text-[9px] text-rose-500 font-bold">
+                    <span>+2% vs mês anterior</span>
+                  </div>
+                </div>
+                <div className="p-4 rounded-3xl bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800">
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Saldo Fundo Reserva</p>
+                  <p className="text-lg font-bold text-slate-700 dark:text-slate-200">R$ 152k</p>
+                  <div className="mt-1 flex items-center gap-1 text-[9px] text-emerald-500 font-bold">
+                    <span>+8k este mês</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col items-center justify-between">
+            <div className="w-full text-center space-y-1">
+              <h3 className="font-bold text-slate-800 dark:text-white text-lg">Ocupação</h3>
+              <p className="text-xs text-slate-400 font-medium">Unidades Habitadas</p>
+            </div>
+
+            <div className="relative flex items-center justify-center my-4">
+              <svg className="w-40 h-40 -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="40" className="stroke-slate-100 dark:stroke-slate-700/50 stroke-[8]" fill="transparent" />
+                <motion.circle 
+                  cx="50" cy="50" r="40" 
+                  className="stroke-blue-500 stroke-[8]" 
+                  fill="transparent"
+                  strokeDasharray="251.2"
+                  initial={{ strokeDashoffset: 251.2 }}
+                  animate={{ strokeDashoffset: 251.2 * (1 - 0.94) }}
+                  transition={{ duration: 2, ease: "easeInOut" }}
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-2xl font-bold text-slate-800 dark:text-white">94%</span>
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Capacidade</span>
+              </div>
+            </div>
+
+            <div className="w-full space-y-2">
+              <div className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-900/40">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500" />
+                  <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Ativas</span>
+                </div>
+                <span className="text-xs font-bold">148</span>
+              </div>
+              <div className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-900/40">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-slate-200" />
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vagas</span>
+                </div>
+                <span className="text-xs font-bold text-slate-400">12</span>
+              </div>
+            </div>
           </div>
         </section>
-      )}
 
-      {/* Promo Banner */}
-      <section className="relative overflow-hidden rounded-3xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 p-6">
-        <div className="relative z-10">
-          <span className="inline-block px-2 py-1 rounded-md bg-emerald-500 text-white text-[10px] font-bold uppercase mb-2">Oferta Exclusiva</span>
-          <h4 className="text-lg font-bold text-emerald-900 dark:text-emerald-100 mb-1">5% de desconto</h4>
-          <p className="text-xs text-emerald-700 dark:text-emerald-300 mb-4">Na linha de itens para decoração no Mercado Interno.</p>
-          <button className="bg-emerald-600 dark:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-emerald-200 dark:shadow-none">Aproveitar</button>
-        </div>
-        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-200/30 dark:bg-emerald-400/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
-      </section>
+        <section className="grid grid-cols-1 md:grid-cols-4 gap-6 pb-12">
+          <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-6 border border-slate-100 dark:border-slate-700 shadow-sm">
+             <div className="flex items-center gap-3 mb-4">
+                <div className="p-2.5 rounded-2xl bg-amber-50 text-amber-500 dark:bg-amber-900/20">
+                  <Star size={18} />
+                </div>
+                <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">NPS Condomínio</h4>
+             </div>
+             <p className="text-2xl font-bold text-slate-800 dark:text-white">4.8</p>
+             <div className="mt-2 text-[9px] text-emerald-500 font-bold bg-emerald-50 rounded-lg px-2 py-1 inline-block">Ótimo</div>
+          </div>
+          
+          <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-6 border border-slate-100 dark:border-slate-700 shadow-sm">
+             <div className="flex items-center gap-3 mb-4">
+                <div className="p-2.5 rounded-2xl bg-blue-50 text-blue-500 dark:bg-blue-900/20">
+                  <ShieldAlert size={18} />
+                </div>
+                <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Manutenções</h4>
+             </div>
+             <p className="text-2xl font-bold text-slate-800 dark:text-white">03</p>
+             <div className="mt-2 text-[9px] text-blue-500 font-bold bg-blue-50 rounded-lg px-2 py-1 inline-block">Em dia</div>
+          </div>
+
+          <div className="md:col-span-2 bg-gradient-to-br from-slate-800 to-slate-900 rounded-[2.5rem] p-6 text-white relative overflow-hidden">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+             <div className="relative z-10 flex h-full items-center justify-between">
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-2">Engajamento Digital</h4>
+                  <p className="text-2xl font-bold">88% <span className="text-[10px] font-medium opacity-60 ml-2">App Use</span></p>
+                </div>
+                <div className="flex items-end gap-1.5 h-12">
+                   {[40, 60, 35, 90, 70, 85].map((h, i) => (
+                     <motion.div 
+                        key={i}
+                        initial={{ height: 0 }}
+                        animate={{ height: `${h}%` }}
+                        transition={{ duration: 1, delay: i * 0.1 }}
+                        className="w-1.5 bg-blue-500 rounded-full"
+                     />
+                   ))}
+                </div>
+             </div>
+          </div>
+        </section>
+
+      {/* Marketplace Sneak Peek Removed */}
+      {/* Promo Banner Removed */}
 
     </div>
   );

@@ -3,56 +3,38 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   PawPrint, Plus, Dog, Cat, Bone, Syringe, 
   Trash2, Edit3, Camera, FileText, Rabbit,
-  AlertTriangle, CheckCircle2, ChevronRight, X, ExternalLink, Eye
+  AlertTriangle, CheckCircle2, ChevronRight, X, ExternalLink, Eye, Loader2
 } from 'lucide-react';
+import { PetService } from '../services/supabaseService';
+import { useAuth } from '../hooks/useAuth';
 
 interface Pet {
   id: string;
+  condominio_id?: string;
+  user_id?: string;
   name: string;
   species: 'Dog' | 'Cat' | 'Other';
   breed: string;
   weight: string;
   color: string;
-  photo: string;
-  address?: string;
-  isVaccinated: boolean;
-  lastVaccine?: string;
+  photo?: string;
+  photo_url?: string;
+  address: string;
+  is_vaccinated: boolean;
+  owner_name?: string;
   status: 'Ativo' | 'Inativo';
+  created_at?: string;
 }
 
-const MOCK_PETS: Pet[] = [
-  { 
-    id: '1', 
-    name: 'Thor', 
-    species: 'Dog', 
-    breed: 'Golden Retriever', 
-    weight: '30kg', 
-    color: 'Caramelo', 
-    photo: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&h=400&fit=crop',
-    address: 'Apt 101, Bloco A',
-    isVaccinated: true,
-    lastVaccine: '15/10/2023',
-    status: 'Ativo'
-  },
-  { 
-    id: '2', 
-    name: 'Luna', 
-    species: 'Cat', 
-    breed: 'Siamês', 
-    weight: '4kg', 
-    color: 'Bege/Marrom', 
-    photo: 'https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=400&h=400&fit=crop',
-    address: 'Apt 304, Bloco B',
-    isVaccinated: false,
-    status: 'Ativo'
-  }
-];
+const MOCK_PETS: Pet[] = [];
 
 export const Animais: React.FC = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'ativos' | 'inativos'>('ativos');
   const [searchQuery, setSearchQuery] = useState('');
   
   const [pets, setPets] = useState<Pet[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -64,28 +46,28 @@ export const Animais: React.FC = () => {
   const [color, setColor] = useState('');
   const [photo, setPhoto] = useState('');
   const [address, setAddress] = useState('');
+  const [ownerName, setOwnerName] = useState('');
   const [isVaccinated, setIsVaccinated] = useState(false);
   
   const [viewingPet, setViewingPet] = useState<Pet | null>(null);
   const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
 
+  const loadPets = async () => {
+    if (!user?.condoId) return;
+    setLoading(true);
+    try {
+      const data = await PetService.getCondoPets(user.condoId);
+      setPets(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // Tenta puxar da base remota, usa MOCK como fallback caso a API não responda/falhe CORS
-    const fetchPets = async () => {
-      try {
-        const res = await fetch('https://petlocal-animal.vercel.app/api/pets');
-        if (res.ok) {
-          const data = await res.json();
-          setPets(data.length ? data : MOCK_PETS);
-        } else {
-          setPets(MOCK_PETS);
-        }
-      } catch (err) {
-        setPets(MOCK_PETS);
-      }
-    };
-    fetchPets();
-  }, []);
+    loadPets();
+  }, [user?.condoId]);
 
   const filteredPets = pets.filter(pet => {
     const matchStatus = activeTab === 'ativos' ? pet.status === 'Ativo' : pet.status === 'Inativo';
@@ -102,24 +84,38 @@ export const Animais: React.FC = () => {
     }
   };
 
-  const handleCreateNew = () => {
-    if(!name.trim()) return;
+  const handleCreateNew = async () => {
+    if(!name.trim() || !user) return;
     
-    if (editingId) {
-      setPets(pets.map(p => p.id === editingId ? { ...p, name, species, breed, weight, color, photo, address, isVaccinated } : p));
-    } else {
-      const newPet: Pet = {
-        id: Math.random().toString(36).substr(2, 9),
-        name, species, breed, weight, color, 
+    try {
+      const petData = {
+        name, 
+        species, 
+        breed, 
+        weight, 
+        color, 
         photo: photo || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400&h=400&fit=crop', 
         address,
-        isVaccinated, 
+        is_vaccinated: isVaccinated,
+        owner_name: ownerName,
+        condominio_id: user.condoId,
+        user_id: user.id,
         status: 'Ativo'
       };
-      setPets([newPet, ...pets]);
+
+      if (editingId) {
+        await PetService.updatePet(editingId, petData);
+      } else {
+        await PetService.createPet(petData);
+      }
+      
+      loadPets();
+      closeModal();
+    } catch (err: any) {
+      const errorMsg = err.message || "Erro desconhecido";
+      alert(`Erro ao salvar pet: ${errorMsg}\n\nVerifique se o formulário está preenchido corretamente.`);
+      console.error(err);
     }
-    
-    closeModal();
   };
 
   const handleEdit = (pet: Pet) => {
@@ -128,16 +124,22 @@ export const Animais: React.FC = () => {
     setBreed(pet.breed);
     setWeight(pet.weight);
     setColor(pet.color);
-    setPhoto(pet.photo);
+    setPhoto(pet.photo_url || pet.photo || '');
     setAddress(pet.address || '');
-    setIsVaccinated(pet.isVaccinated);
+    setIsVaccinated(pet.is_vaccinated);
+    setOwnerName(pet.owner_name || '');
     setEditingId(pet.id);
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Tem certeza que deseja excluir as informações deste pet?')) {
-      setPets(pets.filter(p => p.id !== id));
+      try {
+        await PetService.deletePet(id);
+        loadPets();
+      } catch (err) {
+        alert("Erro ao excluir pet.");
+      }
     }
   };
   
@@ -165,37 +167,58 @@ export const Animais: React.FC = () => {
     setColor('');
     setAddress('');
     setPhoto('');
+    setOwnerName('');
     setIsVaccinated(false);
   };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 pt-6 w-full max-w-7xl mx-auto space-y-8">
       {/* Banner Petlocal */}
-      <a 
-        href="https://petlocal-animal.vercel.app/" 
-        target="_blank" 
-        rel="noopener noreferrer"
-        className="block group relative overflow-hidden bg-gradient-to-r from-teal-500 to-emerald-600 rounded-3xl p-6 md:p-8 shadow-lg hover:shadow-xl transition-all"
-      >
-        <div className="absolute top-0 right-0 p-6 opacity-20 pointer-events-none group-hover:scale-110 transition-transform duration-700">
-          <PawPrint size={150} />
+      <div className="group relative overflow-hidden bg-gradient-to-r from-teal-500 to-emerald-600 rounded-3xl p-6 md:p-8 shadow-lg transition-all duration-500 border border-teal-400/20">
+        <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none group-hover:scale-110 transition-transform duration-1000">
+          <PawPrint size={180} />
         </div>
-        <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start gap-6">
-          <div className="bg-white p-3 md:p-4 rounded-3xl shadow-md shrink-0 flex items-center justify-center">
-            {/* Logo Petlocal Pequena */}
-            <img src="/petlocal_logo.png" alt="Petlocal" className="w-16 h-16 md:w-20 md:h-20 object-contain rounded-xl" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
-            <PawPrint size={48} className="text-teal-600 hidden petlocal-fallback" />
-          </div>
-          <div className="text-center md:text-left text-white">
-            <h2 className="text-2xl md:text-3xl font-black mb-2 flex items-center justify-center md:justify-start gap-3">
-              Petlocal <ExternalLink size={24} className="text-white/70" />
-            </h2>
-            <p className="text-base md:text-lg font-medium text-emerald-50 max-w-2xl">
-              Tenha acesso completo a informações de seu Pet. <span className="bg-white/20 px-2 py-0.5 rounded-md font-bold text-white">Acesso exclusivo para Assinantes AI Condo360</span>.
+        <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
+          <a 
+            href="https://petlocal-animal.vercel.app/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="hover:scale-105 transition-transform duration-300 group/logo"
+          >
+            <img 
+              src="/petlocal_full_logo.png" 
+              alt="Petlocal" 
+              className="w-32 md:w-40 h-auto object-contain drop-shadow-md" 
+              onError={(e) => { 
+                e.currentTarget.style.display = 'none'; 
+                const fallback = e.currentTarget.parentElement?.querySelector('.petlocal-fallback');
+                if (fallback) fallback.classList.remove('hidden');
+              }}
+            />
+            <div className="hidden petlocal-fallback flex flex-col items-center">
+              <PawPrint size={48} className="text-white" />
+            </div>
+          </a>
+          <div className="text-center md:text-left text-white max-w-2xl">
+            <p className="text-lg md:text-xl font-medium text-emerald-50 leading-relaxed">
+              Descubra ferramentas exclusivas para a gestão do seu Pet. 
+              <span className="block mt-2 font-black text-white bg-white/10 backdrop-blur-sm px-4 py-2 rounded-2xl w-fit mx-auto md:mx-0">
+                Acesso exclusivo para Comunidade AI Condo360
+              </span>
             </p>
+            <div className="mt-6 flex flex-wrap gap-4 justify-center md:justify-start">
+              <a 
+                href="https://petlocal-animal.vercel.app/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 bg-white text-teal-600 px-6 py-2.5 rounded-xl font-black text-sm hover:bg-teal-50 transition-colors shadow-sm"
+              >
+                Explorar Hub Petlocal <ExternalLink size={18} />
+              </a>
+            </div>
           </div>
         </div>
-      </a>
+      </div>
 
       {/* Estatísticas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -215,7 +238,7 @@ export const Animais: React.FC = () => {
           <div>
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Vacinados</p>
             <h3 className="text-3xl font-black text-slate-800 dark:text-white mt-1">
-              {pets.filter(p => p.isVaccinated).length}
+              {pets.filter(p => p.is_vaccinated).length}
             </h3>
           </div>
           <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center text-emerald-600 dark:text-emerald-400">
@@ -227,7 +250,7 @@ export const Animais: React.FC = () => {
           <div>
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Vacinas Pendentes</p>
             <h3 className="text-3xl font-black text-slate-800 dark:text-white mt-1">
-              {pets.filter(p => !p.isVaccinated).length}
+              {pets.filter(p => !p.is_vaccinated).length}
             </h3>
           </div>
           <div className="w-12 h-12 bg-rose-50 dark:bg-rose-900/30 rounded-2xl flex items-center justify-center text-rose-600 dark:text-rose-400">
@@ -285,21 +308,32 @@ export const Animais: React.FC = () => {
                   <div className="flex items-center gap-4">
                     {/* Foto Pequena em formato de balão */}
                     <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden shadow-md border-2 border-white dark:border-slate-800 shrink-0">
-                      <img src={pet.photo} alt={pet.name} className="w-full h-full object-cover" />
+                      <img 
+                        src={pet.photo_url || pet.photo || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400&h=400&fit=crop'} 
+                        alt={pet.name} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                           e.currentTarget.src = 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400&h=400&fit=crop';
+                        }}
+                      />
                     </div>
-                    <div>
-                      <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight leading-tight">{pet.name}</h3>
-                      <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mt-0.5">{pet.breed}</p>
+                    <div className="min-w-0">
+                      <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight leading-tight truncate">{pet.name}</h3>
+                      <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mt-0.5 truncate">{pet.breed}</p>
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-teal-500"></div>
+                        <p className="text-slate-600 dark:text-slate-300 text-[11px] font-black uppercase tracking-tight truncate">Tutor: {pet.owner_name || 'NI'}</p>
+                      </div>
                     </div>
                   </div>
-                  <div className="bg-slate-50 dark:bg-slate-800/80 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-700">
+                  <div className="bg-slate-50 dark:bg-slate-800/80 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm group-hover:bg-teal-50 dark:group-hover:bg-teal-900/20 transition-colors">
                     {getSpeciesIcon(pet.species)}
                   </div>
                 </div>
                 
                 {/* Status Badges */}
                 <div className="flex gap-2 mb-4">
-                  {pet.isVaccinated ? (
+                  {pet.is_vaccinated ? (
                     <span className="flex items-center gap-1.5 px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[11px] uppercase tracking-wider font-bold rounded-full">
                       <CheckCircle2 size={14} /> Vacinado
                     </span>
@@ -376,11 +410,37 @@ export const Animais: React.FC = () => {
               exit={{ opacity: 0, y: 100 }}
               className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto"
             >
-              <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
-                <h3 className="text-xl font-bold dark:text-white">{editingId ? 'Editar Pet' : 'Novo Pet'}</h3>
-                <button onClick={closeModal} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
-                  <X size={24} className="text-slate-400" />
-                </button>
+              <div className="relative">
+                <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
+                  <h3 className="text-xl font-bold dark:text-white">{editingId ? 'Editar Pet' : 'Novo Pet'}</h3>
+                  <button onClick={closeModal} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
+                    <X size={24} className="text-slate-400" />
+                  </button>
+                </div>
+                {!editingId && (
+                  <div className="px-6 py-5 bg-teal-50 dark:bg-teal-900/10 flex justify-center border-b border-slate-100 dark:border-slate-700">
+                    <a 
+                      href="https://petlocal-animal.vercel.app/" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="hover:scale-105 transition-transform"
+                    >
+                      <img 
+                        src="/petlocal_full_logo.png" 
+                        alt="Petlocal" 
+                        className="h-14 object-contain" 
+                        onError={(e) => {
+                          e.currentTarget.style.display='none';
+                          const fallback = e.currentTarget.parentElement?.querySelector('.petlocal-mini-fallback');
+                          if (fallback) fallback.classList.remove('hidden');
+                        }} 
+                      />
+                      <div className="hidden petlocal-mini-fallback flex items-center gap-2">
+                        <PawPrint size={24} className="text-teal-600" />
+                      </div>
+                    </a>
+                  </div>
+                )}
               </div>
               <form className="p-6 space-y-4" onSubmit={(e) => { e.preventDefault(); handleCreateNew(); }}>
                 <div className="flex gap-4 items-center">
@@ -400,11 +460,11 @@ export const Animais: React.FC = () => {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nome *</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nome do Pet *</label>
                     <input type="text" value={name} onChange={e => setName(e.target.value)} required className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-teal-500 transition-all text-sm" placeholder="Ex: Rex" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Espécie</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Cachorro/Gato</label>
                     <select value={species} onChange={e => setSpecies(e.target.value as any)} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-teal-500 transition-all text-sm">
                       <option value="Dog">Cachorro</option>
                       <option value="Cat">Gato</option>
@@ -413,9 +473,15 @@ export const Animais: React.FC = () => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Endereço (Ex: Apt 101, Casa 5)</label>
-                  <input type="text" value={address} onChange={e => setAddress(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-teal-500 transition-all text-sm" placeholder="Apt ou casa" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nome do Tutor</label>
+                    <input type="text" value={ownerName} onChange={e => setOwnerName(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-teal-500 transition-all text-sm" placeholder="Nome do dono" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Endereço / Unidade</label>
+                    <input type="text" value={address} onChange={e => setAddress(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-teal-500 transition-all text-sm" placeholder="Apt ou casa" />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -486,7 +552,7 @@ export const Animais: React.FC = () => {
               className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
             >
               <div className="h-48 relative bg-slate-100 dark:bg-slate-700">
-                <img src={viewingPet.photo} alt={viewingPet.name} className="w-full h-full object-cover" />
+                <img src={viewingPet.photo_url || viewingPet.photo} alt={viewingPet.name} className="w-full h-full object-cover" />
                 <button onClick={() => setViewingPet(null)} className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 rounded-full transition-colors text-white">
                   <X size={20} />
                 </button>
@@ -501,11 +567,15 @@ export const Animais: React.FC = () => {
                 <div className="bg-slate-50 dark:bg-slate-800/80 rounded-2xl p-4 border border-slate-100 dark:border-slate-700/50 space-y-4">
                   <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-slate-700">
                     <span className="text-sm font-bold text-slate-500 dark:text-slate-400">Status Vacinas</span>
-                    {viewingPet.isVaccinated ? (
+                    {viewingPet.is_vaccinated ? (
                       <span className="flex items-center gap-1 text-emerald-600 font-bold bg-emerald-100 px-2 py-0.5 rounded text-sm"><CheckCircle2 size={16}/> Em dia</span>
                     ) : (
                       <span className="flex items-center gap-1 text-rose-600 font-bold bg-rose-100 px-2 py-0.5 rounded text-sm"><AlertTriangle size={16}/> Pendente</span>
                     )}
+                  </div>
+                  <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-slate-700">
+                    <span className="text-sm font-bold text-slate-500 dark:text-slate-400">Tutor</span>
+                    <span className="text-sm font-bold text-teal-600 dark:text-teal-400">{viewingPet.owner_name || 'Não informado'}</span>
                   </div>
                   <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-slate-700">
                     <span className="text-sm font-bold text-slate-500 dark:text-slate-400">Endereço / Unidade</span>

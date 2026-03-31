@@ -1,649 +1,430 @@
-import React, { useState, useRef, useCallback } from 'react';
-import {
-  FileText, Folder, Download, Search, Plus, Eye, Pencil, Trash2,
-  X, Upload, AlertTriangle, CheckCircle2, FileArchive, File,
-} from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FeatureHeader } from '../components/FeatureHeader';
+import { 
+  FileText, Search, Plus, Trash2, Download, Filter, 
+  ExternalLink, Eye, ChevronRight, X, Clock,
+  FileSpreadsheet, FileVideo, FileImage, 
+  AlertTriangle, CheckCircle2, MoreVertical,
+  Briefcase, ShieldCheck, Scale, Loader2, Upload
+} from 'lucide-react';
+import { DocumentoService } from '../services/supabaseService';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../hooks/useAuth';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-type DocType = 'pdf' | 'doc' | 'xlsx' | 'zip' | 'other';
-
-interface DocFile {
-  id: number;
+interface Document {
+  id: string;
+  condominio_id: string;
+  user_id: string;
   title: string;
-  type: DocType;
-  size: string;
-  date: string;
-  folder: string;
-  url?: string;      // object URL for locally uploaded files
-  isLocal?: boolean; // uploaded in this session
+  category: string;
+  description: string;
+  file_url: string;
+  created_at: string;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-const getFileType = (name: string): DocType => {
-  const ext = name.split('.').pop()?.toLowerCase() ?? '';
-  if (ext === 'pdf') return 'pdf';
-  if (['doc', 'docx'].includes(ext)) return 'doc';
-  if (['xls', 'xlsx'].includes(ext)) return 'xlsx';
-  if (['zip', 'rar', '7z'].includes(ext)) return 'zip';
-  return 'other';
-};
+export const Documentos: React.FC = () => {
+  const { user } = useAuth();
+  const [activeCategory, setActiveCategory] = useState<string>('Todos');
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  const [newDoc, setNewDoc] = useState({
+    title: '',
+    category: 'Regimento',
+    description: ''
+  });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-const formatBytes = (bytes: number): string => {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
+  const loadingRef = useRef(false);
 
-const formatDate = (d: Date) =>
-  d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
-
-// ─── Icon per type ────────────────────────────────────────────────────────────
-const DocIcon = ({ type, size = 20 }: { type: DocType; size?: number }) => {
-  const cls: Record<DocType, string> = {
-    pdf: 'text-red-500',
-    doc: 'text-blue-500',
-    xlsx: 'text-emerald-500',
-    zip: 'text-amber-500',
-    other: 'text-slate-400',
-  };
-  const Icon =
-    type === 'zip' ? FileArchive :
-    type === 'xlsx' ? File :
-    FileText;
-  return <Icon size={size} className={cls[type]} />;
-};
-
-// ─── Initial data ─────────────────────────────────────────────────────────────
-const INITIAL_DOCS: DocFile[] = [
-  { id: 1, title: 'Regimento Interno 2024', type: 'pdf', size: '2.4 MB', date: '10 Nov 2024', folder: 'Regras' },
-  { id: 2, title: 'Ata da Assembleia - Out/2024', type: 'doc', size: '1.1 MB', date: '05 Nov 2024', folder: 'Atas' },
-  { id: 3, title: 'Prestação de Contas 09/2024', type: 'pdf', size: '4.5 MB', date: '15 Out 2024', folder: 'Financeiro' },
-  { id: 4, title: 'Manual do Proprietário', type: 'pdf', size: '15 MB', date: '10 Jan 2024', folder: 'Geral' },
-];
-
-const FOLDERS = ['Regras', 'Atas', 'Financeiro', 'Geral'];
-
-// ─── Sub-components ────────────────────────────────────────────────────────────
-
-/** Overlay modal wrapper */
-const Modal = ({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) => (
-  <AnimatePresence>
-    {open && (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      >
-        <motion.div
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.95, opacity: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-          className="relative w-full max-w-lg bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {children}
-        </motion.div>
-      </motion.div>
-    )}
-  </AnimatePresence>
-);
-
-/** Upload Modal */
-const UploadModal = ({
-  open,
-  onClose,
-  onUpload,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onUpload: (files: FileList, folder: string) => void;
-}) => {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [dragging, setDragging] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
-  const [folder, setFolder] = useState(FOLDERS[0]);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setDragging(false);
-    if (e.dataTransfer.files.length) setSelectedFiles(e.dataTransfer.files);
-  }, []);
-
-  const handleSubmit = () => {
-    if (selectedFiles) {
-      onUpload(selectedFiles, folder);
-      setSelectedFiles(null);
-      onClose();
+  const loadDocs = async () => {
+    if (!user?.condoId || loadingRef.current) return;
+    loadingRef.current = true;
+    setLoading(true);
+    try {
+      const data = await DocumentoService.getCondoDocs(user.condoId);
+      setDocuments(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+      loadingRef.current = false;
     }
   };
 
-  return (
-    <Modal open={open} onClose={onClose}>
-      <div className="p-6">
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <h3 className="text-lg font-black text-slate-900 dark:text-white">Enviar Documento</h3>
-            <p className="text-sm text-slate-500 mt-1">PDF, DOC, XLSX ou ZIP — máx. 50 MB</p>
-          </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-            <X size={18} className="text-slate-500" />
-          </button>
-        </div>
+  useEffect(() => {
+    if (user?.condoId) {
+      loadDocs();
+    }
+  }, [user?.condoId]);
 
-        {/* Drop zone */}
-        <div
-          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={handleDrop}
-          onClick={() => inputRef.current?.click()}
-          className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
-            dragging
-              ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10'
-              : 'border-slate-200 dark:border-slate-600 hover:border-blue-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'
-          }`}
-        >
-          <input
-            ref={inputRef}
-            type="file"
-            multiple
-            className="hidden"
-            onChange={(e) => e.target.files && setSelectedFiles(e.target.files)}
-          />
-          <Upload size={32} className={`mx-auto mb-3 ${dragging ? 'text-blue-500' : 'text-slate-400'}`} />
-          {selectedFiles ? (
-            <div className="space-y-1">
-              {Array.from<File>(selectedFiles).map((file, i) => (
-                <p key={i} className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate">{file.name}</p>
-              ))}
-            </div>
-          ) : (
-            <>
-              <p className="font-bold text-slate-700 dark:text-slate-300">Clique ou arraste arquivos aqui</p>
-              <p className="text-xs text-slate-400 mt-1">Suporta múltiplos arquivos</p>
-            </>
-          )}
-        </div>
+  const categories = ['Todos', 'Regimento', 'Atas', 'Financeiro', 'Outros'];
 
-        {/* Folder picker */}
-        <div className="mt-4">
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Pasta de destino</label>
-          <select
-            value={folder}
-            onChange={(e) => setFolder(e.target.value)}
-            className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-          >
-            {FOLDERS.map((f) => <option key={f}>{f}</option>)}
-          </select>
-        </div>
-
-        <div className="flex gap-3 mt-6">
-          <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-slate-200 dark:border-slate-600 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">
-            Cancelar
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={!selectedFiles}
-            className="flex-1 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold transition-all"
-          >
-            Enviar
-          </button>
-        </div>
-      </div>
-    </Modal>
-  );
-};
-
-/** Edit Modal */
-const EditModal = ({
-  open,
-  onClose,
-  doc,
-  onSave,
-}: {
-  open: boolean;
-  onClose: () => void;
-  doc: DocFile | null;
-  onSave: (updated: DocFile) => void;
-}) => {
-  const [title, setTitle] = useState(doc?.title ?? '');
-  const [folder, setFolder] = useState(doc?.folder ?? FOLDERS[0]);
-
-  React.useEffect(() => {
-    if (doc) { setTitle(doc.title); setFolder(doc.folder); }
-  }, [doc]);
-
-  if (!doc) return null;
-
-  return (
-    <Modal open={open} onClose={onClose}>
-      <div className="p-6">
-        <div className="flex justify-between items-start mb-6">
-          <h3 className="text-lg font-black text-slate-900 dark:text-white">Editar Documento</h3>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-            <X size={18} className="text-slate-500" />
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Nome do arquivo</label>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Pasta</label>
-            <select
-              value={folder}
-              onChange={(e) => setFolder(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-            >
-              {FOLDERS.map((f) => <option key={f}>{f}</option>)}
-            </select>
-          </div>
-        </div>
-
-        <div className="flex gap-3 mt-6">
-          <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-slate-200 dark:border-slate-600 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">
-            Cancelar
-          </button>
-          <button
-            onClick={() => { onSave({ ...doc, title: title.trim() || doc.title, folder }); onClose(); }}
-            className="flex-1 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition-all"
-          >
-            Salvar
-          </button>
-        </div>
-      </div>
-    </Modal>
-  );
-};
-
-/** View Modal */
-const ViewModal = ({
-  open,
-  onClose,
-  doc,
-}: {
-  open: boolean;
-  onClose: () => void;
-  doc: DocFile | null;
-}) => {
-  if (!doc) return null;
-  return (
-    <Modal open={open} onClose={onClose}>
-      <div className="p-6">
-        <div className="flex justify-between items-start mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-slate-100 dark:bg-slate-700 rounded-xl">
-              <DocIcon type={doc.type} size={24} />
-            </div>
-            <div>
-              <h3 className="font-black text-slate-900 dark:text-white leading-tight">{doc.title}</h3>
-              <p className="text-xs text-slate-500 mt-0.5">{doc.size} · {doc.date}</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-            <X size={18} className="text-slate-500" />
-          </button>
-        </div>
-
-        <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-8 flex flex-col items-center justify-center min-h-[220px] text-center gap-4 border border-slate-200 dark:border-slate-700">
-          {doc.url ? (
-            doc.type === 'pdf' ? (
-              <iframe src={doc.url} title={doc.title} className="w-full h-64 rounded-xl border-0" />
-            ) : (
-              <>
-                <DocIcon type={doc.type} size={48} />
-                <p className="text-sm text-slate-500 font-medium">Visualização não disponível para este tipo de arquivo.</p>
-                <a
-                  href={doc.url}
-                  download={doc.title}
-                  className="mt-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition-all"
-                >
-                  Baixar arquivo
-                </a>
-              </>
-            )
-          ) : (
-            <>
-              <DocIcon type={doc.type} size={48} />
-              <p className="text-sm text-slate-500 font-medium">Pré-visualização disponível apenas para arquivos enviados nesta sessão.</p>
-            </>
-          )}
-        </div>
-
-        <div className="grid grid-cols-3 gap-3 mt-4 text-center">
-          {[
-            { label: 'Pasta', value: doc.folder },
-            { label: 'Tamanho', value: doc.size },
-            { label: 'Data', value: doc.date },
-          ].map(({ label, value }) => (
-            <div key={label} className="bg-slate-50 dark:bg-slate-900 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label}</p>
-              <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mt-0.5 truncate">{value}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex gap-3 mt-5">
-          <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-slate-200 dark:border-slate-600 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition-all">
-            Fechar
-          </button>
-          {doc.url && (
-            <a
-              href={doc.url}
-              download={doc.title}
-              className="flex-1 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm text-center transition-all flex items-center justify-center gap-2"
-            >
-              <Download size={16} /> Baixar
-            </a>
-          )}
-        </div>
-      </div>
-    </Modal>
-  );
-};
-
-/** Delete Confirm Modal */
-const DeleteModal = ({
-  open,
-  onClose,
-  doc,
-  onConfirm,
-}: {
-  open: boolean;
-  onClose: () => void;
-  doc: DocFile | null;
-  onConfirm: () => void;
-}) => (
-  <Modal open={open} onClose={onClose}>
-    <div className="p-6 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center mx-auto mb-4">
-        <AlertTriangle size={28} className="text-red-500" />
-      </div>
-      <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2">Excluir Documento</h3>
-      <p className="text-sm text-slate-500">
-        Tem certeza que deseja excluir <span className="font-bold text-slate-700 dark:text-slate-300">"{doc?.title}"</span>? Esta ação não pode ser desfeita.
-      </p>
-      <div className="flex gap-3 mt-6">
-        <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-slate-200 dark:border-slate-600 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition-all">
-          Cancelar
-        </button>
-        <button onClick={() => { onConfirm(); onClose(); }} className="flex-1 py-3 rounded-2xl bg-red-500 hover:bg-red-600 text-white font-bold transition-all">
-          Excluir
-        </button>
-      </div>
-    </div>
-  </Modal>
-);
-
-// ─── Toast ────────────────────────────────────────────────────────────────────
-const Toast = ({ message, onDone }: { message: string; onDone: () => void }) => {
-  React.useEffect(() => {
-    const t = setTimeout(onDone, 2500);
-    return () => clearTimeout(t);
-  }, [onDone]);
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 40 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 40 }}
-      className="fixed bottom-6 right-6 z-[100] flex items-center gap-3 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-bold"
-    >
-      <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
-      {message}
-    </motion.div>
-  );
-};
-
-// ─── Main Component ───────────────────────────────────────────────────────────
-export const Documentos: React.FC = () => {
-  const [docs, setDocs] = useState<DocFile[]>(INITIAL_DOCS);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeFolder, setActiveFolder] = useState<string | null>(null);
-
-  const [uploadOpen, setUploadOpen] = useState(false);
-  const [viewDoc, setViewDoc]       = useState<DocFile | null>(null);
-  const [editDoc, setEditDoc]       = useState<DocFile | null>(null);
-  const [deleteDoc, setDeleteDoc]   = useState<DocFile | null>(null);
-  const [toast, setToast]           = useState<string | null>(null);
-
-  const nextId = useRef(INITIAL_DOCS.length + 1);
-
-  // Filtered list
-  const filtered = docs.filter((d) => {
-    const matchSearch = d.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchFolder = !activeFolder || d.folder === activeFolder;
-    return matchSearch && matchFolder;
+  const filteredDocs = documents.filter(doc => {
+    const matchesCategory = activeCategory === 'Todos' || doc.category === activeCategory;
+    const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         (doc.description && doc.description.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesCategory && matchesSearch;
   });
 
-  // Folder counts
-  const folderCount = (f: string) => docs.filter((d) => d.folder === f).length;
-
-  // ── Handlers ──────────────────────────────────────────────────────────────
-  const handleUpload = (files: FileList, folder: string) => {
-    const newDocs: DocFile[] = Array.from(files).map((file) => ({
-      id: nextId.current++,
-      title: file.name.replace(/\.[^/.]+$/, ''), // strip extension for title
-      type: getFileType(file.name),
-      size: formatBytes(file.size),
-      date: formatDate(new Date()),
-      folder,
-      url: URL.createObjectURL(file),
-      isLocal: true,
-    }));
-    setDocs((prev) => [...newDocs, ...prev]);
-    setToast(`${newDocs.length} arquivo(s) enviado(s) com sucesso!`);
-  };
-
-  const handleSave = (updated: DocFile) => {
-    setDocs((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
-    setToast('Documento atualizado!');
-  };
-
-  const handleDelete = () => {
-    if (!deleteDoc) return;
-    if (deleteDoc.url) URL.revokeObjectURL(deleteDoc.url);
-    setDocs((prev) => prev.filter((d) => d.id !== deleteDoc.id));
-    setToast('Documento excluído.');
-  };
-
-  const handleDownload = (doc: DocFile) => {
-    if (doc.url) {
-      const a = document.createElement('a');
-      a.href = doc.url;
-      a.download = doc.title;
-      a.click();
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
     }
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-  return (
-    <div className="p-4 sm:p-6 lg:p-8 pt-6 w-full max-w-7xl mx-auto space-y-8">
-      <FeatureHeader
-        icon={FileText}
-        title="Documentos"
-        description="Arquivos e normas importantes do condomínio. Faça upload, visualize, edite e exclua documentos."
-        color="bg-indigo-600"
-      >
-        <button
-          onClick={() => setUploadOpen(true)}
-          className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-indigo-600/20 active:scale-[0.98]"
-        >
-          <Plus size={20} />
-          <span>Novo Documento</span>
-        </button>
-      </FeatureHeader>
+  const handleUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDoc.title || !user) return;
+    if (!selectedFile) {
+      alert("Por favor, selecione um arquivo.");
+      return;
+    }
 
-      {/* Search */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input
-            type="text"
-            placeholder="Buscar documentos..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:text-white"
-          />
-        </div>
-        {activeFolder && (
-          <button
-            onClick={() => setActiveFolder(null)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-sm font-bold border border-indigo-200 dark:border-indigo-500/30 hover:bg-indigo-100 transition-all"
+    setUploading(true);
+    try {
+      // 1. Upload do arquivo para o Supabase Storage (Bucket "documentos")
+      const fileExt = selectedFile.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+      const filePath = `${user.condoId}/${fileName}`;
+
+      const { error: uploadError, data } = await supabase.storage
+        .from('documentos')
+        .upload(filePath, selectedFile);
+
+      if (uploadError) {
+        throw new Error(`Erro no upload: ${uploadError.message}. Verifique se o bucket 'documentos' existe e é público no Supabase Storage.`);
+      }
+
+      // 2. Obter URL Pública
+      const { data: publicUrlData } = supabase.storage
+        .from('documentos')
+        .getPublicUrl(filePath);
+      
+      const file_url = publicUrlData.publicUrl;
+
+      // 3. Salvar no banco
+      const docData: any = {
+        condominio_id: user.condoId,
+        user_id: user.id, // pode ou não ter restrição dependendo do setup
+        title: newDoc.title,
+        category: newDoc.category,
+        description: newDoc.description || '',
+        file_url: file_url,
+      };
+
+      await DocumentoService.createDoc(docData);
+      loadDocs();
+      closeModal();
+    } catch (err: any) {
+      console.error('[Documentos] Erro detalhado:', err);
+      alert(`${err?.message || err?.details || JSON.stringify(err)}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setNewDoc({ title: '', category: 'Regimento', description: '' });
+    setSelectedFile(null);
+  };
+
+  const handleDelete = async (id: string, fileUrl: string) => {
+    if (window.confirm('Deseja realmente excluir este documento?')) {
+      try {
+        // Tenta remover o arquivo do storage
+        if (fileUrl) {
+          const filePathMatch = fileUrl.match(/\/documentos\/(.+)$/);
+          if (filePathMatch && filePathMatch[1]) {
+             await supabase.storage.from('documentos').remove([filePathMatch[1]]);
+          }
+        }
+        await DocumentoService.deleteDoc(id);
+        loadDocs();
+      } catch (err) {
+        console.error(err);
+        alert("Erro ao excluir.");
+      }
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950/50 p-4 sm:p-6 lg:p-8">
+      {/* Header Interativo Style */}
+      <div className="max-w-7xl mx-auto mb-12">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 text-indigo-500 rounded-full text-xs font-bold uppercase tracking-wider">
+              <ShieldCheck size={14} />
+              Repositório Oficial
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
+              Central de <span className="text-indigo-500">Documentos</span>
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 max-w-lg font-medium leading-relaxed">
+              Acesse atas, regimentos, balancetes e comunicados oficiais do condomínio com um clique.
+            </p>
+          </div>
+          
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center justify-center gap-2 px-8 py-4 bg-indigo-500 text-white rounded-2xl hover:bg-indigo-600 transition-all font-bold shadow-lg shadow-indigo-500/25 active:scale-95 translate-y-0 hover:-translate-y-1"
           >
-            {activeFolder} <X size={14} />
+            <Plus size={22} />
+            Novo Documento
           </button>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Barra de Pesquisa e Filtros */}
+        <div className="flex flex-col lg:flex-row gap-6 items-center">
+          <div className="relative w-full lg:flex-1">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600" size={24} />
+            <input 
+              type="text" 
+              placeholder="Pesquisar por título ou descrição..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-16 pr-6 py-5 bg-white dark:bg-slate-900 border-none rounded-[28px] shadow-sm focus:ring-2 focus:ring-indigo-500/20 transition-all text-lg font-medium dark:text-white dark:placeholder:text-slate-600"
+            />
+          </div>
+          
+          <div className="flex gap-2 p-2 bg-white dark:bg-slate-900 rounded-[28px] shadow-sm border border-slate-100 dark:border-slate-800 overflow-x-auto scrollbar-hide w-full lg:w-auto">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`px-6 py-3 rounded-2xl text-sm font-bold transition-all whitespace-nowrap ${
+                  activeCategory === cat
+                    ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/20'
+                    : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 dark:text-slate-400'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Lista de Documentos */}
+        {loading ? (
+             <div className="flex flex-col items-center justify-center py-20 grayscale opacity-50">
+                <Loader2 className="animate-spin mb-4" size={40} />
+                <p className="text-slate-500">Carregando documentos...</p>
+             </div>
+        ) : filteredDocs.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            <AnimatePresence mode="popLayout">
+              {filteredDocs.map((doc, index) => (
+                <motion.div
+                  key={doc.id}
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="group relative bg-white dark:bg-slate-900 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 p-5 sm:p-6 rounded-[32px] border border-slate-200 dark:border-slate-800 transition-all hover:shadow-xl hover:shadow-indigo-500/5"
+                >
+                  <div className="flex items-start gap-4 sm:gap-6">
+                    <div className={`shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-3xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm ${
+                      doc.category === 'Financeiro' ? 'bg-emerald-500/10 text-emerald-500' :
+                      doc.category === 'Atas' ? 'bg-amber-500/10 text-amber-500' :
+                      doc.category === 'Regimento' ? 'bg-indigo-500/10 text-indigo-500' :
+                      'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                    }`}>
+                      <FileText size={28} />
+                    </div>
+                    
+                    <div className="flex-1 min-w-0 pr-8">
+                      <div className="flex flex-wrap gap-2 text-[10px] text-slate-400 font-medium uppercase tracking-widest">
+                        <span>{doc.category}</span>
+                        <span>•</span>
+                        <span>{new Date(doc.created_at).toLocaleDateString()}</span>
+                      </div>
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-1 group-hover:text-indigo-500 transition-colors truncate">
+                        {doc.title}
+                      </h3>
+                      {doc.description && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mt-1 leading-relaxed">
+                          {doc.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="absolute top-4 right-4 sm:top-5 sm:right-5 flex gap-1">
+                    <button 
+                      onClick={() => handleDelete(doc.id, doc.file_url)}
+                      className="p-3 text-slate-300 dark:text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                    <a 
+                      href={doc.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-3 text-slate-300 dark:text-slate-600 hover:text-indigo-500 hover:bg-indigo-500/10 rounded-2xl transition-all"
+                    >
+                      <Download size={18} />
+                    </a>
+                  </div>
+
+                  <div className="mt-8 pt-4 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 last:text-indigo-500/70">
+                       <Clock size={12} />
+                       REGISTRADO PELO SÍNDICO
+                    </div>
+                    <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-indigo-500 hover:text-indigo-600 flex items-center gap-1 group/btn">
+                      Ver Online
+                      <ChevronRight size={14} className="transition-transform group-hover/btn:translate-x-1" />
+                    </a>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-slate-900 rounded-[40px] p-20 text-center border border-slate-200 dark:border-slate-800">
+            <div className="w-24 h-24 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
+              <FileText className="text-slate-200" size={48} />
+            </div>
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Nenhum documento encontrado</h3>
+            <p className="text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+              Não existem arquivos nesta categoria ou que correspondam à sua pesquisa.
+            </p>
+          </div>
         )}
       </div>
 
-      {/* Folders */}
-      <div>
-        <h2 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider mb-4">Pastas</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {FOLDERS.map((f, i) => (
-            <motion.button
-              key={f}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              onClick={() => setActiveFolder(activeFolder === f ? null : f)}
-              className={`p-4 rounded-xl border transition-all flex items-center gap-3 text-left ${
-                activeFolder === f
-                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 shadow-md'
-                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-blue-500 hover:shadow-md'
-              }`}
-            >
-              <div className={`p-2 rounded-lg transition-colors ${activeFolder === f ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'bg-blue-50 dark:bg-blue-500/10 text-blue-500'}`}>
-                <Folder size={20} className="fill-current opacity-20" />
-              </div>
-              <div>
-                <span className="font-semibold text-slate-700 dark:text-slate-200 text-sm block">{f}</span>
-                <span className="text-xs text-slate-400">{folderCount(f)} arquivo(s)</span>
-              </div>
-            </motion.button>
-          ))}
-        </div>
-      </div>
-
-      {/* Document table */}
-      <div>
-        <h2 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider mb-4">
-          {activeFolder ? `Pasta: ${activeFolder}` : 'Todos os Documentos'}
-          <span className="ml-2 text-slate-400 font-normal normal-case text-xs">({filtered.length})</span>
-        </h2>
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
-                  <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Nome</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden sm:table-cell">Pasta</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden md:table-cell">Tamanho</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden sm:table-cell">Modificado em</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                <AnimatePresence>
-                  {filtered.map((doc) => (
-                    <motion.tr
-                      key={doc.id}
-                      initial={{ opacity: 0, y: -6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group cursor-pointer"
-                      onClick={() => setViewDoc(doc)}
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <DocIcon type={doc.type} />
-                          <div>
-                            <span className="font-medium text-slate-900 dark:text-white text-sm block">{doc.title}</span>
-                            {doc.isLocal && (
-                              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full">novo</span>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 hidden sm:table-cell text-sm text-slate-600 dark:text-slate-400">{doc.folder}</td>
-                      <td className="px-6 py-4 hidden md:table-cell text-sm text-slate-500">{doc.size}</td>
-                      <td className="px-6 py-4 hidden sm:table-cell text-sm text-slate-500">{doc.date}</td>
-                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-1 justify-end">
-                          <button
-                            title="Visualizar"
-                            onClick={() => setViewDoc(doc)}
-                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-all"
-                          >
-                            <Eye size={16} />
-                          </button>
-                          <button
-                            title="Editar"
-                            onClick={() => setEditDoc(doc)}
-                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-all"
-                          >
-                            <Pencil size={16} />
-                          </button>
-                          <button
-                            title="Baixar"
-                            onClick={() => handleDownload(doc)}
-                            disabled={!doc.url}
-                            className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                          >
-                            <Download size={16} />
-                          </button>
-                          <button
-                            title="Excluir"
-                            onClick={() => setDeleteDoc(doc)}
-                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </AnimatePresence>
-              </tbody>
-            </table>
-
-            {filtered.length === 0 && (
-              <div className="py-16 text-center">
-                <FileText size={40} className="mx-auto text-slate-200 dark:text-slate-600 mb-4" />
-                <p className="text-slate-400 font-medium">Nenhum documento encontrado.</p>
-                <button
-                  onClick={() => setUploadOpen(true)}
-                  className="mt-4 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-xl transition-all"
-                >
-                  Enviar Documento
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Modals */}
-      <UploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} onUpload={handleUpload} />
-      <ViewModal open={!!viewDoc} onClose={() => setViewDoc(null)} doc={viewDoc} />
-      <EditModal open={!!editDoc} onClose={() => setEditDoc(null)} doc={editDoc} onSave={handleSave} />
-      <DeleteModal open={!!deleteDoc} onClose={() => setDeleteDoc(null)} doc={deleteDoc} onConfirm={handleDelete} />
-
-      {/* Toast */}
+      {/* Modal de Upload */}
       <AnimatePresence>
-        {toast && (
-          <React.Fragment key={toast}>
-            <Toast message={toast} onDone={() => setToast(null)} />
-          </React.Fragment>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={closeModal}
+              className="absolute inset-0 bg-slate-950/40 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-[32px] sm:rounded-[40px] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 sm:p-8 shrink-0 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex justify-between items-center mb-2">
+                  <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+                    <Plus className="text-indigo-500" size={28} />
+                    Novo Documento
+                  </h2>
+                  <button onClick={closeModal} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all">
+                    <X size={24} />
+                  </button>
+                </div>
+                <p className="text-slate-500 dark:text-slate-400 font-medium text-sm sm:text-base">Cadastre um novo arquivo oficial no sistema.</p>
+              </div>
+
+              <div className="overflow-y-auto p-6 sm:p-8 shrink min-h-0 custom-scrollbar">
+                <form onSubmit={handleUpload} className="space-y-6">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Título do Arquivo</label>
+                    <input 
+                      type="text" 
+                      required
+                      placeholder="Ex: Balancete Março 2024"
+                      value={newDoc.title}
+                      onChange={(e) => setNewDoc({...newDoc, title: e.target.value})}
+                      className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500/20 transition-all font-medium dark:text-white"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Categoria</label>
+                      <select 
+                        value={newDoc.category}
+                        onChange={(e) => setNewDoc({...newDoc, category: e.target.value})}
+                        className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500/20 transition-all font-medium dark:text-white appearance-none"
+                      >
+                        {categories.filter(c => c !== 'Todos').map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div className="flex flex-col">
+                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Selecione o Arquivo</label>
+                      <input 
+                        type="file" 
+                        ref={fileInputRef}
+                        onChange={handleFileSelect}
+                        accept=".pdf,.doc,.docx,.xls,.xlsx"
+                        className="hidden" 
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full px-4 py-4 bg-indigo-50 dark:bg-indigo-900/10 border-2 border-dashed border-indigo-200 dark:border-indigo-800 rounded-2xl flex flex-col items-center justify-center gap-1 text-indigo-500 hover:bg-indigo-100 dark:hover:bg-indigo-900/20 transition-all group overflow-hidden"
+                      >
+                        <Upload className="group-hover:-translate-y-1 transition-transform mb-1 shrink-0" size={20} />
+                        <span className="font-bold text-[13px] truncate w-full text-center px-1">
+                          {selectedFile ? selectedFile.name : 'Selecionar (PDF/DOC)'}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Descrição (Opcional)</label>
+                    <textarea 
+                      rows={3}
+                      placeholder="O que este documento contém?"
+                      value={newDoc.description}
+                      onChange={(e) => setNewDoc({...newDoc, description: e.target.value})}
+                      className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500/20 transition-all font-medium dark:text-white resize-none"
+                    ></textarea>
+                  </div>
+
+                  <div className="pt-4 flex gap-4">
+                    <button 
+                      type="button"
+                      onClick={closeModal}
+                      disabled={uploading}
+                      className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-2xl hover:bg-slate-200 transition-all font-bold disabled:opacity-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      type="submit"
+                      disabled={uploading}
+                      className="flex-[2] py-4 bg-indigo-500 text-white rounded-2xl hover:bg-indigo-600 transition-all font-bold shadow-lg shadow-indigo-500/25 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:scale-100"
+                    >
+                      {uploading ? (
+                        <>
+                          <Loader2 size={20} className="animate-spin" />
+                          Enviando...
+                        </>
+                      ) : (
+                        <>
+                          <Plus size={20} />
+                          Salvar Arquivo
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

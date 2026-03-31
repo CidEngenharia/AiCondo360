@@ -23,6 +23,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
   const location = useLocation();
 
   useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
     } else {
@@ -59,24 +63,27 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={toggleSidebar}
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[60] lg:hidden"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[60]"
           />
         )}
       </AnimatePresence>
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-[70] w-72 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-auto",
+        "fixed inset-y-0 left-0 z-[70] w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 transform transition-transform duration-500 ease-in-out shadow-2xl overflow-hidden",
         isSidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex flex-col h-full">
           {/* Sidebar Header */}
           <div className="h-16 flex items-center justify-between px-6 border-b border-slate-100 dark:border-slate-700">
             <div className="flex items-center gap-2">
-              <img src="/favicon.jpg" alt="AiCondo360 Logo" className="w-8 h-8 object-contain rounded-lg" />
-              <span className="font-bold text-slate-900 dark:text-white">AiCondo360</span>
+              <img src="/favicon.jpg" alt="AiCondo360 Logo" className="w-14 h-14 object-contain rounded-xl shadow-sm" />
+              <div className="flex flex-col">
+                <span className="font-black text-slate-800 dark:text-white tracking-tighter text-xl">AiCondo360</span>
+                <span className="text-[9px] font-bold text-blue-600 uppercase tracking-widest leading-none">Management Pro</span>
+              </div>
             </div>
-            <button onClick={toggleSidebar} className="lg:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">
+            <button onClick={toggleSidebar} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all">
               <X size={20} className="text-slate-500" />
             </button>
           </div>
@@ -107,24 +114,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
               <span className="text-sm font-medium flex-1 text-left">Dashboard</span>
             </button>
 
-            {/* Profile Link */}
-            <button
-              onClick={() => navigate('/profile')}
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group relative",
-                location.pathname === '/profile' 
-                  ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" 
-                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50"
-              )}
-            >
-              <div className={cn(
-                "p-2 rounded-lg transition-colors",
-                location.pathname === '/profile' ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400"
-              )}>
-                <User size={18} />
-              </div>
-              <span className="text-sm font-medium flex-1 text-left line-clamp-1">Meu Perfil</span>
-            </button>
+
 
             {/* Settings Link */}
             <button
@@ -192,7 +182,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ajuda & Suporte</p>
           </div>
           <a
-            href="https://www.condovibe.com.br/"
+            href="https://wa.me/5571984184782"
             target="_blank"
             rel="noopener noreferrer"
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-blue-600 dark:hover:text-blue-400"
@@ -236,14 +226,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
             <div className="flex items-center gap-3">
               <button 
                 onClick={toggleSidebar}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg lg:hidden"
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all"
               >
                 <Menu size={20} className="text-slate-600 dark:text-slate-300" />
               </button>
-              <img src="/favicon.jpg" alt="AiCondo360 Logo" className="w-8 h-8 object-contain rounded-lg lg:hidden" />
+              <img src="/favicon.jpg" alt="AiCondo360 Logo" className="w-10 h-10 object-contain rounded-lg shadow-sm" />
               <div className="flex flex-col">
-                <h1 className="text-sm font-bold text-slate-900 dark:text-white leading-none">AiCondo360</h1>
-                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wider truncate max-w-[150px]">{condoName}</span>
+                <h1 className="text-base font-black text-slate-900 dark:text-white leading-none tracking-tighter">AiCondo360</h1>
+                <span className="text-[9px] text-blue-600 dark:text-blue-400 font-black uppercase tracking-wider truncate max-w-[150px]">{condoName}</span>
               </div>
             </div>
 
@@ -266,11 +256,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
 
               <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full relative">
                 <Bell size={20} className="text-slate-600 dark:text-slate-300" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-800"></span>
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-500 rounded-full border-2 border-white dark:border-slate-800"></span>
               </button>
               <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
               <button 
-                onClick={() => navigate('/profile')}
+                onClick={() => navigate('/settings')}
                 className="flex items-center gap-2 pl-1 hover:opacity-80 transition-opacity"
               >
                 <div className="hidden sm:flex flex-col items-end">
@@ -285,79 +275,24 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
           </div>
         </header>
 
-        {/* Page Content */}
+        {/* Página de Conteúdo */}
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-7xl mx-auto w-full">
             {children}
           </div>
         </main>
 
-        {/* WhatsApp Floating Button */}
+        {/* Botão Flutuante do WhatsApp */}
         <motion.a
-          href="https://wa.me/5592984144346"
+          href="https://wa.me/5571984184782"
           target="_blank"
           rel="noopener noreferrer"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          className="fixed bottom-20 right-6 z-50 w-14 h-14 bg-emerald-500 text-white rounded-full shadow-lg shadow-emerald-200 dark:shadow-none flex items-center justify-center hover:bg-emerald-600 transition-colors"
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-emerald-500 text-white rounded-full shadow-lg shadow-emerald-200 dark:shadow-none flex items-center justify-center hover:bg-emerald-600 transition-colors"
         >
           <MessageCircle size={28} />
         </motion.a>
-
-        {/* Bottom Navigation (Mobile) */}
-        <nav className="lg:hidden bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 px-6 py-3 flex justify-between items-center sticky bottom-0 transition-colors shadow-lg z-50">
-          <button 
-            onClick={() => navigate('/')}
-            className={cn(
-              "flex flex-col items-center gap-1 transition-colors",
-              location.pathname === '/' ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"
-            )}
-          >
-            <LayoutDashboard size={20} />
-            <span className="text-[10px] font-medium">Início</span>
-          </button>
-          <button 
-            onClick={() => setIsChatOpen(true)}
-            className={cn(
-              "flex flex-col items-center gap-1 transition-colors",
-              isChatOpen ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"
-            )}
-          >
-            <Sparkles size={20} />
-            <span className="text-[10px] font-medium">IA</span>
-          </button>
-          <button 
-            onClick={() => navigate('/notifications')}
-            className={cn(
-              "flex flex-col items-center gap-1 transition-colors relative",
-              location.pathname === '/notifications' ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"
-            )}
-          >
-            <Bell size={20} />
-            <span className="absolute top-0 right-1 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-slate-800"></span>
-            <span className="text-[10px] font-medium">Avisos</span>
-          </button>
-          <button 
-            onClick={() => navigate('/settings')}
-            className={cn(
-              "flex flex-col items-center gap-1 transition-colors",
-              location.pathname === '/settings' ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"
-            )}
-          >
-            <Settings size={20} />
-            <span className="text-[10px] font-medium">Ajustes</span>
-          </button>
-          <button 
-            onClick={toggleSidebar}
-            className={cn(
-              "flex flex-col items-center gap-1 transition-colors",
-              isSidebarOpen ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"
-            )}
-          >
-            <Menu size={20} />
-            <span className="text-[10px] font-medium">Menu</span>
-          </button>
-        </nav>
 
         <AIChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} userName={userName} />
       </div>

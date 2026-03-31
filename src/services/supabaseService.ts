@@ -5,14 +5,11 @@ import { supabase } from '../lib/supabase';
 export interface Profile {
   id: string;
   email: string;
-  name: string;
-  condo: string;
-  condoId: string;
-  role: 'resident' | 'admin' | 'syndic' | 'global_admin';
-  plan: 'basic' | 'enterprise' | 'premium';
+  full_name: string;
+  condominio_id: string;
+  role: 'resident' | 'admin' | 'syndic' | 'global_admin' | 'morador' | 'sindico' | 'administrador' | 'admin_global';
   unit: string;
   avatar_url?: string;
-  whatsapp?: string;
 }
 
 export interface Boleto {
@@ -70,6 +67,8 @@ export interface Reserva {
   user_id: string;
   area_name: string;
   reservation_date: string;
+  start_time?: string;
+  end_time?: string;
   status: 'confirmed' | 'pending' | 'cancelled';
   created_at: string;
 }
@@ -99,6 +98,9 @@ export interface Ocorrencia {
   description: string;
   status: 'open' | 'in_progress' | 'resolved';
   category: string;
+  priority?: string;
+  messages?: number;
+  message?: string;
   created_at: string;
   updated_at: string;
 }
@@ -124,6 +126,7 @@ export interface Visitante {
   time: string;
   status: 'pendente' | 'autorizado' | 'finalizado';
   observation?: string;
+  document?: string;
   created_at?: string;
 }
 
@@ -147,18 +150,19 @@ export interface Veiculo {
 export interface MercadoItem {
   id: string;
   condominio_id: string;
-  user_id: string;
-  seller_name: string;
-  seller_avatar?: string;
+  seller_id: string;
   title: string;
   description: string;
-  price: number;
+  price: string | number;
   category: string;
-  condition: 'new' | 'used';
-  image_urls?: string[];
+  condition: string;
   image_url?: string;
-  status: 'active' | 'sold';
+  photo_url?: string;
+  status: string;
   whatsapp?: string;
+  contact_name?: string; // NOVO CAMPO
+  author?: string;
+  unit?: string;
   created_at: string;
 }
 
@@ -377,7 +381,6 @@ export const ReservationService = {
       .from('reservas')
       .select('*')
       .eq('condominio_id', condoId)
-      .gte('reservation_date', new Date().toISOString())
       .order('reservation_date', { ascending: true });
 
     if (error) {
@@ -386,6 +389,45 @@ export const ReservationService = {
     }
 
     return data as Reserva[];
+  },
+
+  async createReserva(reserva: any) {
+    console.log("[ReservaService] Attempting to create reserva for user:", reserva.user_id);
+    const { data, error } = await supabase
+      .from('reservas')
+      .insert([{
+        ...reserva,
+        created_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("[ReservaService] Error details:", error.message, error.details, error.hint);
+      throw error;
+    }
+    return data as Reserva;
+  },
+
+  async updateReserva(reservaId: string, updates: Partial<Reserva>) {
+    const { data, error } = await supabase
+      .from('reservas')
+      .update(updates)
+      .eq('id', reservaId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Reserva;
+  },
+
+  async deleteReserva(reservaId: string) {
+    const { error } = await supabase
+      .from('reservas')
+      .delete()
+      .eq('id', reservaId);
+
+    if (error) throw error;
   }
 };
 
@@ -441,6 +483,8 @@ export const PackageService = {
       .from('encomendas')
       .insert([{
         ...pkg,
+        photo_url: pkg.photo_url || pkg.image_url, 
+        image_url: pkg.image_url || pkg.photo_url,
         created_at: new Date().toISOString()
       }])
       .select()
@@ -514,24 +558,38 @@ export const MercadoService = {
       .from('mercado_items')
       .select('*')
       .eq('condominio_id', condoId)
-      .limit(6)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(5);
 
     if (error) {
-      console.error('Error fetching recent items:', error);
+      console.error('Error fetching recent mercado items:', error);
       return [];
     }
 
     return data as MercadoItem[];
   },
 
-  async createItem(item: Omit<MercadoItem, 'id' | 'created_at'>) {
+  async createItem(item: any) {
+    const dbItem = {
+      condominio_id: item.condominio_id,
+      // product_name é a coluna NOT NULL real no banco
+      product_name: item.title || item.product_name || 'Sem título',
+      title: item.title || item.product_name,
+      price: item.price,
+      category: item.category,
+      description: item.description,
+      condition: item.condition,
+      whatsapp: item.whatsapp,
+      contact_name: item.contact_name || item.author,
+      // seller_id omitido para evitar FK violation com perfil inexistente
+      photo_url: item.image_url || item.photo_url,
+      status: item.status || 'active',
+      created_at: new Date().toISOString()
+    };
+
     const { data, error } = await supabase
       .from('mercado_items')
-      .insert([{
-        ...item,
-        created_at: new Date().toISOString()
-      }])
+      .insert([dbItem])
       .select()
       .single();
 
@@ -539,7 +597,7 @@ export const MercadoService = {
     return data as MercadoItem;
   },
 
-  async updateItem(itemId: string, updates: Partial<MercadoItem>) {
+  async updateItem(itemId: string, updates: any) {
     const { data, error } = await supabase
       .from('mercado_items')
       .update(updates)
@@ -638,6 +696,21 @@ export const VehicleService = {
 
     if (error) {
       console.error('Error fetching vehicles:', error);
+      return [];
+    }
+
+    return data as Veiculo[];
+  },
+
+  async getCondoVehicles(condoId: string): Promise<Veiculo[]> {
+    const { data, error } = await supabase
+      .from('veiculos')
+      .select('*')
+      .eq('condominio_id', condoId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching condo vehicles:', error);
       return [];
     }
 
@@ -747,6 +820,138 @@ export const OcorrenciaService = {
       .delete()
       .eq('id', id);
 
+    if (error) throw error;
+  }
+};
+
+export const PetService = {
+  async getCondoPets(condoId: string): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('pets')
+      .select('*')
+      .eq('condominio_id', condoId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching pets:', error);
+      return [];
+    }
+    return data;
+  },
+
+  async createPet(pet: any) {
+    console.log("[PetService] Creating pet for condo:", pet.condominio_id);
+    const dbPet: any = {
+      condominio_id: pet.condominio_id,
+      // user_id is dropped if null or profile does not exist to avoid FK violation in demo
+      user_id: pet.user_id, 
+      name: pet.name,
+      type: pet.species || pet.type || 'Other',
+      breed: pet.breed,
+      photo_url: pet.photo || pet.photo_url,
+      vaccination_status: pet.is_vaccinated ? 'up_to_date' : 'pending',
+      weight: pet.weight,
+      color: pet.color,
+      address: pet.address,
+      status: pet.status || 'Ativo',
+      species: pet.species || pet.type || 'Other',
+      owner_name: pet.owner_name,
+      created_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('pets')
+      .insert([dbPet])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("[PetService] Error creating pet:", error.message, error.details);
+      throw error;
+    }
+    return data;
+  },
+
+  async updatePet(id: string, pet: any) {
+    const dbPet = {
+      name: pet.name,
+      type: pet.species || pet.type,
+      breed: pet.breed,
+      photo_url: pet.photo || pet.photo_url,
+      vaccination_status: pet.is_vaccinated ? 'up_to_date' : 'pending',
+      weight: pet.weight,
+      color: pet.color,
+      address: pet.address,
+      status: pet.status || 'Ativo',
+      species: pet.species || pet.type,
+      owner_name: pet.owner_name
+    };
+
+    const { data, error } = await supabase
+      .from('pets')
+      .update(dbPet)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("[PetService] Error updating pet:", error.message, error.details);
+      throw error;
+    }
+    return data;
+  },
+
+  async deletePet(id: string) {
+    const { error } = await supabase
+      .from('pets')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  }
+};
+
+export const DocumentoService = {
+  async getCondoDocs(condoId: string): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('documentos')
+      .select('*')
+      .eq('condominio_id', condoId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching docs:', error);
+      return [];
+    }
+    return data;
+  },
+
+  async createDoc(doc: any) {
+    // user_id é omitido para evitar violação de FK quando o perfil não existe
+    const dbDoc: any = {
+      condominio_id: doc.condominio_id,
+      title: doc.title,
+      category: doc.category,
+      file_url: doc.file_url || 'https://placeholder.aicondo360.com/doc.pdf',
+      created_at: new Date().toISOString()
+    };
+    // Só adiciona description e user_id se a coluna existir no banco
+    if (doc.description) dbDoc.description = doc.description;
+
+    const { data, error } = await supabase
+      .from('documentos')
+      .insert([dbDoc])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteDoc(id: string) {
+    const { error } = await supabase
+      .from('documentos')
+      .delete()
+      .eq('id', id);
     if (error) throw error;
   }
 };

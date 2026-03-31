@@ -14,6 +14,7 @@ interface Encomenda extends BaseEncomenda {
 
 interface EncomendasProps {
   userId: string;
+  condoId: string;
   userRole?: string;
 }
 
@@ -48,7 +49,7 @@ const compressImage = (base64Str: string, maxWidth = 400, maxHeight = 400): Prom
   });
 };
 
-export const Encomendas: React.FC<EncomendasProps> = ({ userId, userRole }) => {
+export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRole }) => {
   const [packages, setPackages] = useState<Encomenda[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'delivered' | 'returned'>('all');
@@ -86,17 +87,9 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, userRole }) => {
         image_url: pkg.image_url || pkg.photo_url // suporte a ambos
       }));
 
-      if (mappedData.length === 0) {
-        setPackages([
-          {
-            id: 'mock-1',
-            description: 'Caixa Amazon',
-            arrival_date: new Date().toISOString(),
-            status: 'pending',
-            resident_name: 'Carlos Oliveira',
-            resident_whatsapp: '21999999999',
-          } as Encomenda
-        ]);
+      if (mappedData.length === 0 && !canManage) {
+        // Only show mock if empty and user is NOT admin (meaning they might not have packages yet)
+        setPackages([]);
       } else {
         setPackages(mappedData as Encomenda[]);
       }
@@ -144,10 +137,11 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, userRole }) => {
             await PackageService.createPackage({
                 ...formData,
                 user_id: userId,
-                condominio_id: 'fake-condo',
+                condominio_id: condoId,
                 status: formData.status as any,
                 arrival_date: new Date().toISOString(),
-                photo_url: formData.image_url
+                photo_url: formData.image_url,
+                image_url: formData.image_url
             } as any);
         }
         setShowForm(false);
@@ -161,8 +155,9 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, userRole }) => {
             image_url: '',
             observation: ''
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error saving package:', error);
+        alert('Erro ao salvar: ' + (error?.message || 'Erro desconhecido. Verifique se o Condomínio está selecionado no seu perfil.'));
     }
   };
 

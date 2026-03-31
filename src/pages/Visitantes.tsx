@@ -7,13 +7,15 @@ import { VisitorService, Visitante as IVisitante } from '../services/supabaseSer
 interface VisitantesProps {
   userId: string;
   condoId: string;
+  userRole?: string;
 }
 
-export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId }) => {
+export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRole }) => {
   const [visitors, setVisitors] = useState<IVisitante[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'expected' | 'historic'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const canManage = userRole === 'admin' || userRole === 'syndic' || userRole === 'global_admin';
   const [showReportModal, setShowReportModal] = useState<{show: boolean, days: number}>({show: false, days: 0});
 
   // Modal State
@@ -35,7 +37,9 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId }) => {
   const fetchVisitors = async () => {
     setLoading(true);
     try {
-      const data = await VisitorService.getUserVisitors(userId);
+      const data = canManage 
+        ? await VisitorService.getCondoVisitors(condoId)
+        : await VisitorService.getUserVisitors(userId);
       setVisitors(data.length > 0 ? data : []);
     } catch (error) {
       console.error('Error fetching visitors:', error);
@@ -83,8 +87,9 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId }) => {
       }
       setShowModal(false);
       fetchVisitors();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving visitor:', error);
+      alert('Erro ao salvar: ' + (error?.message || 'Erro desconhecido. Verifique se o Condomínio está selecionado no seu perfil.'));
     }
   };
 
@@ -93,8 +98,9 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId }) => {
       try {
         await VisitorService.deleteVisitor(id);
         fetchVisitors();
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error deleting visitor:', error);
+        alert('Erro ao excluir: ' + (error?.message || 'Erro desconhecido.'));
       }
     }
   };
@@ -103,8 +109,9 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId }) => {
     try {
       await VisitorService.updateVisitor(id, { status });
       fetchVisitors();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating status:', error);
+      alert('Erro ao atualizar status: ' + (error?.message || 'Erro desconhecido.'));
     }
   };
 

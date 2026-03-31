@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Users, Calendar, Clock, FileText, ChevronRight, CheckCircle2, History, AlertCircle } from 'lucide-react';
+import { Users, Calendar, Clock, FileText, ChevronRight, CheckCircle2, History, AlertCircle, Phone, Link as LinkIcon } from 'lucide-react';
 import { FeatureHeader } from '../components/FeatureHeader';
 import { supabase } from '../lib/supabase';
 import { format, isPast, isFuture } from 'date-fns';
@@ -14,6 +14,8 @@ interface Assembleia {
   status: 'active' | 'closed';
   start_date: string;
   end_date: string;
+  whatsapp_responsavel?: string;
+  meeting_link?: string;
   created_at: string;
 }
 
@@ -164,17 +166,39 @@ export const Assembleias: React.FC<AssembleiasProps> = ({ condoId, userId }) => 
                   )}
                 </div>
 
-                <p className="text-sm text-slate-600 dark:text-slate-300 mb-6 line-clamp-2">
+                <p className="text-sm text-slate-600 dark:text-slate-300 mb-4 line-clamp-2">
                   {assembleia.description}
                 </p>
 
+                {/* WhatsApp + Link */}
+                <div className="space-y-2 mb-4">
+                  {assembleia.whatsapp_responsavel && (
+                    <a
+                      href={`https://wa.me/55${assembleia.whatsapp_responsavel.replace(/[^0-9]/g, '')}`}
+                      target="_blank" rel="noreferrer"
+                      className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+                    >
+                      <Phone size={12} />
+                      Responsável: {assembleia.whatsapp_responsavel}
+                    </a>
+                  )}
+                  {assembleia.meeting_link && (
+                    <a
+                      href={assembleia.meeting_link}
+                      target="_blank" rel="noreferrer"
+                      className="flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline truncate"
+                    >
+                      <LinkIcon size={12} />
+                      Entrar na Reunião Online
+                    </a>
+                  )}
+                </div>
+
                 <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700">
                   <div className="flex -space-x-2">
-                    {/* Mock avatars of participants */}
                     <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-600 border-2 border-white dark:border-slate-800 flex items-center justify-center text-[10px] font-bold">JD</div>
                     <div className="w-8 h-8 rounded-full bg-blue-200 text-blue-700 border-2 border-white dark:border-slate-800 flex items-center justify-center text-[10px] font-bold">MR</div>
                     <div className="w-8 h-8 rounded-full bg-rose-200 text-rose-700 border-2 border-white dark:border-slate-800 flex items-center justify-center text-[10px] font-bold">AL</div>
-                    <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 border-2 border-white dark:border-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-500">+12</div>
                   </div>
                   
                   <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm group-hover:translate-x-1 transition-transform">

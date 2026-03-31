@@ -47,9 +47,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isAdminOnly = false, setUs
         }
       } catch (err) {
         setCondos([
-          { id: 'paineiras', name: 'Condomínio Paineiras', plan: 'basic', location: 'São Paulo' },
-          { id: 'jardim', name: 'Condomínio Jardim', plan: 'enterprise', location: 'Rio de Janeiro' },
-          { id: 'miami', name: 'Condomínio Miami', plan: 'premium', location: 'Maceió' },
+          { id: '00000000-0000-0000-0000-000000000003', name: 'Condomínio Paineiras', plan: 'basic', location: 'São Paulo' },
+          { id: '00000000-0000-0000-0000-000000000004', name: 'Condomínio Jardim', plan: 'enterprise', location: 'Rio de Janeiro' },
+          { id: '00000000-0000-0000-0000-000000000005', name: 'Condomínio Miami', plan: 'premium', location: 'Maceió' },
         ]);
       }
     }
@@ -72,11 +72,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isAdminOnly = false, setUs
     if (email === 'admin@aicondo360.com' && password === 'admin123') {
       if (setUser) {
         setUser({
-          id: 'admin-demo-id',
+          id: '00000000-0000-0000-0000-00000000000A',
           name: 'Administrador Demo',
           email: 'admin@aicondo360.com',
           condo: 'Administração Exclusiva',
-          condoId: 'admin-exclusive',
+          condoId: '00000000-0000-0000-0000-000000000001',
           role: 'global_admin',
           plan: 'premium'
         });
@@ -87,11 +87,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isAdminOnly = false, setUs
     if (email === 'morador@morador.com' && password === '123456') {
       if (setUser) {
         setUser({
-          id: 'morador-demo-id',
+          id: '00000000-0000-0000-0000-00000000000B',
           name: 'Morador Demonstrativo',
           email: 'morador@morador.com',
           condo: 'Condomínio Paineiras',
-          condoId: 'paineiras',
+          condoId: '00000000-0000-0000-0000-000000000003',
           role: 'resident',
           plan: 'basic'
         });
@@ -102,11 +102,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isAdminOnly = false, setUs
     if (email === 'sindico@condominio.com' && password === 'sindico123') {
       if (setUser) {
         setUser({
-          id: 'sindico-demo-id',
+          id: '00000000-0000-0000-0000-00000000000C',
           name: 'Síndico Demonstrativo',
           email: 'sindico@condominio.com',
           condo: 'Condomínio Jardim',
-          condoId: 'jardim',
+          condoId: '00000000-0000-0000-0000-000000000004',
           role: 'syndic',
           plan: 'enterprise'
         });

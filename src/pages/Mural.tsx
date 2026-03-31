@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { Megaphone, MessageCircle, Heart, Share2, Plus, Image as ImageIcon, MapPin, MoreHorizontal, Loader2, Trash2, Edit2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Megaphone, MessageCircle, Heart, Share2, Plus, Image as ImageIcon, MapPin, MoreHorizontal, Loader2, Trash2, Edit2, CheckCircle2, AlertCircle, X, Send } from 'lucide-react';
 import { FeatureHeader } from '../components/FeatureHeader';
 import { MuralService, MuralPost, MuralComment } from '../services/supabaseService';
 import { useAuth } from '../hooks/useAuth';
@@ -16,6 +16,8 @@ export const Mural: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingPost, setEditingPost] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<string>('');
   
   const [activeComments, setActiveComments] = useState<string | null>(null);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -27,6 +29,7 @@ export const Mural: React.FC = () => {
     if (!authLoading) {
       if (user?.condoId) {
         loadPosts();
+        setSelectedRole(user.role || 'Morador');
       } else {
         setLoading(false);
       }
@@ -54,11 +57,11 @@ export const Mural: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const data = await MuralService.createPost({
+      await MuralService.createPost({
         condominio_id: user.condoId,
         author_id: user.id,
         author_name: user.name,
-        author_role: user.role,
+        author_role: selectedRole || user.role || 'Morador',
         content: newPostContent,
         category: 'announcement',
         status: newPostStatus,
@@ -66,10 +69,11 @@ export const Mural: React.FC = () => {
       });
       setNewPostContent('');
       setNewPostStatus('ativo');
+      setIsCreateModalOpen(false);
       loadPosts();
     } catch (error: any) {
       console.error('Error creating post:', error);
-      alert('Não foi possível salvar a alteração. O Banco de Dados recusou: ' + (error.message || 'Erro desconhecido. A coluna status pode estar ausente no banco Supabase.'));
+      alert('Não foi possível salvar a alteração: ' + (error.message || 'Erro desconhecido.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -174,60 +178,94 @@ export const Mural: React.FC = () => {
         color="bg-amber-500"
       />
 
-      {/* Post Composer - Only for Syndic/Admin */}
-      {canCreatePost ? (
-        <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-700 mb-8">
-          <div className="flex gap-4">
-            <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-slate-100">
-              <img src={user ? `https://ui-avatars.com/api/?name=${user.name}&background=random` : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=facearea&facepad=2&w=128&h=128&q=80"} alt="Me" />
-            </div>
-            <div className="flex-1">
-              <textarea 
-                value={newPostContent}
-                onChange={(e) => setNewPostContent(e.target.value)}
-                placeholder="O que você deseja comunicar aos moradores?"
-                className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl p-4 text-sm font-medium italic focus:ring-2 focus:ring-amber-500/20 outline-none resize-none transition-all h-24"
-              />
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center gap-2">
-                  <button className="p-2 text-slate-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-xl transition-all flex items-center gap-2">
-                    <ImageIcon size={18} />
-                    <span className="text-[10px] font-bold uppercase">Foto</span>
-                  </button>
-                  <button className="p-2 text-slate-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-xl transition-all flex items-center gap-2">
-                    <MapPin size={18} />
-                    <span className="text-[10px] font-bold uppercase">Local</span>
-                  </button>
-                </div>
-                <div className="flex items-center gap-3">
-                  <select
-                    value={newPostStatus}
-                    onChange={(e) => setNewPostStatus(e.target.value as any)}
-                    className="bg-slate-100 dark:bg-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 rounded-lg px-3 py-2 outline-none border-none focus:ring-2 focus:ring-amber-500/20"
-                  >
-                    <option value="ativo">Ativo</option>
-                    <option value="pendente">Pendente</option>
-                    <option value="finalizado">Finalizado</option>
-                  </select>
-                  <button 
-                    onClick={handleSubmit}
-                    disabled={!newPostContent.trim() || isSubmitting}
-                    className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all"
-                  >
-                    {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : 'Publicar'} <Plus size={16} />
-                  </button>
-                </div>
+      <div className="flex justify-between items-center mb-8">
+        <h2 className="text-xl font-black text-slate-800 dark:text-white">Avisos Recentes</h2>
+        <button 
+          onClick={() => setIsCreateModalOpen(true)}
+          className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all hover:-translate-y-0.5 active:scale-95"
+        >
+          <Plus size={18} /> Nova Mensagem
+        </button>
+      </div>
+
+      <AnimatePresence>
+        {isCreateModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-slate-800 rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-700"
+            >
+              <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-white dark:bg-slate-800">
+                <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                  <Megaphone className="text-amber-500" size={24} /> Criar Novo Comunicado
+                </h3>
+                <button onClick={() => setIsCreateModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
+                  <X size={24} className="text-slate-400" />
+                </button>
               </div>
-            </div>
+              
+              <div className="p-8 space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Identificar como</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['Administrador', 'Síndico', 'Morador'].map((role) => (
+                      <button
+                        key={role}
+                        type="button"
+                        onClick={() => setSelectedRole(role)}
+                        className={`py-3 px-2 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all border ${
+                          selectedRole === role 
+                            ? 'bg-amber-500 border-amber-600 text-white shadow-md shadow-amber-500/20' 
+                            : 'bg-slate-50 dark:bg-slate-900/50 border-slate-100 dark:border-slate-700 text-slate-500 hover:bg-white dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        {role}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Mensagem</label>
+                  <textarea 
+                    value={newPostContent}
+                    onChange={(e) => setNewPostContent(e.target.value)}
+                    placeholder="O que você deseja comunicar aos moradores?"
+                    className="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 rounded-[2rem] p-5 text-sm font-medium italic focus:ring-4 focus:ring-amber-500/10 outline-none resize-none transition-all h-32"
+                  />
+                </div>
+
+                <div className="flex gap-4 items-center">
+                  <div className="flex-1 space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Status do Aviso</label>
+                    <select
+                      value={newPostStatus}
+                      onChange={(e) => setNewPostStatus(e.target.value as any)}
+                      className="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 rounded-2xl p-3.5 text-xs font-bold text-slate-600 dark:text-slate-300 outline-none focus:ring-4 focus:ring-amber-500/10"
+                    >
+                      <option value="ativo">🚀 Publicar Imediatamente (Ativo)</option>
+                      <option value="pendente">⏳ Agendar / Pendente</option>
+                      <option value="finalizado">✅ Concluído / Finalizado</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={handleSubmit}
+                  disabled={!newPostContent.trim() || isSubmitting}
+                  className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white py-5 rounded-[2rem] text-sm font-black uppercase tracking-[0.15em] flex items-center justify-center gap-3 shadow-xl shadow-amber-500/20 transition-all hover:shadow-amber-500/40 active:scale-[0.98]"
+                >
+                  {isSubmitting ? <Loader2 size={24} className="animate-spin text-white" /> : (
+                    <>Publicar Mensagem <Send size={20} /></>
+                  )}
+                </button>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      ) : (
-        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-2xl p-4 mb-8">
-          <p className="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-2">
-            <Megaphone size={14} /> APENAS O SÍNDICO PODE CRIAR NOVOS AVISOS. VOCÊ PODE INTERAGIR RESPONDENDO AOS AVISOS EXISTENTES.
-          </p>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* Feed */}
       <div className="space-y-6">
@@ -246,65 +284,57 @@ export const Mural: React.FC = () => {
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-100">
+                    <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-100 shadow-sm transition-transform hover:scale-110">
                       <img src={post.author_avatar || `https://ui-avatars.com/api/?name=${post.author_name}&background=random`} alt={post.author_name} />
                     </div>
                     <div>
-                      <h4 className="text-sm font-black text-slate-900 dark:text-white leading-tight">{post.author_name}</h4>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={`text-[9px] font-black tracking-tighter uppercase px-1.5 py-0.5 rounded ${['syndic', 'admin', 'Síndico', 'Administrador'].includes(post.author_role || '') ? 'bg-amber-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
+                      <h4 className="text-sm font-black text-slate-900 dark:text-white leading-tight flex items-center gap-2 uppercase tracking-tight">
+                        {post.author_name}
+                      </h4>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className={`text-[9px] font-black tracking-tighter uppercase px-2 py-0.5 rounded-lg shadow-sm ${
+                          ['Administrador', 'admin'].includes(post.author_role || '') ? 'bg-emerald-500 text-white' : 
+                          ['Síndico', 'syndic'].includes(post.author_role || '') ? 'bg-amber-500 text-white' : 
+                          'bg-blue-600 text-white'
+                        }`}>
                           {post.author_role === 'syndic' ? 'Síndico' : post.author_role === 'admin' ? 'Administrador' : post.author_role}
                         </span>
                         <span className="text-[10px] font-bold text-slate-400">• {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: ptBR })}</span>
-                        {post.status && (
-                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-1 ${
-                            post.status === 'ativo' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                            post.status === 'pendente' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
-                            'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                          }`}>
-                            {post.status === 'ativo' && <CheckCircle2 size={10} />}
-                            {post.status === 'pendente' && <AlertCircle size={10} />}
-                            {post.status === 'finalizado' && <CheckCircle2 size={10} />}
-                            {post.status}
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>
-                  {canCreatePost && (
-                    <div className="relative">
-                      <button 
-                        onClick={() => setActiveMenu(activeMenu === post.id ? null : post.id)}
-                        className="p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-colors"
-                      >
-                        <MoreHorizontal size={20} />
-                      </button>
-                      
-                      {activeMenu === post.id && (
-                        <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 z-10 overflow-hidden">
-                          <div className="p-2 space-y-1">
-                            <p className="px-3 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</p>
-                            <button onClick={() => handleUpdateStatus(post.id, 'ativo')} className={`w-full text-left px-3 py-2 text-xs font-bold rounded-lg flex items-center gap-2 ${post.status === 'ativo' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
-                              <CheckCircle2 size={14} /> Ativo
-                            </button>
-                            <button onClick={() => handleUpdateStatus(post.id, 'pendente')} className={`w-full text-left px-3 py-2 text-xs font-bold rounded-lg flex items-center gap-2 ${post.status === 'pendente' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
-                              <AlertCircle size={14} /> Pendente
-                            </button>
-                            <button onClick={() => handleUpdateStatus(post.id, 'finalizado')} className={`w-full text-left px-3 py-2 text-xs font-bold rounded-lg flex items-center gap-2 ${post.status === 'finalizado' ? 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
-                              <CheckCircle2 size={14} /> Finalizado
-                            </button>
-                            <div className="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
-                            <button onClick={() => { setEditingPost(post.id); setEditContent(post.content); setActiveMenu(null); }} className="w-full text-left px-3 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg flex items-center gap-2">
-                              <Edit2 size={14} /> Editar Aviso
-                            </button>
-                            <button onClick={() => handleDeletePost(post.id)} className="w-full text-left px-3 py-2 text-xs font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg flex items-center gap-2">
-                              <Trash2 size={14} /> Excluir Aviso
-                            </button>
-                          </div>
+                  <div className="relative">
+                    <button 
+                      onClick={() => setActiveMenu(activeMenu === post.id ? null : post.id)}
+                      className="p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-colors"
+                    >
+                      <MoreHorizontal size={20} />
+                    </button>
+                    
+                    {activeMenu === post.id && (
+                      <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 z-10 overflow-hidden">
+                        <div className="p-2 space-y-1">
+                          <p className="px-3 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</p>
+                          <button onClick={() => handleUpdateStatus(post.id, 'ativo')} className={`w-full text-left px-3 py-2 text-xs font-bold rounded-lg flex items-center gap-2 ${post.status === 'ativo' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+                            <CheckCircle2 size={14} /> Ativo
+                          </button>
+                          <button onClick={() => handleUpdateStatus(post.id, 'pendente')} className={`w-full text-left px-3 py-2 text-xs font-bold rounded-lg flex items-center gap-2 ${post.status === 'pendente' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+                            <AlertCircle size={14} /> Pendente
+                          </button>
+                          <button onClick={() => handleUpdateStatus(post.id, 'finalizado')} className={`w-full text-left px-3 py-2 text-xs font-bold rounded-lg flex items-center gap-2 ${post.status === 'finalizado' ? 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+                            <CheckCircle2 size={14} /> Finalizado
+                          </button>
+                          <div className="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
+                          <button onClick={() => { setEditingPost(post.id); setEditContent(post.content); setActiveMenu(null); }} className="w-full text-left px-3 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg flex items-center gap-2">
+                            <Edit2 size={14} /> Editar Aviso
+                          </button>
+                          <button onClick={() => handleDeletePost(post.id)} className="w-full text-left px-3 py-2 text-xs font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg flex items-center gap-2">
+                            <Trash2 size={14} /> Excluir Aviso
+                          </button>
                         </div>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {editingPost === post.id ? (

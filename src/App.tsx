@@ -7,7 +7,6 @@ import { Configuracoes } from './pages/Configuracoes';
 import { Boletos } from './pages/Boletos';
 import { Reservas } from './pages/Reservas';
 import { Comunicados } from './pages/Comunicados';
-import { Mural } from './pages/Mural';
 import { FeatureDetail } from './pages/FeatureDetail';
 import { Encomendas } from './pages/Encomendas';
 import { Assembleias } from './pages/Assembleias';
@@ -19,8 +18,6 @@ import { Telefones } from './pages/Telefones';
 import { Agendamentos } from './pages/Agendamentos';
 import { Animais } from './pages/Animais';
 import { Classificados } from './pages/Classificados';
-import Profile from './pages/Profile';
-import { DigitalKey } from './components/DigitalKey';
 import { useAuth } from './hooks/useAuth';
 import { PricingPlan } from './constants';
 
@@ -74,24 +71,7 @@ export default function App() {
             )
           } 
         />
-        <Route 
-          path="/profile" 
-          element={
-            user ? (
-              <Layout 
-                condoName={user.condo} 
-                userName={user.name} 
-                onLogout={logout}
-                userRole={user.role}
-                userPlan={user.plan}
-              >
-                <Profile user={user} setUser={setUser} />
-              </Layout>
-            ) : (
-              <Navigate to="/login" />
-            )
-          } 
-        />
+
         <Route 
           path="/feature/boletos" 
           element={
@@ -139,7 +119,7 @@ export default function App() {
                 userRole={user.role}
                 userPlan={user.plan}
               >
-                <Encomendas userId={user.id} userRole={user.role} />
+                <Encomendas userId={user.id} userRole={user.role} condoId={user.condoId} />
               </Layout>
             ) : (
               <Navigate to="/login" />
@@ -158,24 +138,6 @@ export default function App() {
                 userPlan={user.plan}
               >
                 <Comunicados userId={user.id} />
-              </Layout>
-            ) : (
-              <Navigate to="/login" />
-            )
-          } 
-        />
-        <Route 
-          path="/feature/mural" 
-          element={
-            user ? (
-              <Layout 
-                condoName={user.condo} 
-                userName={user.name} 
-                onLogout={logout}
-                userRole={user.role}
-                userPlan={user.plan}
-              >
-                <Mural />
               </Layout>
             ) : (
               <Navigate to="/login" />
@@ -211,7 +173,7 @@ export default function App() {
                 userRole={user.role}
                 userPlan={user.plan}
               >
-                <Ocorrencias />
+                <Ocorrencias userId={user.id} condoId={user.condoId} userRole={user.role} />
               </Layout>
             ) : (
               <Navigate to="/login" />
@@ -229,7 +191,7 @@ export default function App() {
                 userRole={user.role}
                 userPlan={user.plan}
               >
-                <Visitantes />
+                <Visitantes userId={user.id} condoId={user.condoId} userRole={user.role} />
               </Layout>
             ) : (
               <Navigate to="/login" />
@@ -265,7 +227,7 @@ export default function App() {
                 userRole={user.role}
                 userPlan={user.plan}
               >
-                <Garagem />
+                <Garagem userId={user.id} condoId={user.condoId} userRole={user.role} />
               </Layout>
             ) : (
               <Navigate to="/login" />
@@ -359,7 +321,7 @@ export default function App() {
                 userRole={user.role}
                 userPlan={user.plan}
               >
-                <Visitantes userId={user.id} condoId={user.condoId} />
+                <Visitantes userId={user.id} condoId={user.condoId} userRole={user.role} />
               </Layout>
             ) : (
               <Navigate to="/login" />
@@ -377,7 +339,7 @@ export default function App() {
                 userRole={user.role}
                 userPlan={user.plan}
               >
-                <Garagem userId={user.id} condoId={user.condoId} />
+                <Garagem userId={user.id} condoId={user.condoId} userRole={user.role} />
               </Layout>
             ) : (
               <Navigate to="/login" />

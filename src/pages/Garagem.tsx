@@ -7,12 +7,15 @@ import { VehicleService, Veiculo as IVeiculo } from '../services/supabaseService
 interface GaragemProps {
   userId: string;
   condoId: string;
+  userRole?: string;
 }
 
-export const Garagem: React.FC<GaragemProps> = ({ userId, condoId }) => {
+export const Garagem: React.FC<GaragemProps> = ({ userId, condoId, userRole }) => {
   const [vehicles, setVehicles] = useState<IVeiculo[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  const canManage = userRole === 'admin' || userRole === 'syndic' || userRole === 'global_admin';
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
@@ -37,7 +40,9 @@ export const Garagem: React.FC<GaragemProps> = ({ userId, condoId }) => {
   const fetchVehicles = async () => {
     setLoading(true);
     try {
-      const data = await VehicleService.getUserVehicles(userId);
+      const data = canManage 
+        ? await VehicleService.getCondoVehicles(condoId)
+        : await VehicleService.getUserVehicles(userId);
       setVehicles(data);
     } catch (error) {
       console.error('Error fetching vehicles:', error);
@@ -105,8 +110,9 @@ export const Garagem: React.FC<GaragemProps> = ({ userId, condoId }) => {
       }
       setShowModal(false);
       fetchVehicles();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving vehicle:', error);
+      alert('Erro ao salvar veículo: ' + (error?.message || 'Erro desconhecido. Verifique o Condomínio em seu Perfil.'));
     }
   };
 
@@ -151,7 +157,7 @@ export const Garagem: React.FC<GaragemProps> = ({ userId, condoId }) => {
         
         <button 
           onClick={() => handleOpenModal()}
-          className="flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-900 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-zinc-500/20 hover:scale-105 active:scale-95"
+          className="flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-900 text-white px-6 py-3 rounded-2xl font-medium transition-all shadow-lg shadow-zinc-500/20 active:scale-95"
         >
           <Plus size={20} />
           Cadastrar Veículo
@@ -165,7 +171,7 @@ export const Garagem: React.FC<GaragemProps> = ({ userId, condoId }) => {
           ))}
         </div>
       ) : filteredVehicles.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           <AnimatePresence mode="popLayout">
             {filteredVehicles.map((vehicle) => (
               <motion.div
@@ -174,16 +180,16 @@ export const Garagem: React.FC<GaragemProps> = ({ userId, condoId }) => {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white dark:bg-slate-800 rounded-[32px] border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-xl hover:shadow-zinc-500/5 transition-all group overflow-hidden flex flex-col"
+                className="bg-white dark:bg-slate-800 rounded-[24px] border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-lg transition-all group overflow-hidden flex flex-col"
               >
                 {/* Imagem do Veículo */}
-                <div className="h-48 bg-slate-100 dark:bg-slate-900 relative overflow-hidden group-hover:brightness-110 transition-all">
+                <div className="h-32 bg-slate-100 dark:bg-slate-900 relative overflow-hidden transition-all">
                   {vehicle.image_url ? (
                     <img src={vehicle.image_url} alt={vehicle.model} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 dark:text-slate-700">
-                      <Car size={64} strokeWidth={1} />
-                      <span className="text-[10px] font-black uppercase tracking-widest mt-2">Sem Foto</span>
+                      <Car size={32} strokeWidth={1} />
+                      <span className="text-[8px] font-medium uppercase tracking-widest mt-1">Sem Foto</span>
                     </div>
                   )}
                   
@@ -215,37 +221,29 @@ export const Garagem: React.FC<GaragemProps> = ({ userId, condoId }) => {
                   </div>
                 </div>
 
-                <div className="p-6">
+                <div className="p-4">
                   <div className="flex justify-between items-start mb-1">
-                    <h3 className="font-black text-2xl text-slate-900 dark:text-white uppercase tracking-tighter">
+                    <h3 className="font-normal text-lg text-slate-900 dark:text-white uppercase tracking-wider">
                       {vehicle.plate}
                     </h3>
                   </div>
                   
-                  <p className="text-sm font-bold text-slate-500 mb-4">
+                  <p className="text-[10px] font-medium text-slate-500 mb-3 truncate">
                     {vehicle.brand} {vehicle.model} • <span className="opacity-70">{vehicle.color}</span>
                   </p>
 
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400">
-                      <div className="w-6 h-6 rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
-                        <User size={12} />
-                      </div>
-                      <span className="opacity-70">Proprietário:</span> {vehicle.owner_name}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-[10px] font-medium text-slate-600 dark:text-slate-400">
+                      <User size={10} className="text-slate-400" />
+                      <span className="truncate">{vehicle.owner_name}</span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
-                       <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400">
-                        <div className="w-6 h-6 rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
-                          <Car size={12} />
-                        </div>
-                        <span className="opacity-70">Garagem:</span> {vehicle.garage_number || 'N/A'}
+                    <div className="grid grid-cols-2 gap-1 px-0.5 text-[10px] font-medium text-slate-500">
+                       <div className="flex items-center gap-1.5">
+                        <span className="opacity-60">VG:</span> <span className="text-slate-700 dark:text-slate-300">{vehicle.garage_number || '-'}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400">
-                        <div className="w-6 h-6 rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
-                          <Hash size={12} />
-                        </div>
-                        <span className="opacity-70">Und:</span> {vehicle.unit_number || 'N/A'}
+                      <div className="flex items-center gap-1.5">
+                        <span className="opacity-60">UND:</span> <span className="text-slate-700 dark:text-slate-300">{vehicle.unit_number || '-'}</span>
                       </div>
                     </div>
 
@@ -259,13 +257,13 @@ export const Garagem: React.FC<GaragemProps> = ({ userId, condoId }) => {
                   </div>
                 </div>
 
-                <div className="px-6 py-4 bg-slate-50/50 dark:bg-slate-900/30 border-t border-slate-100 dark:border-slate-700/50 mt-auto flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-emerald-500">
-                    <Shield size={12} className="fill-emerald-500/10" />
-                    Status: Ativo
+                <div className="px-4 py-2.5 bg-slate-50/50 dark:bg-slate-900/30 border-t border-slate-100 dark:border-slate-700/50 mt-auto flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-[8px] font-medium uppercase tracking-widest text-emerald-500">
+                    <Shield size={10} />
+                    Ativo
                   </div>
-                  <div className="text-[10px] font-bold text-slate-400">
-                    ID: #{vehicle.id.slice(0, 4)}
+                  <div className="text-[8px] font-medium text-slate-400 uppercase tracking-tighter">
+                    #{vehicle.id.slice(0, 4)}
                   </div>
                 </div>
               </motion.div>
@@ -501,23 +499,19 @@ export const Garagem: React.FC<GaragemProps> = ({ userId, condoId }) => {
       </AnimatePresence>
 
       {/* Info Card */}
-      <div className="mt-16 bg-gradient-to-br from-zinc-800 to-zinc-950 p-10 md:p-16 rounded-[64px] text-white flex flex-col md:flex-row items-center gap-12 shadow-2xl shadow-zinc-500/10 relative overflow-hidden group">
-        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-white/5 rounded-full -mr-40 -mt-40 blur-[100px] transition-all duration-700 group-hover:bg-white/10"></div>
-        <div className="bg-white/10 p-8 rounded-[40px] backdrop-blur-xl shrink-0 border border-white/20 shadow-2xl">
-          <Shield size={64} className="text-zinc-100 animate-pulse" />
+      <div className="mt-8 bg-zinc-900 p-6 md:p-8 rounded-[48px] text-white flex flex-col md:flex-row items-center gap-8 shadow-xl relative overflow-hidden group">
+        <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-white/5 rounded-full -mr-32 -mt-32 blur-[80px]"></div>
+        <div className="bg-white/5 p-5 rounded-[32px] backdrop-blur-xl shrink-0 border border-white/10 shadow-lg">
+          <Shield size={32} className="text-zinc-100 animate-pulse" />
         </div>
         <div className="text-center md:text-left flex-1 relative z-10">
-          <h4 className="text-4xl font-black mb-6 tracking-tighter leading-none uppercase italic">Acesso Inteligente</h4>
-          <p className="opacity-80 text-lg leading-relaxed max-w-2xl font-medium">
-            Mantenha os dados dos seus veículos e proprietários sempre atualizados. A foto do veículo auxilia na pronta identificação pela equipe de segurança e inteligência de portaria.
+          <h4 className="text-xl font-medium mb-3 tracking-tight leading-none uppercase italic">Acesso Inteligente</h4>
+          <p className="opacity-70 text-sm leading-relaxed max-w-xl font-medium">
+            Mantenha os dados atualizados. A foto auxilia na identificação rápida pela equipe de segurança.
           </p>
         </div>
-        <div className="flex flex-col gap-4 shrink-0">
-          <div className="flex items-center gap-3 text-xs font-black text-zinc-400 uppercase tracking-widest mb-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></div>
-            Sincronizado com CRM
-          </div>
-          <button className="bg-white text-zinc-900 hover:bg-zinc-100 px-10 py-6 rounded-[28px] font-black text-xs uppercase tracking-widest transition-all shadow-xl hover:scale-105 active:scale-95">
+        <div className="flex flex-col gap-3 shrink-0">
+          <button className="bg-white text-zinc-900 hover:bg-zinc-100 px-8 py-4 rounded-[20px] font-medium text-[10px] uppercase tracking-widest transition-all active:scale-95">
             Solicitar Tag Antena
           </button>
         </div>

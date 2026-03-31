@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Calendar, 
   Clock, 
@@ -22,9 +22,16 @@ import {
   CreditCard,
   History,
   Wind,
-  Plus
+  Plus,
+  Star
 } from 'lucide-react';
 import { FeatureHeader } from '../components/FeatureHeader';
+import { ReservationService, Reserva as IReserva } from '../services/supabaseService';
+
+interface ReservasProps {
+  userId: string;
+  condoId: string;
+}
 
 type Area = {
   id: string;
@@ -63,22 +70,93 @@ const AREAS: Area[] = [
     imageUrl: 'https://images.unsplash.com/photo-1519449556851-5720b33024e7?w=800&q=80',
     rules: ['Proibido vidro no deck', 'Exame médico atualizado', 'Crianças acompanhadas']
   },
+  { 
+    id: '5', name: 'Quadra de Futebol', icon: Star, capacity: 12, price: 'Grátis', color: 'bg-blue-600', 
+    description: 'Quadra poliesportiva com grama sintética e iluminação led.', 
+    imageUrl: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&q=80',
+    rules: ['Uso de calçado adequado', 'Horário: 08h às 22h', 'Reserva de 1 hora']
+  },
 ];
 
 const DAYS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
 
-export const Reservas: React.FC = () => {
+export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
   const [selectedArea, setSelectedArea] = useState<Area | null>(null);
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [reservations, setReservations] = useState<IReserva[]>([]);
+  const [condoReservations, setCondoReservations] = useState<IReserva[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
+  const loadingRef = React.useRef(false);
 
-  const handleBooking = () => {
-    setIsSuccess(true);
-    setTimeout(() => {
-      setIsSuccess(false);
-      setSelectedArea(null);
-      setSelectedDate(null);
-    }, 2500);
+  React.useEffect(() => {
+    if (userId && condoId) {
+      fetchReservations();
+    }
+  }, [userId, condoId]);
+
+  const fetchReservations = async () => {
+    if (!userId || !condoId || loadingRef.current) return;
+    
+    loadingRef.current = true;
+    setLoading(true);
+    console.log("[Reservas] Fetching reservations for user:", userId, "condo:", condoId);
+    try {
+      const uRes = await ReservationService.getUserReservations(userId);
+      setReservations(uRes);
+      const cRes = await ReservationService.getCondoReservations(condoId);
+      setCondoReservations(cRes);
+    } catch (error) {
+      console.error('[Reservas] Error details:', error);
+    } finally {
+      setLoading(false);
+      loadingRef.current = false;
+    }
+  };
+
+  const isDayReserved = (day: number) => {
+    if (!selectedArea) return false;
+    const dateStr = `2025-05-${day.toString().padStart(2, '0')}`; // Simplificado para este mês mockado no UI
+    return condoReservations.some(r => r.area_name === selectedArea.name && r.reservation_date.startsWith(dateStr));
+  };
+
+  const handleBooking = async () => {
+    if (!selectedArea || !selectedDate) return;
+    
+    if (isDayReserved(selectedDate)) {
+      setBookingError("já existe agendamentos ativos para essa data");
+      setTimeout(() => setBookingError(null), 3000);
+      return;
+    }
+
+    setLoading(true);
+    try {
+        const dateStr = `2025-05-${selectedDate.toString().padStart(2, '0')}`;
+        await ReservationService.createReserva({
+            condominio_id: condoId,
+            user_id: userId,
+            area_name: selectedArea.name,
+            reservation_date: dateStr,
+            start_time: '12:00:00',
+            end_time: '22:00:00',
+            status: 'confirmed'
+        });
+        setIsSuccess(true);
+        fetchReservations();
+        setTimeout(() => {
+            setIsSuccess(false);
+            setSelectedArea(null);
+            setSelectedDate(null);
+            setShowCalendar(false);
+        }, 2000);
+    } catch (error: any) {
+        console.error('Error booking:', error);
+        alert('Erro ao reservar: ' + (error?.message || 'Erro de permissão ou dados inválidos. Verifique se seu perfil está completo.'));
+    } finally {
+        setLoading(false);
+    }
   };
 
   return (
@@ -100,24 +178,24 @@ export const Reservas: React.FC = () => {
             <motion.button
               key={area.id}
               onClick={() => setSelectedArea(area)}
-              whileHover={{ x: 8 }}
-              className={`w-full text-left p-8 rounded-[40px] border-2 transition-all group relative overflow-hidden ${
+              whileHover={{ x: 4 }}
+              className={`w-full text-left p-4 rounded-3xl border transition-all group relative overflow-hidden ${
                 selectedArea?.id === area.id 
-                ? `${area.color} border-${area.color.split('-')[1]}-600 text-white shadow-2xl` 
-                : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-slate-300'
+                ? `${area.color} border-slate-200 text-white shadow-lg` 
+                : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-slate-200'
               }`}
             >
-              <div className="flex items-center gap-6 relative z-10">
-                <div className={`w-16 h-16 rounded-[24px] flex items-center justify-center transition-transform ${
-                  selectedArea?.id === area.id ? 'bg-white/20' : 'bg-slate-50 dark:bg-slate-900 group-hover:rotate-12'
+              <div className="flex items-center gap-4 relative z-10">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform ${
+                  selectedArea?.id === area.id ? 'bg-white/20' : 'bg-slate-50 dark:bg-slate-900 group-hover:rotate-6'
                 }`}>
-                  <area.icon size={32} />
+                  <area.icon size={24} />
                 </div>
                 <div>
-                  <h5 className="text-xl font-black uppercase tracking-tighter leading-none mb-2">{area.name}</h5>
-                  <div className="flex items-center gap-3 opacity-60 font-black text-[10px] uppercase tracking-widest">
-                    <span className="flex items-center gap-1"><Users size={12} /> {area.capacity} Max</span>
-                    <span className="flex items-center gap-1"><CreditCard size={12} /> {area.price}</span>
+                  <h5 className="text-sm font-bold uppercase tracking-tight leading-none mb-1">{area.name}</h5>
+                  <div className="flex items-center gap-3 opacity-60 font-medium text-[9px] uppercase tracking-wider">
+                    <span className="flex items-center gap-1"><Users size={10} /> {area.capacity} Max</span>
+                    <span className="flex items-center gap-1"><CreditCard size={10} /> {area.price}</span>
                   </div>
                 </div>
               </div>
@@ -149,87 +227,145 @@ export const Reservas: React.FC = () => {
                 className="bg-white dark:bg-slate-800 rounded-[56px] shadow-2xl border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col"
               >
                 {/* Header Image */}
-                <div className="h-72 relative">
+                <div className="h-40 relative group cursor-pointer" onClick={() => setShowCalendar(!showCalendar)}>
                   <img src={selectedArea.imageUrl} className="w-full h-full object-cover" alt={selectedArea.name} />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent opacity-80" />
-                  <div className="absolute bottom-10 left-10 text-white">
-                    <h3 className="text-4xl font-black uppercase tracking-tighter leading-none mb-2 italic drop-shadow-lg">{selectedArea.name}</h3>
-                    <p className="text-xs font-bold uppercase tracking-widest opacity-80 leading-none">{selectedArea.description}</p>
-                  </div>
-                </div>
-
-                {/* Calendar Placeholder */}
-                <div className="p-12">
-                  <div className="flex justify-between items-center mb-10">
-                    <h5 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Maio de 2025</h5>
-                    <div className="flex gap-4">
-                      <button className="p-4 bg-slate-100 dark:bg-slate-900 rounded-2xl hover:bg-slate-200"><ChevronLeft size={20} /></button>
-                      <button className="p-4 bg-slate-100 dark:bg-slate-900 rounded-2xl hover:bg-slate-200"><ChevronRight size={20} /></button>
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 to-transparent" />
+                  <div className="absolute bottom-4 left-6 text-white flex items-center justify-between w-full pr-12">
+                    <div>
+                      <h3 className="text-xl font-bold uppercase tracking-tight leading-none mb-1 shadow-sm">{selectedArea.name}</h3>
+                      <p className="text-[9px] font-medium uppercase tracking-widest opacity-70 leading-none">{selectedArea.description}</p>
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-7 gap-4 mb-12">
-                    {DAYS.map(day => (
-                      <div key={day} className="text-center text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">{day}</div>
-                    ))}
-                    {Array.from({ length: 14 }).map((_, i) => (
-                      <button
-                        key={i}
-                        disabled={i < 5}
-                        onClick={() => setSelectedDate(i + 1)}
-                        className={`aspect-square rounded-[24px] flex items-center justify-center text-sm font-black border-2 transition-all active:scale-95 ${
-                          i < 5 
-                          ? 'bg-red-50 text-red-100 border-red-50 cursor-not-allowed opacity-30 strike-through' 
-                          : selectedDate === i + 1 
-                          ? 'bg-emerald-500 text-white border-emerald-600 shadow-xl' 
-                          : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-50 dark:border-slate-700 hover:border-emerald-500'
-                        }`}
-                      >
-                        {i + 1}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="flex flex-col md:flex-row gap-12 p-10 bg-slate-50 dark:bg-slate-900 rounded-[40px] border border-slate-100 dark:border-slate-800">
-                    <div className="flex-1">
-                      <h6 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-                        <ShieldCheck size={16} className="text-emerald-500" /> Regras do Local
-                      </h6>
-                      <ul className="space-y-4">
-                        {selectedArea.rules.map((rule, idx) => (
-                          <li key={idx} className="flex items-start gap-4 text-xs font-bold text-slate-600 dark:text-slate-400">
-                            <span className="w-2 h-2 bg-emerald-500 rounded-full mt-1.5 flex-shrink-0" />
-                            {rule}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    
-                    <div className="flex flex-col justify-end">
-                      <button 
-                        disabled={!selectedDate || isSuccess}
-                        onClick={handleBooking}
-                        className={`px-12 py-6 rounded-[28px] text-sm font-black uppercase tracking-widest transition-all w-full md:w-auto overflow-hidden relative ${
-                          selectedDate 
-                          ? 'bg-slate-900 text-white hover:bg-black shadow-2xl active:scale-95' 
-                          : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                        }`}
-                      >
-                        <span className="relative z-10">
-                          {isSuccess ? 'Reservado!' : 'Agendar Agora'}
-                        </span>
-                        {isSuccess && (
-                          <motion.div 
-                            initial={{ x: '-100%' }}
-                            animate={{ x: '100%' }}
-                            transition={{ duration: 1 }}
-                            className="absolute inset-0 bg-emerald-500 z-0"
-                          />
-                        )}
-                      </button>
+                    <div className="p-2 bg-white/20 rounded-full backdrop-blur-sm">
+                      {showCalendar ? <X size={14} /> : <Calendar size={14} />}
                     </div>
                   </div>
                 </div>
+
+                {/* Calendar Dropdown Area */}
+                <AnimatePresence>
+                  {showCalendar && (
+                    <motion.div 
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden bg-white dark:bg-slate-800"
+                    >
+                      <div className="p-8 border-t border-slate-100 dark:border-slate-700">
+                        <div className="flex justify-between items-center mb-6">
+                          <h5 className="text-base font-bold text-slate-800 dark:text-white uppercase tracking-tight">Selecione uma data (Maio de 2025)</h5>
+                          <div className="flex gap-2">
+                            <button className="p-2 bg-slate-50 dark:bg-slate-900 rounded-lg hover:bg-slate-100"><ChevronLeft size={14} /></button>
+                            <button className="p-2 bg-slate-50 dark:bg-slate-900 rounded-lg hover:bg-slate-100"><ChevronRight size={14} /></button>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-7 gap-2 mb-8">
+                          {DAYS.map(day => (
+                            <div key={day} className="text-center text-[9px] font-bold text-slate-400 mb-1 uppercase tracking-widest">{day}</div>
+                          ))}
+                          {Array.from({ length: 31 }).map((_, i) => {
+                            const day = i + 1;
+                            const isReserved = isDayReserved(day);
+                            const isPast = day < new Date().getDate() && new Date().getMonth() === 4; // Mock para Maio
+
+                            return (
+                              <button
+                                key={i}
+                                disabled={isPast}
+                                onClick={() => setSelectedDate(day)}
+                                className={`aspect-square rounded-xl flex items-center justify-center text-xs font-bold border transition-all active:scale-95 relative ${
+                                  isReserved
+                                  ? 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed group' 
+                                  : isPast
+                                  ? 'bg-slate-50 text-slate-200 border-transparent cursor-not-allowed opacity-40' 
+                                  : selectedDate === day 
+                                  ? 'bg-emerald-500 text-white border-emerald-600 shadow-md translate-y-[-2px]' 
+                                  : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-100 dark:border-slate-700 hover:border-emerald-500/50'
+                                }`}
+                              >
+                                {isReserved ? (
+                                  <>
+                                    <X size={12} className="text-rose-500 absolute" />
+                                    <span className="opacity-20">{day}</span>
+                                  </>
+                                ) : day}
+                                {isReserved && (
+                                  <div className="absolute bottom-[-100%] left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[8px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none z-20">
+                                    Indisponível
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        
+                        <AnimatePresence>
+                          {bookingError && (
+                            <motion.div 
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0 }}
+                              className="mb-4 p-3 bg-rose-50 text-rose-600 text-[10px] font-bold uppercase tracking-widest rounded-xl border border-rose-100 flex items-center gap-2"
+                            >
+                              <AlertCircle size={14} /> {bookingError}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        <div className="flex flex-col md:flex-row gap-8 p-6 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800">
+                          <div className="flex-1">
+                            <h6 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                              <ShieldCheck size={14} className="text-emerald-500" /> Regras do Local
+                            </h6>
+                            <ul className="space-y-3">
+                              {selectedArea.rules.map((rule, idx) => (
+                                <li key={idx} className="flex items-start gap-3 text-[9px] font-medium text-slate-600 dark:text-slate-400">
+                                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-1.5 flex-shrink-0" />
+                                  {rule}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          
+                          <div className="flex flex-col justify-end">
+                            <button 
+                              disabled={!selectedDate || isSuccess}
+                              onClick={handleBooking}
+                              className={`px-8 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all w-full md:w-auto overflow-hidden relative shadow-lg ${
+                                selectedDate 
+                                ? 'bg-slate-900 text-white hover:bg-black active:scale-95' 
+                                : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                              }`}
+                            >
+                              <span className="relative z-10">
+                                {isSuccess ? 'Reservado!' : 'Finalizar Agendamento'}
+                              </span>
+                              {isSuccess && (
+                                <motion.div 
+                                  initial={{ x: '-100%' }}
+                                  animate={{ x: '100%' }}
+                                  transition={{ duration: 1 }}
+                                  className="absolute inset-0 bg-emerald-500 z-0"
+                                />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                
+                {!showCalendar && (
+                  <div className="p-8 text-center bg-slate-50/50 dark:bg-slate-900/20">
+                    <button 
+                      onClick={() => setShowCalendar(true)}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-blue-600 hover:bg-blue-50 transition-all shadow-sm"
+                    >
+                      <Calendar size={14} /> Abrir Calendário para Reserva
+                    </button>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -237,39 +373,84 @@ export const Reservas: React.FC = () => {
       </div>
 
       {/* Booking History / My Reservations */}
-      <div className="bg-slate-900 p-12 rounded-[56px] border border-slate-800 shadow-2xl">
-        <div className="flex justify-between items-center mb-10">
+      <div className="bg-white dark:bg-slate-800 p-8 lg:p-12 rounded-[48px] border border-slate-100 dark:border-slate-700 shadow-xl shadow-slate-100 dark:shadow-none">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-emerald-500/10 rounded-[28px] flex items-center justify-center text-emerald-500 border border-emerald-500/20">
-              <History size={32} />
+            <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 border border-emerald-500/20">
+              <History size={28} />
             </div>
             <div>
-              <h4 className="text-2xl font-black text-white uppercase tracking-tighter italic">Meus Agendamentos</h4>
-              <p className="text-[10px] uppercase tracking-widest font-black text-emerald-500/70">Acompanhe suas reservas futuras e passadas</p>
+              <h4 className="text-xl font-bold text-slate-800 dark:text-white uppercase tracking-tight">Meus Agendamentos Ativos</h4>
+              <p className="text-[9px] uppercase tracking-widest font-bold text-slate-400">Acompanhe suas próximas datas reservadas</p>
             </div>
           </div>
-          <button className="p-4 bg-white/5 text-white/40 rounded-full hover:bg-white/10 transition-colors">
-            <MoreVertical size={24} />
-          </button>
+          
+          <div className="flex flex-wrap gap-2">
+            <div className="inline-flex items-center gap-1 px-3 py-1 bg-slate-50 dark:bg-slate-900 rounded-full border border-slate-100 dark:border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+              <Plus size={10} /> Gerar Relatórios:
+            </div>
+            <button 
+              onClick={() => alert('Gerando relatório de 7 dias...')}
+              className="px-4 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-blue-100 transition-all border border-blue-100 dark:border-blue-800"
+            >
+              Próximos 7 Dias
+            </button>
+            <button 
+              onClick={() => alert('Gerando relatório de 15 dias...')}
+              className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-indigo-100 transition-all border border-indigo-100 dark:border-indigo-800"
+            >
+              Próximos 15 Dias
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-6 p-8 bg-black/50 rounded-[32px] border border-white/5 group hover:border-emerald-500/30 transition-all">
-          <div className="w-20 h-20 bg-orange-500 rounded-[24px] flex items-center justify-center text-white ring-8 ring-orange-500/10 group-hover:rotate-12 transition-transform">
-            <ChefHat size={40} />
-          </div>
-          <div className="flex-1">
-            <h5 className="text-xl font-black text-white uppercase tracking-tighter leading-none mb-1">Churrasqueira Gourmet</h5>
-            <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3 flex items-center gap-2">
-              <Calendar size={12} className="text-orange-500" /> Sábado, 24 de Maio de 2025
-            </p>
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded-lg text-[10px] font-black uppercase tracking-widest border border-emerald-500/20">
-              <CheckCircle2 size={12} /> Confirmado & Pago
+        <div className="grid grid-cols-1 gap-4">
+          {reservations.length > 0 ? (
+            reservations.map(res => (
+              <div key={res.id} className="flex items-center gap-5 p-6 bg-slate-50 dark:bg-slate-900/50 rounded-3xl border border-slate-100 dark:border-slate-800 group hover:border-emerald-200 dark:hover:border-emerald-900/30 transition-all">
+                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-white ring-4 ring-white dark:ring-slate-800 group-hover:scale-105 transition-transform ${
+                  res.area_name.includes('Churrasqueira') ? 'bg-orange-500 shadow-orange-100' : 
+                  res.area_name.includes('Salão') ? 'bg-indigo-500 shadow-indigo-100' :
+                  res.area_name.includes('Academia') ? 'bg-emerald-500 shadow-emerald-100' : 
+                  res.area_name.includes('Quadra') ? 'bg-blue-600 shadow-blue-100' : 'bg-cyan-500 shadow-cyan-100'
+                }`}>
+                  {res.area_name.includes('Churrasqueira') ? <ChefHat size={32} /> : 
+                   res.area_name.includes('Salão') ? <Music size={32} /> :
+                   res.area_name.includes('Academia') ? <Dumbbell size={32} /> : 
+                   res.area_name.includes('Quadra') ? <Star size={32} /> : <Waves size={32} />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h5 className="text-base font-bold text-slate-800 dark:text-white uppercase tracking-tight leading-none mb-1">{res.area_name}</h5>
+                  <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Calendar size={12} className="text-emerald-500" /> {new Date(res.reservation_date).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  </p>
+                </div>
+                <div className="flex flex-col items-end gap-3">
+                  <div className={`px-3 py-1 rounded-full text-[8px] font-bold uppercase tracking-widest border ${
+                    res.status === 'confirmed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'
+                  }`}>
+                    {res.status === 'confirmed' ? 'Auditado v.12' : 'Pendente'}
+                  </div>
+                  <button 
+                    onClick={async () => {
+                      if (window.confirm('Cancelar esta reserva?')) {
+                        await ReservationService.deleteReserva(res.id);
+                        fetchReservations();
+                      }
+                    }}
+                    className="text-[9px] font-bold uppercase text-rose-500 tracking-wider hover:text-rose-700 transition-colors"
+                  >
+                    Remover
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-10 bg-slate-50/50 dark:bg-slate-900/30 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
+              <History size={32} className="mx-auto text-slate-200 mb-2" />
+              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em]">Sem atividades recentes</p>
             </div>
-          </div>
-          <div className="hidden md:flex flex-col items-end gap-2">
-            <span className="text-sm font-black text-white tracking-widest">R$ 150,00</span>
-            <button className="text-[10px] font-black uppercase text-rose-500 tracking-widest hover:underline">Cancelar Reserva</button>
-          </div>
+          )}
         </div>
       </div>
     </div>
