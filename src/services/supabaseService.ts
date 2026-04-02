@@ -1048,7 +1048,7 @@ export const CondominioService = {
         created_at: new Date().toISOString()
       }])
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("[CondominioService] Insert error:", error.message, error.details);
@@ -1065,7 +1065,7 @@ export const CondominioService = {
            .from('condominios')
            .insert([basicCondo])
            .select()
-           .single();
+           .maybeSingle();
          if (error2) throw error2;
          return data2 as Condominio;
       }
@@ -1081,7 +1081,7 @@ export const CondominioService = {
       .update(updates)
       .eq('id', condoId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("[CondominioService] Update error:", error.message, error.details);
@@ -1095,7 +1095,7 @@ export const CondominioService = {
             .update(basicUpdates)
             .eq('id', condoId)
             .select()
-            .single();
+            .maybeSingle();
           if (error2) throw error2;
           return data2 as Condominio;
        }
