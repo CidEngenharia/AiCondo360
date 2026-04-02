@@ -169,7 +169,7 @@ export const Condominios: React.FC = () => {
           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Faturamento Estimado</p>
           <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-              condos.reduce((acc, c) => acc + (c.plan === 'premium' ? 399 : c.plan === 'enterprise' ? 250 : 199), 0)
+              condos.reduce((acc, c) => acc + (c.plan === 'premium' ? 399 : c.plan === 'professional' ? 320 : 250), 0)
             )}
           </p>
         </div>
@@ -227,14 +227,16 @@ export const Condominios: React.FC = () => {
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-slate-50 dark:bg-slate-900/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/50 flex flex-col justify-center">
                     <p className="text-[8px] font-black uppercase text-slate-400 tracking-wider mb-0.5">Plano</p>
-                    <p className="text-xs font-bold text-slate-600 dark:text-slate-200 capitalize">{condo.plan}</p>
+                    <p className="text-xs font-bold text-slate-600 dark:text-slate-200 capitalize">
+                      {condo.plan === 'professional' ? 'Profissional' : condo.plan}
+                    </p>
                   </div>
                   <div className="bg-slate-50 dark:bg-slate-900/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/50 flex flex-col justify-center">
-                    <p className="text-[8px] font-black uppercase text-slate-400 tracking-wider mb-0.5 whitespace-nowrap">Licença</p>
+                    <p className="text-[8px] font-black uppercase text-slate-400 tracking-wider mb-0.5 whitespace-nowrap">Situação</p>
                     <div className="flex items-center gap-1.5">
                        <StatusDot active={condo.status === 'active'} />
-                       <p className={`text-[10px] font-black uppercase ${condo.status === 'active' ? 'text-emerald-500' : 'text-rose-500'}`}>
-                         {condo.status === 'active' ? 'Full' : 'Bloq.'}
+                       <p className={`text-[9px] font-black uppercase truncate ${condo.status === 'active' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                         {condo.status === 'active' ? 'Pgtº em dia' : 'Pgtº Pendente'}
                        </p>
                     </div>
                   </div>
@@ -383,14 +385,14 @@ export const Condominios: React.FC = () => {
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Plano SaaS</label>
                     <div className="flex gap-2">
-                       {['basic', 'enterprise', 'premium'].map((p) => (
+                       {['basic', 'professional', 'premium'].map((p) => (
                          <button
                            key={p}
                            type="button"
                            onClick={() => setFormData({ ...formData, plan: p as any })}
                            className={`flex-1 py-2.5 rounded-2xl border-2 text-[10px] font-black uppercase tracking-widest transition-all ${formData.plan === p ? 'border-blue-600 bg-blue-50 text-blue-600 shadow-md' : 'border-slate-100 bg-slate-50 text-slate-400 dark:border-slate-800'}`}
                          >
-                           {p}
+                           {p === 'professional' ? 'Profissional' : p}
                          </button>
                        ))}
                     </div>

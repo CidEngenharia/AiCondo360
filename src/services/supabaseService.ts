@@ -17,7 +17,7 @@ export interface Condominio {
   name: string;
   address?: string;
   cnpj?: string;
-  plan: 'basic' | 'enterprise' | 'premium';
+  plan: 'basic' | 'professional' | 'premium';
   status: 'active' | 'inactive';
   syndic_name?: string;
   syndic_phone?: string;
