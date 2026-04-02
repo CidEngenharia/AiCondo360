@@ -39,6 +39,7 @@ export const Comunicados: React.FC<ComunicadosProps> = ({ userId: propUserId }) 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [category, setCategory] = useState<'aviso' | 'comunicado' | 'evento'>('aviso');
+  const [isSaving, setIsSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const fetchMessages = async () => {
@@ -72,6 +73,7 @@ export const Comunicados: React.FC<ComunicadosProps> = ({ userId: propUserId }) 
     if (!condoId || !user) return;
 
     try {
+      setIsSaving(true);
       if (editingId) {
         await AnnouncementService.updateAnnouncement(editingId, {
           title,
@@ -92,9 +94,12 @@ export const Comunicados: React.FC<ComunicadosProps> = ({ userId: propUserId }) 
       setIsModalOpen(false);
       resetForm();
       fetchMessages();
-    } catch (err) {
-      console.error('Error saving announcement:', err);
-      alert('Erro ao salvar comunicado');
+    } catch (error: any) {
+      console.error('[Comunicados] Error saving:', error);
+      const detail = error.message || error.details || 'Verifique as permissões de RLS.';
+      alert(`Erro ao salvar comunicado: ${detail}`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -354,10 +359,20 @@ export const Comunicados: React.FC<ComunicadosProps> = ({ userId: propUserId }) 
 
                 <button 
                   type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-[10px] tracking-[0.2em] py-4 rounded-xl shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                  disabled={isSaving}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl shadow-blue-500/30 transition-all active:scale-95 flex items-center justify-center gap-2"
                 >
-                  <Send size={14} />
-                  {editingId ? 'Salvar' : 'Publicar'}
+                  {isSaving ? (
+                     <>
+                       <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                       Processando...
+                     </>
+                  ) : (
+                    <>
+                      <Send size={14} />
+                      Publicar
+                    </>
+                  )}
                 </button>
               </form>
             </motion.div>
