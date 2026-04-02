@@ -1053,14 +1053,12 @@ export const CondominioService = {
     if (error) {
       console.error("[CondominioService] Insert error:", error.message, error.details);
       // Fallback: se o erro for coluna inexistente, tenta o básico
-      if (error.message?.includes('syndic_name') || error.message?.includes('syndic_phone')) {
-         console.warn("[CondominioService] Columns missing, retrying basic insert...");
+      const missingColumns = ['syndic_name', 'syndic_phone', 'address', 'cnpj', 'status'];
+      if (missingColumns.some(col => error.message?.includes(col))) {
+         console.warn("[CondominioService] Columns missing, retrying minimal insert...");
          const basicCondo = {
            name: condo.name,
-           address: condo.address,
-           cnpj: condo.cnpj,
            plan: condo.plan,
-           status: condo.status,
            created_at: new Date().toISOString()
          };
          const { data: data2, error: error2 } = await supabase
@@ -1088,9 +1086,10 @@ export const CondominioService = {
     if (error) {
       console.error("[CondominioService] Update error:", error.message, error.details);
        // Fallback se colunas novas faltarem
-       if (error.message?.includes('syndic_name') || error.message?.includes('syndic_phone')) {
+       const missingColumns = ['syndic_name', 'syndic_phone', 'address', 'cnpj', 'status'];
+       if (missingColumns.some(col => error.message?.includes(col))) {
           console.warn("[CondominioService] Columns missing on update, retrying basic update...");
-          const { syndic_name, syndic_phone, ...basicUpdates } = updates;
+          const { syndic_name, syndic_phone, address, cnpj, status, ...basicUpdates } = updates as any;
           const { data: data2, error: error2 } = await supabase
             .from('condominios')
             .update(basicUpdates)
