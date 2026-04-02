@@ -81,6 +81,8 @@ export const Comunicados: React.FC<ComunicadosProps> = ({ userId: propUserId }) 
       } else {
         await AnnouncementService.createAnnouncement({
           condominio_id: condoId,
+          user_id: user.id,
+          author_id: user.id,
           title,
           content,
           category,

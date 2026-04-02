@@ -41,6 +41,8 @@ export interface Boleto {
 export interface Comunicado {
   id: string;
   condominio_id: string;
+  author_id?: string;
+  user_id?: string;
   title: string;
   content: string;
   category: 'aviso' | 'comunicado' | 'evento';
@@ -283,6 +285,8 @@ export const AnnouncementService = {
       .from('comunicados')
       .insert([{
         ...announcement,
+        author_id: (announcement as any).author_id,
+        user_id: (announcement as any).user_id,
         created_at: new Date().toISOString()
       }])
       .select()
