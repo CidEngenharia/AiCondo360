@@ -92,8 +92,10 @@ export const Condominios: React.FC = () => {
       }
       setIsModalOpen(false);
       loadCondos();
-    } catch (error) {
-      alert('Erro ao processar solicitação. Verifique os dados.');
+    } catch (error: any) {
+      console.error('[Condominios] Submission error:', error);
+      const detail = error.message || error.details || 'Verifique as permissões de RLS e se as colunas syndic_name/phone existem.';
+      alert(`Erro ao processar: ${detail}`);
     } finally {
       setIsProcessing(false);
     }
