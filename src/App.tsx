@@ -20,6 +20,7 @@ import { Agendamentos } from './pages/Agendamentos';
 import { Animais } from './pages/Animais';
 import { Classificados } from './pages/Classificados';
 import { Moradores } from './pages/Moradores';
+import { Condominios } from './pages/Condominios';
 import { useAuth } from './hooks/useAuth';
 import { PricingPlan } from './constants';
 
@@ -284,6 +285,24 @@ export default function App() {
                 userPlan={user.plan}
               >
                 <Moradores />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        <Route 
+          path="/feature/condominios" 
+          element={
+            user ? (
+              <Layout 
+                condoName={user.condo} 
+                userName={user.name} 
+                onLogout={logout}
+                userRole={user.role}
+                userPlan={user.plan}
+              >
+                <Condominios />
               </Layout>
             ) : (
               <Navigate to="/login" />

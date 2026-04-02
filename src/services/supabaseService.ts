@@ -12,6 +12,20 @@ export interface Profile {
   avatar_url?: string;
 }
 
+export interface Condominio {
+  id: string;
+  name: string;
+  address?: string;
+  cnpj?: string;
+  plan: 'basic' | 'enterprise' | 'premium';
+  status: 'active' | 'inactive';
+  syndic_name?: string;
+  syndic_phone?: string;
+  stripe_customer_id?: string;
+  stripe_subscription_id?: string;
+  created_at: string;
+}
+
 export interface Boleto {
   id: string;
   user_id: string;
@@ -101,6 +115,7 @@ export interface Ocorrencia {
   priority?: string;
   messages?: number;
   message?: string;
+  visualized_by?: string;
   created_at: string;
   updated_at: string;
 }
@@ -247,6 +262,55 @@ export const AnnouncementService = {
     }
 
     return data as Comunicado[];
+  },
+
+  async getAllAnnouncements(condoId: string): Promise<Comunicado[]> {
+    const { data, error } = await supabase
+      .from('comunicados')
+      .select('*')
+      .eq('condominio_id', condoId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching all announcements:', error);
+      return [];
+    }
+    return data as Comunicado[];
+  },
+
+  async createAnnouncement(announcement: Omit<Comunicado, 'id' | 'created_at'>) {
+    const { data, error } = await supabase
+      .from('comunicados')
+      .insert([{
+        ...announcement,
+        created_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Comunicado;
+  },
+
+  async updateAnnouncement(id: string, updates: Partial<Comunicado>) {
+    const { data, error } = await supabase
+      .from('comunicados')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Comunicado;
+  },
+
+  async deleteAnnouncement(id: string) {
+    const { error } = await supabase
+      .from('comunicados')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
   }
 };
 
@@ -952,6 +1016,57 @@ export const DocumentoService = {
       .from('documentos')
       .delete()
       .eq('id', id);
+    if (error) throw error;
+  }
+};
+
+export const CondominioService = {
+  async getAllCondominios(): Promise<Condominio[]> {
+    const { data, error } = await supabase
+      .from('condominios')
+      .select('*')
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching condominios:', error);
+      return [];
+    }
+
+    return data as Condominio[];
+  },
+
+  async createCondominio(condo: Omit<Condominio, 'id' | 'created_at'>) {
+    const { data, error } = await supabase
+      .from('condominios')
+      .insert([{
+        ...condo,
+        created_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Condominio;
+  },
+
+  async updateCondominio(condoId: string, updates: Partial<Condominio>) {
+    const { data, error } = await supabase
+      .from('condominios')
+      .update(updates)
+      .eq('id', condoId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Condominio;
+  },
+
+  async deleteCondominio(condoId: string) {
+    const { error } = await supabase
+      .from('condominios')
+      .delete()
+      .eq('id', condoId);
+
     if (error) throw error;
   }
 };

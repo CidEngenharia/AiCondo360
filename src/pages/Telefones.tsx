@@ -123,16 +123,15 @@ export const Telefones: React.FC = () => {
   return (
     <div className="p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto space-y-8">
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/10 text-blue-600 rounded-full text-xs font-bold uppercase tracking-wider mb-3">
-            <Phone size={13} /> Central de Contatos
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-blue-500/10 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-2">
+            <Phone size={11} /> Central de Contatos
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase">
             Telefones Úteis
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 font-medium italic">
             Diretório de contatos importantes do condomínio
           </p>
         </div>
@@ -140,9 +139,9 @@ export const Telefones: React.FC = () => {
         {canManage && (
           <button
             onClick={openNew}
-            className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-sm transition-all shadow-lg shadow-blue-500/25 active:scale-95"
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-[11px] uppercase tracking-wider transition-all shadow-lg shadow-blue-500/25 active:scale-95"
           >
-            <Plus size={18} />
+            <Plus size={16} />
             Novo Contato
           </button>
         )}
@@ -162,27 +161,26 @@ export const Telefones: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Busca + Filtros */}
-      <div className="flex flex-col lg:flex-row gap-4">
+      <div className="flex flex-col lg:flex-row gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
           <input
             type="text"
-            className="w-full pl-11 pr-4 py-3 border border-slate-200 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
-            placeholder="Buscar por nome, número ou descrição..."
+            className="w-full pl-10 pr-4 py-2 border border-slate-100 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-800/50 text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
+            placeholder="Buscar..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex overflow-x-auto gap-2 pb-1">
+        <div className="flex overflow-x-auto gap-1.5 pb-1">
           {CATEGORIES.map(cat => (
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
-              className={`px-4 py-2.5 rounded-2xl font-semibold text-sm transition-all whitespace-nowrap shadow-sm ${
+              className={`px-3 py-2 rounded-xl font-bold text-[10px] uppercase tracking-tight transition-all whitespace-nowrap shadow-sm border ${
                 activeCategory === cat.id
-                  ? 'bg-blue-600 text-white shadow-blue-500/25'
-                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 border border-slate-200 dark:border-slate-700'
+                  ? 'bg-blue-600 border-blue-600 text-white'
+                  : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-100 dark:border-slate-800 hover:text-blue-500'
               }`}
             >
               {cat.label}
@@ -202,59 +200,58 @@ export const Telefones: React.FC = () => {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm flex items-start gap-4 hover:shadow-md transition-shadow group"
+                className="bg-white dark:bg-slate-800 rounded-xl p-3.5 border border-slate-100 dark:border-slate-700 shadow-sm flex items-start gap-3 hover:shadow-md transition-shadow group"
               >
-                <div className={`mt-1 w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-inner ${CATEGORY_COLORS[contact.category]}`}>
-                  <Phone className="text-white" size={22} />
+                <div className={`mt-0.5 w-9 h-9 rounded-lg flex items-center justify-center shrink-0 shadow-inner ${CATEGORY_COLORS[contact.category]}`}>
+                  <Phone className="text-white" size={16} />
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-bold text-slate-900 dark:text-white truncate">{contact.name}</h3>
+                  <div className="flex items-start justify-between gap-1">
+                    <h3 className="font-bold text-xs text-slate-900 dark:text-white truncate uppercase tracking-tight">{contact.name}</h3>
                     {contact.isCustom && (
-                      <span className="shrink-0 text-[9px] font-black uppercase px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 rounded-full">
+                      <span className="shrink-0 text-[8px] font-black uppercase px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 rounded-full">
                         Custom
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 truncate">{contact.description}</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 truncate font-medium italic">{contact.description}</p>
 
-                  <div className="mt-3 flex items-center justify-between gap-2 flex-wrap">
-                    <span className="text-base font-bold text-blue-600 dark:text-blue-400 font-mono tracking-tight">
+                  <div className="mt-2.5 flex items-center justify-between gap-2">
+                    <span className="text-sm font-black text-blue-600 dark:text-blue-400 font-mono tracking-tight">
                       {contact.phone}
                     </span>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <a
                         href={`tel:${contact.phone.replace(/[^0-9+]/g, '')}`}
-                        className="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 hover:bg-blue-100 transition-colors"
+                        className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/10 text-blue-600 hover:bg-blue-500 hover:text-white transition-all shadow-sm"
                         title="Ligar"
                       >
-                        <Phone size={15} />
+                        <Phone size={12} />
                       </a>
                       {(contact.whatsapp || contact.isWhatsappActive) && (
                         <a
                           href={`https://wa.me/55${(contact.whatsapp || contact.phone).replace(/[^0-9]/g, '')}`}
                           target="_blank" rel="noreferrer"
-                          className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-800/40 transition-colors flex items-center gap-1.5"
+                          className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-all shadow-sm flex items-center gap-1"
                           title="WhatsApp"
                         >
-                          <MessageCircle size={15} />
-                          {contact.isWhatsappActive && <span className="text-[10px] font-bold">Ativo</span>}
+                          <MessageCircle size={12} />
                         </a>
                       )}
                       {canManage && (
                         <>
                           <button
                             onClick={() => openEdit(contact)}
-                            className="p-2 rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-500 hover:bg-slate-100 transition-colors"
+                            className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white transition-all shadow-sm"
                           >
-                            <Edit2 size={15} />
+                            <Edit2 size={12} />
                           </button>
                           <button
                             onClick={() => handleDelete(contact.id)}
-                            className="p-2 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-500 hover:bg-rose-100 transition-colors"
+                            className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-900/10 text-rose-400 hover:bg-rose-500 hover:text-white transition-all shadow-sm"
                           >
-                            <Trash2 size={15} />
+                            <Trash2 size={12} />
                           </button>
                         </>
                       )}
@@ -297,66 +294,66 @@ export const Telefones: React.FC = () => {
               exit={{ opacity: 0, scale: 0.95 }}
               className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
             >
-              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-black text-slate-900 dark:text-white">
+                  <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">
                     {editingContact ? 'Editar Contato' : 'Novo Contato'}
                   </h2>
-                  <p className="text-xs text-slate-400 mt-0.5">Visível para todos os moradores</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">Diretório de telefones</p>
                 </div>
-                <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
-                  <X size={20} />
+                <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full">
+                  <X size={18} />
                 </button>
               </div>
 
-              <form onSubmit={handleSave} className="p-6 space-y-4">
+              <form onSubmit={handleSave} className="p-5 space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Nome *</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 px-1">Nome</label>
                   <input
                     required value={form.name}
                     onChange={e => setForm({ ...form, name: e.target.value })}
                     placeholder="Ex: Zelador Geral"
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-sm font-medium dark:text-white focus:ring-2 focus:ring-blue-500/20 border-none"
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs font-bold dark:text-white focus:ring-2 focus:ring-blue-500/20 border-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Função / Descrição *</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 px-1">Descrição</label>
                   <input
                     required value={form.description}
                     onChange={e => setForm({ ...form, description: e.target.value })}
                     placeholder="Ex: Responsável pela manutenção"
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-sm font-medium dark:text-white focus:ring-2 focus:ring-blue-500/20 border-none"
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs font-bold dark:text-white focus:ring-2 focus:ring-blue-500/20 border-none"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Telefone *</label>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 px-1">Telefone</label>
                     <input
                       required value={form.phone}
                       onChange={e => setForm({ ...form, phone: e.target.value })}
-                      placeholder="(11) 99999-0000"
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-sm font-medium dark:text-white focus:ring-2 focus:ring-blue-500/20 border-none"
+                      placeholder="(11)..."
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs font-bold dark:text-white focus:ring-2 focus:ring-blue-500/20 border-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">WhatsApp</label>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 px-1">WhatsApp</label>
                     <input
                       value={form.whatsapp}
                       onChange={e => setForm({ ...form, whatsapp: e.target.value })}
-                      placeholder="(11) 99999-0000"
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-sm font-medium dark:text-white focus:ring-2 focus:ring-emerald-500/20 border-none"
+                      placeholder="(11)..."
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs font-bold dark:text-white focus:ring-2 focus:ring-emerald-500/20 border-none"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Categoria</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 px-1">Categoria</label>
                   <select
                     value={form.category}
                     onChange={e => setForm({ ...form, category: e.target.value as ContactCategory })}
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-sm font-medium dark:text-white focus:ring-2 focus:ring-blue-500/20 border-none appearance-none"
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs font-bold dark:text-white focus:ring-2 focus:ring-blue-500/20 border-none appearance-none"
                   >
                     <option value="emergencia">Emergência</option>
                     <option value="portaria">Portaria</option>
@@ -367,24 +364,20 @@ export const Telefones: React.FC = () => {
                   </select>
                 </div>
 
-                <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 cursor-pointer" 
+                <div className="flex items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl border border-emerald-100 dark:border-emerald-900/30 cursor-pointer" 
                      onClick={() => setForm({ ...form, isWhatsappActive: !form.isWhatsappActive })}>
-                  <div className={`w-10 h-6 rounded-full relative transition-all ${form.isWhatsappActive ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700'}`}>
-                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${form.isWhatsappActive ? 'right-1' : 'left-1'}`} />
+                  <div className={`w-8 h-4 rounded-full relative transition-all ${form.isWhatsappActive ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700'}`}>
+                    <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${form.isWhatsappActive ? 'right-0.5' : 'left-0.5'}`} />
                   </div>
                   <div className="flex-1">
-                    <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest leading-none mb-1">WhatsApp Ativo?</p>
-                    <p className="text-[10px] text-emerald-600/70 dark:text-emerald-500/70 font-medium">Habilita o botão de conversa instantânea</p>
+                    <p className="text-[9px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest leading-none">WhatsApp Ativo?</p>
                   </div>
-                  <MessageCircle size={20} className={form.isWhatsappActive ? 'text-emerald-500' : 'text-slate-300'} />
+                  <MessageCircle size={16} className={form.isWhatsappActive ? 'text-emerald-500' : 'text-slate-300'} />
                 </div>
 
-                <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-xl font-bold hover:bg-slate-200 transition-all">
-                    Cancelar
-                  </button>
-                  <button type="submit" className="flex-[2] py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/25 active:scale-95">
-                    {editingContact ? 'Salvar Alterações' : 'Adicionar Contato'}
+                <div className="flex gap-2.5 pt-2">
+                  <button type="submit" className="flex-1 py-3 bg-zinc-900 hover:bg-black text-white rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-xl transition-all active:scale-95">
+                    {editingContact ? 'Salvar' : 'Adicionar'}
                   </button>
                 </div>
               </form>

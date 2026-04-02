@@ -220,41 +220,37 @@ export const Classificados: React.FC = () => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
             <input 
               type="text" 
-              placeholder="O que você está procurando?" 
+              placeholder="Pesquisar..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl focus:ring-2 focus:ring-amber-500 transition-all text-slate-900 dark:text-white"
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800/50 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all text-xs text-slate-900 dark:text-white font-medium"
             />
           </div>
           
-          <div className="flex gap-4 w-full sm:w-auto">
-            <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all font-semibold">
-              <Filter size={20} />
-              <span className="hidden sm:inline">Mais Filtros</span>
-            </button>
+          <div className="flex gap-2 w-full sm:w-auto">
             <button 
               onClick={() => setShowForm(true)}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-amber-500 text-white rounded-2xl hover:bg-amber-600 transition-all font-semibold shadow-lg shadow-amber-500/20"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-500 text-white rounded-xl hover:bg-amber-600 transition-all font-bold text-xs shadow-lg shadow-amber-500/20 uppercase tracking-wider"
             >
-              <Plus size={20} />
+              <Plus size={16} />
               Anunciar
             </button>
           </div>
         </div>
 
         {/* Categorias */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide">
           {CATEGORIES.map(cat => (
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-full whitespace-nowrap transition-all font-medium border ${
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full whitespace-nowrap transition-all text-[11px] font-bold uppercase tracking-tight border ${
                 selectedCategory === cat.id
-                  ? 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-500/20 translate-y-[-2px]'
-                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-amber-500/50 hover:text-amber-500'
+                  ? 'bg-amber-500 border-amber-500 text-white shadow-md'
+                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400 hover:text-amber-500'
               }`}
             >
-              <cat.icon size={18} />
+              <cat.icon size={14} />
               {cat.name}
             </button>
           ))}
@@ -276,68 +272,66 @@ export const Classificados: React.FC = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   key={listing.id}
-                  className="group bg-white dark:bg-slate-900 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-black/20 transition-all duration-300"
+                  className="group bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-300"
                 >
-                  <div className="p-5 flex justify-between items-center border-b border-slate-50 dark:border-slate-800/50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 overflow-hidden">
-                        <UserCircle2 size={24} />
+                  <div className="p-3 flex justify-between items-center border-b border-slate-50 dark:border-slate-800/50">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 overflow-hidden shrink-0">
+                        <UserCircle2 size={18} />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-slate-800 dark:text-white leading-none mb-1">{listing.author}</p>
-                        <p className="text-[10px] font-medium text-slate-500 uppercase tracking-widest">{listing.unit} • {listing.created_at ? new Date(listing.created_at).toLocaleDateString() : 'Hoje'}</p>
+                        <p className="text-[11px] font-bold text-slate-800 dark:text-white leading-none mb-0.5">{listing.author}</p>
+                        <p className="text-[9px] font-medium text-slate-400 uppercase tracking-tighter">{listing.unit} • {listing.created_at ? new Date(listing.created_at).toLocaleDateString() : 'Hoje'}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => handleEdit(listing)} className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-colors">
-                        <Edit3 size={18} />
+                    <div className="flex items-center gap-0.5">
+                      <button onClick={() => handleEdit(listing)} className="p-1.5 text-slate-300 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-lg transition-colors">
+                        <Edit3 size={14} />
                       </button>
-                      <button onClick={() => handleDelete(listing.id)} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-colors">
-                        <Trash2 size={18} />
+                      <button onClick={() => handleDelete(listing.id)} className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors">
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </div>
 
-                  <div className="p-6">
-                    <div className="flex justify-between items-start mb-3">
-                      <h3 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-amber-500 transition-colors line-clamp-1">{listing.title}</h3>
-                      <div className="px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full text-xs font-bold whitespace-nowrap">
+                  <div className="p-4">
+                    <div className="flex justify-between items-start mb-2 gap-2">
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-amber-500 transition-colors line-clamp-1 uppercase tracking-tight">{listing.title}</h3>
+                      <div className="px-2 py-0.5 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-full text-[10px] font-black whitespace-nowrap">
                         {listing.price}
                       </div>
                     </div>
                     
-                    <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 mb-6 h-10">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 h-8 italic">
                       {listing.description}
                     </p>
                     
                     {/* Foto do Produto */}
                     {listing.image_url && (
-                      <div className="px-6 mb-4">
+                      <div className="mb-4">
                         <div 
                           onClick={() => setExpandedImage(listing.image_url)}
-                          className="aspect-video w-full rounded-2xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity border border-slate-200 dark:border-slate-700 shadow-sm"
+                          className="aspect-[4/3] w-full rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity border border-slate-50 dark:border-slate-800 shadow-sm"
                         >
                           <img src={listing.image_url} alt={listing.title} className="w-full h-full object-cover" />
                         </div>
                       </div>
                     )}
 
-                    <div className="pt-6 border-t border-slate-50 dark:border-slate-800/50 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                          listing.condition === 'novo' ? 'bg-emerald-100 text-emerald-700' : 
-                          listing.condition === 'doação' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
-                        }`}>
-                          {listing.condition}
-                        </span>
-                      </div>
+                    <div className="pt-3 border-t border-slate-50 dark:border-slate-800/50 flex items-center justify-between">
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${
+                        listing.condition === 'novo' ? 'bg-emerald-50 text-emerald-600' : 
+                        listing.condition === 'doação' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'
+                      }`}>
+                        {listing.condition}
+                      </span>
                       <a 
                         href={`https://wa.me/${listing.whatsapp}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-all font-bold text-sm shadow-md shadow-emerald-500/20"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-all font-bold text-[10px] uppercase tracking-wider"
                       >
-                        <MessageSquare size={16} />
+                        <MessageSquare size={12} />
                         WhatsApp
                       </a>
                     </div>
@@ -385,22 +379,22 @@ export const Classificados: React.FC = () => {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
+              className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
             >
-              <div className="p-6 sm:p-8 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
+              <div className="p-5 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 text-amber-500 rounded-2xl flex items-center justify-center">
-                    <Tag size={24} />
+                  <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 text-amber-500 rounded-xl flex items-center justify-center">
+                    <Tag size={20} />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-tight">
                       {editingId ? 'Editar Anúncio' : 'Novo Anúncio'}
                     </h2>
-                    <p className="text-slate-500 text-sm">Preencha os dados do seu produto ou serviço.</p>
+                    <p className="text-slate-400 text-[10px] font-medium uppercase tracking-widest leading-none mt-1">Preencha os dados do anúncio</p>
                   </div>
                 </div>
-                <button onClick={closeModal} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all">
-                  <X size={24} />
+                <button onClick={closeModal} className="p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-all">
+                  <X size={20} />
                 </button>
               </div>
 
@@ -408,25 +402,25 @@ export const Classificados: React.FC = () => {
                 
                 {/* Imagem (Max 1MB) */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Foto do Produto (Max 1MB)
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">
+                    Foto do Produto
                   </label>
-                  <div className="flex gap-4 items-center">
+                  <div className="flex gap-3 items-center">
                     {formData.image_url && (
-                      <div className="relative w-24 h-24 rounded-2xl overflow-hidden border-2 border-slate-200 dark:border-slate-600">
+                      <div className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-slate-100 dark:border-slate-800">
                         <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" />
                         <button 
                           type="button" 
                           onClick={() => setFormData(p => ({ ...p, image_url: '' }))}
                           className="absolute top-1 right-1 bg-rose-500 text-white rounded-full p-1"
                         >
-                          <X size={12} />
+                          <X size={10} />
                         </button>
                       </div>
                     )}
                     {!formData.image_url && (
-                      <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center relative hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                        <Camera size={28} className="text-slate-400" />
+                      <div className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center relative hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                        <Camera size={24} className="text-slate-300" />
                         <input 
                           type="file" 
                           accept="image/*"
@@ -438,107 +432,100 @@ export const Classificados: React.FC = () => {
                   </div>
                 </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="col-span-full">
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Título do Anúncio</label>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Título</label>
                       <input 
                         type="text" 
                         placeholder="Ex: iPhone 13 Pro 128GB"
                         value={formData.title}
                         onChange={(e) => setFormData({...formData, title: e.target.value})}
-                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all font-medium"
+                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all font-bold text-xs"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Nome para Contato</label>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Nome</label>
                       <input 
                         type="text" 
                         placeholder="Seu nome"
                         value={formData.contact_name}
                         onChange={(e) => setFormData({...formData, contact_name: e.target.value})}
-                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all font-medium"
+                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all font-bold text-xs"
                         required
                       />
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">WhatsApp</label>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">WhatsApp</label>
                       <input 
                         type="text" 
-                        placeholder="Ex: 719..."
+                        placeholder="719..."
                         value={formData.whatsapp}
                         onChange={(e) => setFormData({...formData, whatsapp: e.target.value})}
-                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all font-medium"
+                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all font-bold text-xs"
                         required
                       />
                     </div>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Preço (ou R$ a combinar)</label>
-                    <input 
-                      type="text" 
-                      placeholder="Ex: R$ 3.800"
-                      value={formData.price}
-                      onChange={(e) => setFormData({...formData, price: e.target.value})}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all"
-                      required
-                    />
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Preço</label>
+                      <input 
+                        type="text" 
+                        placeholder="R$..."
+                        value={formData.price}
+                        onChange={(e) => setFormData({...formData, price: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all font-bold text-xs"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Categoria</label>
+                      <select 
+                        value={formData.category}
+                        onChange={(e) => setFormData({...formData, category: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all font-bold text-xs"
+                      >
+                        {CATEGORIES.filter(c => c.id !== 'all').map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Condição</label>
+                      <select 
+                        value={formData.condition}
+                        onChange={(e) => setFormData({...formData, condition: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all font-bold text-xs"
+                      >
+                        <option value="novo">Novo</option>
+                        <option value="usado">Usado</option>
+                        <option value="doação">Doação</option>
+                      </select>
+                    </div>
+
+                    <div className="col-span-full">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Descrição</label>
+                      <textarea 
+                        rows={2}
+                        placeholder="Descreva o item..."
+                        value={formData.description}
+                        onChange={(e) => setFormData({...formData, description: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all text-xs resize-none"
+                        required
+                      ></textarea>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Categoria</label>
-                    <select 
-                      value={formData.category}
-                      onChange={(e) => setFormData({...formData, category: e.target.value})}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all font-medium"
-                    >
-                      {CATEGORIES.filter(c => c.id !== 'all').map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Condição</label>
-                    <select 
-                      value={formData.condition}
-                      onChange={(e) => setFormData({...formData, condition: e.target.value})}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all font-medium"
-                    >
-                      <option value="novo">Novo</option>
-                      <option value="usado">Usado</option>
-                      <option value="doação">Doação</option>
-                    </select>
-                  </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Descrição</label>
-                  <textarea 
-                    rows={3}
-                    placeholder="Conte mais sobre o produto..."
-                    value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all"
-                    required
-                  ></textarea>
-                </div>
-
-                <div className="pt-4 flex gap-3">
-                  <button 
-                    type="button"
-                    onClick={closeModal}
-                    className="flex-1 px-6 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl hover:bg-slate-200 transition-all font-bold"
-                  >
-                    Cancelar
-                  </button>
+                <div className="pt-4 flex gap-2">
                   <button 
                     type="submit"
-                    className="flex-[2] px-6 py-4 bg-amber-500 text-white rounded-2xl hover:bg-amber-600 transition-all font-bold shadow-lg shadow-amber-500/20"
+                    className="flex-1 px-6 py-3.5 bg-zinc-900 hover:bg-black text-white rounded-xl transition-all font-bold text-[10px] uppercase tracking-widest shadow-xl"
                   >
-                    {editingId ? 'Salvar Alterações' : 'Publicar Anúncio'}
+                    {editingId ? 'Salvar' : 'Publicar'}
                   </button>
                 </div>
               </form>

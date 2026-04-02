@@ -164,7 +164,7 @@ export const Documentos: React.FC = () => {
               <ShieldCheck size={14} />
               Repositório Oficial
             </div>
-            <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
               Central de <span className="text-indigo-500">Documentos</span>
             </h1>
             <p className="text-slate-500 dark:text-slate-400 max-w-lg font-medium leading-relaxed">

@@ -118,7 +118,14 @@ export const Animais: React.FC = () => {
     }
   };
 
+  const checkPremiumAction = () => {
+    if (user?.role === 'global_admin' || user?.plan === 'premium') return true;
+    alert("funcionalidade apenas para o Plano Premium");
+    return false;
+  };
+
   const handleEdit = (pet: Pet) => {
+    if (!checkPremiumAction()) return;
     setName(pet.name);
     setSpecies(pet.species);
     setBreed(pet.breed);
@@ -133,6 +140,7 @@ export const Animais: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (!checkPremiumAction()) return;
     if (window.confirm('Tem certeza que deseja excluir as informações deste pet?')) {
       try {
         await PetService.deletePet(id);
@@ -178,44 +186,46 @@ export const Animais: React.FC = () => {
         <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none group-hover:scale-110 transition-transform duration-1000">
           <PawPrint size={180} />
         </div>
-        <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
-          <a 
-            href="https://petlocal-animal.vercel.app/" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="hover:scale-105 transition-transform duration-300 group/logo"
-          >
-            <img 
-              src="/petlocal_full_logo.png" 
-              alt="Petlocal" 
-              className="w-32 md:w-40 h-auto object-contain drop-shadow-md" 
-              onError={(e) => { 
-                e.currentTarget.style.display = 'none'; 
-                const fallback = e.currentTarget.parentElement?.querySelector('.petlocal-fallback');
-                if (fallback) fallback.classList.remove('hidden');
-              }}
-            />
-            <div className="hidden petlocal-fallback flex flex-col items-center">
-              <PawPrint size={48} className="text-white" />
-            </div>
-          </a>
+        <div className="relative z-10 flex flex-col md:flex-row items-center gap-8 md:gap-12">
+          <div className="flex flex-col items-center gap-3 shrink-0">
+            <a 
+              href="https://petlocal-animal.vercel.app/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:scale-105 transition-transform duration-300 group/logo"
+            >
+              <img 
+                src="/petlocal_full_logo.png" 
+                alt="Petlocal" 
+                className="w-32 md:w-40 h-auto object-contain drop-shadow-md" 
+                onError={(e) => { 
+                  e.currentTarget.style.display = 'none'; 
+                  const fallback = e.currentTarget.parentElement?.querySelector('.petlocal-fallback');
+                  if (fallback) fallback.classList.remove('hidden');
+                }}
+              />
+              <div className="hidden petlocal-fallback flex flex-col items-center">
+                <PawPrint size={48} className="text-white" />
+              </div>
+            </a>
+
+            <a 
+              href="https://petlocal-animal.vercel.app/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-4 py-1.5 border border-emerald-300/40 text-white rounded-full font-medium text-[11px] hover:bg-white/10 transition-all uppercase tracking-wider"
+            >
+              <ExternalLink size={12} className="text-emerald-200" /> Explorar Hub Petlocal
+            </a>
+          </div>
+
           <div className="text-center md:text-left text-white max-w-2xl">
-            <p className="text-lg md:text-xl font-medium text-emerald-50 leading-relaxed">
+            <p className="text-xl md:text-2xl font-medium text-emerald-50 leading-tight">
               Descubra ferramentas exclusivas para a gestão do seu Pet. 
-              <span className="block mt-2 font-black text-white bg-white/10 backdrop-blur-sm px-4 py-2 rounded-2xl w-fit mx-auto md:mx-0">
+              <span className="block mt-2 font-normal text-yellow-400 text-sm md:text-base tracking-wide italic">
                 Acesso exclusivo para Comunidade AI Condo360
               </span>
             </p>
-            <div className="mt-6 flex flex-wrap gap-4 justify-center md:justify-start">
-              <a 
-                href="https://petlocal-animal.vercel.app/" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 bg-white text-teal-600 px-6 py-2.5 rounded-xl font-black text-sm hover:bg-teal-50 transition-colors shadow-sm"
-              >
-                Explorar Hub Petlocal <ExternalLink size={18} />
-              </a>
-            </div>
           </div>
         </div>
       </div>
@@ -284,7 +294,10 @@ export const Animais: React.FC = () => {
         </div>
 
         <div className="flex w-full sm:w-auto gap-3">
-          <button onClick={() => setIsModalOpen(true)} className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-teal-600/20 hover:shadow-teal-600/40 active:scale-[0.98]">
+          <button 
+            onClick={() => checkPremiumAction() && setIsModalOpen(true)} 
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-teal-600/20 hover:shadow-teal-600/40 active:scale-[0.98]"
+          >
             <Plus size={20} />
             <span>Novo Pet</span>
           </button>
@@ -391,7 +404,10 @@ export const Animais: React.FC = () => {
               <p className="text-slate-500 max-w-md mx-auto mb-8 font-medium">
                 Você ainda não tem animais de estimação cadastrados nesta categoria. Mantenha os dados dos seus pets sempre atualizados.
               </p>
-              <button onClick={() => setIsModalOpen(true)} className="flex items-center justify-center gap-2 bg-teal-600 text-white px-8 py-4 rounded-2xl font-bold transition-all shadow-lg hover:shadow-teal-600/30 hover:-translate-y-1">
+              <button 
+                onClick={() => checkPremiumAction() && setIsModalOpen(true)} 
+                className="flex items-center justify-center gap-2 bg-teal-600 text-white px-8 py-4 rounded-2xl font-bold transition-all shadow-lg hover:shadow-teal-600/30 hover:-translate-y-1"
+              >
                 <Plus size={20} />
                 Cadastrar Primeiro Pet
               </button>
@@ -408,64 +424,42 @@ export const Animais: React.FC = () => {
               initial={{ opacity: 0, y: 100 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 100 }}
-              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto"
+              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto"
             >
               <div className="relative">
-                <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
-                  <h3 className="text-xl font-bold dark:text-white">{editingId ? 'Editar Pet' : 'Novo Pet'}</h3>
-                  <button onClick={closeModal} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
-                    <X size={24} className="text-slate-400" />
+                <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
+                  <h3 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                    {editingId ? 'Editar Pet' : 'Novo Pet'}
+                  </h3>
+                  <button onClick={closeModal} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-300">
+                    <X size={16} />
                   </button>
                 </div>
-                {!editingId && (
-                  <div className="px-6 py-5 bg-teal-50 dark:bg-teal-900/10 flex justify-center border-b border-slate-100 dark:border-slate-700">
-                    <a 
-                      href="https://petlocal-animal.vercel.app/" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="hover:scale-105 transition-transform"
-                    >
-                      <img 
-                        src="/petlocal_full_logo.png" 
-                        alt="Petlocal" 
-                        className="h-14 object-contain" 
-                        onError={(e) => {
-                          e.currentTarget.style.display='none';
-                          const fallback = e.currentTarget.parentElement?.querySelector('.petlocal-mini-fallback');
-                          if (fallback) fallback.classList.remove('hidden');
-                        }} 
-                      />
-                      <div className="hidden petlocal-mini-fallback flex items-center gap-2">
-                        <PawPrint size={24} className="text-teal-600" />
-                      </div>
-                    </a>
-                  </div>
-                )}
               </div>
-              <form className="p-6 space-y-4" onSubmit={(e) => { e.preventDefault(); handleCreateNew(); }}>
-                <div className="flex gap-4 items-center">
-                  <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden shrink-0 border-2 border-slate-200 dark:border-slate-600">
-                    {photo ? <img src={photo} alt="Preview" className="w-full h-full object-cover" /> : <Camera size={28} className="text-slate-400" />}
+              <form className="p-5 space-y-4" onSubmit={(e) => { e.preventDefault(); handleCreateNew(); }}>
+                <div className="flex gap-4 items-center mb-2">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden shrink-0 border-2 border-slate-100 dark:border-slate-700 shadow-inner">
+                    {photo ? <img src={photo} alt="Preview" className="w-full h-full object-cover" /> : <Camera size={22} className="text-slate-400" />}
                   </div>
                   <div className="flex-1">
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Upload da Foto (Max 1MB)</label>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 px-1">Foto do Pet</label>
                     <input 
                       type="file" 
                       accept="image/*" 
                       onChange={handleImageUpload} 
-                      className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-2.5 focus:ring-2 focus:ring-teal-500 transition-all text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 dark:file:bg-teal-900 dark:file:text-teal-300" 
+                      className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-2 focus:ring-2 focus:ring-teal-500 transition-all text-[11px] file:mr-3 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-teal-50 file:text-teal-700 dark:file:bg-teal-900 dark:file:text-teal-300" 
                     />
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nome do Pet *</label>
-                    <input type="text" value={name} onChange={e => setName(e.target.value)} required className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-teal-500 transition-all text-sm" placeholder="Ex: Rex" />
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 px-1">Nome do Pet</label>
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} required className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-teal-500 transition-all text-xs font-bold dark:text-white" placeholder="Ex: Rex" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Cachorro/Gato</label>
-                    <select value={species} onChange={e => setSpecies(e.target.value as any)} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-teal-500 transition-all text-sm">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 px-1">Espécie</label>
+                    <select value={species} onChange={e => setSpecies(e.target.value as any)} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-teal-500 transition-all text-xs font-bold dark:text-white appearance-none">
                       <option value="Dog">Cachorro</option>
                       <option value="Cat">Gato</option>
                       <option value="Other">Outro</option>
@@ -473,31 +467,31 @@ export const Animais: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nome do Tutor</label>
-                    <input type="text" value={ownerName} onChange={e => setOwnerName(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-teal-500 transition-all text-sm" placeholder="Nome do dono" />
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 px-1">Tutor</label>
+                    <input type="text" value={ownerName} onChange={e => setOwnerName(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-teal-500 transition-all text-xs font-bold dark:text-white" placeholder="Nome" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Endereço / Unidade</label>
-                    <input type="text" value={address} onChange={e => setAddress(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-teal-500 transition-all text-sm" placeholder="Apt ou casa" />
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 px-1">Unidade</label>
+                    <input type="text" value={address} onChange={e => setAddress(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-teal-500 transition-all text-xs font-bold dark:text-white" placeholder="Apt" />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Raça</label>
-                    <input type="text" value={breed} onChange={e => setBreed(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-teal-500 transition-all text-sm" placeholder="Ex: Poodle" />
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 px-1">Raça</label>
+                    <input type="text" value={breed} onChange={e => setBreed(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-teal-500 transition-all text-xs font-bold dark:text-white" placeholder="Ex: Poodle" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Peso</label>
-                    <input type="text" value={weight} onChange={e => setWeight(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-teal-500 transition-all text-sm" placeholder="Ex: 5kg" />
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 px-1">Peso</label>
+                    <input type="text" value={weight} onChange={e => setWeight(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-teal-500 transition-all text-xs font-bold dark:text-white" placeholder="Ex: 5kg" />
                   </div>
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Cor Predominante</label>
-                  <input type="text" value={color} onChange={e => setColor(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-teal-500 transition-all text-sm" placeholder="Ex: Branco e Preto" />
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 px-1">Cor Predominante</label>
+                  <input type="text" value={color} onChange={e => setColor(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 focus:ring-2 focus:ring-teal-500 transition-all text-xs font-bold dark:text-white" placeholder="Ex: Branco/Preto" />
                 </div>
 
                 <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700/50">
@@ -515,9 +509,9 @@ export const Animais: React.FC = () => {
 
                 <button 
                   type="submit"
-                  className="w-full bg-teal-600 text-white font-bold py-4 rounded-2xl hover:bg-teal-700 transition-colors shadow-lg shadow-teal-600/20 mt-4"
+                  className="w-full bg-zinc-900 hover:bg-black text-white font-black uppercase text-[11px] tracking-[0.2em] py-4 rounded-2xl shadow-xl transition-all active:scale-[0.98] mt-4"
                 >
-                  {editingId ? 'Salvar Alterações' : 'Cadastrar Pet'}
+                  {editingId ? 'Salvar' : 'Cadastrar'}
                 </button>
               </form>
             </motion.div>

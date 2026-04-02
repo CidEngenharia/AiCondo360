@@ -244,14 +244,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
                 {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
               </button>
               
-              <button 
-                onClick={() => setIsChatOpen(true)}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full text-blue-600 dark:text-blue-400 transition-colors"
-                title="Assistente IA"
-              >
-                <Sparkles size={20} />
-              </button>
-
+              
               <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full relative">
                 <Bell size={20} className="text-slate-600 dark:text-slate-300" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-500 rounded-full border-2 border-white dark:border-slate-800"></span>

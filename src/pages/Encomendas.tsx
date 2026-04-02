@@ -261,7 +261,7 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRol
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {[1, 2, 3, 4].map(id => (
-            <div key={id} className="bg-white dark:bg-slate-800 p-6 rounded-[32px] h-64 animate-pulse border border-slate-100 dark:border-slate-700"></div>
+            <div key={id} className="bg-white dark:bg-slate-800 p-4 rounded-2xl h-48 animate-pulse border border-slate-100 dark:border-slate-700"></div>
           ))}
         </div>
       ) : filteredPackages.length > 0 ? (
@@ -275,31 +275,28 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRol
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 onClick={() => setSelectedPackage(pkg)}
-                className="bg-white dark:bg-slate-800 rounded-[32px] border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-xl hover:shadow-orange-500/10 transition-all group flex flex-col relative cursor-pointer overflow-hidden h-full"
+                className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-lg hover:shadow-orange-500/5 transition-all group flex flex-col relative cursor-pointer overflow-hidden h-full"
               >
                 {/* Imagem "Balão" da Encomenda */}
                 {(pkg.image_url || pkg.photo_url) && (
-                  <div className="absolute top-4 right-4 z-10" onClick={e => e.stopPropagation()}>
+                  <div className="absolute top-3 right-3 z-10" onClick={e => e.stopPropagation()}>
                     <button 
                       onClick={() => setSelectedImageUrl(pkg.image_url || pkg.photo_url!)}
-                      className="relative w-16 h-16 rounded-full border-4 border-white dark:border-slate-700 shadow-xl overflow-hidden hover:scale-110 transition-transform active:scale-95 group/img"
+                      className="relative w-12 h-12 rounded-full border-2 border-white dark:border-slate-700 shadow-lg overflow-hidden hover:scale-110 transition-transform active:scale-95 group/img"
                     >
                       <img src={pkg.image_url || pkg.photo_url} alt="Thumbnail" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
-                        <Maximize2 size={16} className="text-white" />
-                      </div>
                     </button>
                   </div>
                 )}
                 
-                <div className="p-6 flex flex-col h-full">
-                  <div className="flex justify-between items-start mb-4 pr-16">
-                    <div className={`p-3 rounded-2xl flex items-center justify-center ${
+                <div className="p-4 flex flex-col h-full">
+                  <div className="flex justify-between items-start mb-3 pr-12">
+                    <div className={`p-2 rounded-xl flex items-center justify-center ${
                         pkg.status === 'pending' ? 'bg-orange-100 text-orange-600' : 
                         pkg.status === 'returned' ? 'bg-rose-100 text-rose-600' : 
                         'bg-emerald-100 text-emerald-600'
                     }`}>
-                      {pkg.status === 'pending' ? <Package size={24} /> : pkg.status === 'returned' ? <ArrowLeftRight size={24} /> : <CheckCircle2 size={24} />}
+                      {pkg.status === 'pending' ? <Package size={18} /> : pkg.status === 'returned' ? <ArrowLeftRight size={18} /> : <CheckCircle2 size={18} />}
                     </div>
                   </div>
 
@@ -312,7 +309,7 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRol
                     {pkg.status === 'pending' ? 'Para Retirar' : pkg.status === 'returned' ? 'Devolvida' : 'Entregue'}
                   </div>
 
-                  <h3 className="font-bold text-lg text-slate-800 dark:text-white mb-2 group-hover:text-orange-600 transition-colors line-clamp-2">
+                  <h3 className="font-bold text-sm text-slate-800 dark:text-white mb-1 group-hover:text-orange-600 transition-colors line-clamp-1 uppercase tracking-tight">
                     {pkg.description}
                   </h3>
 
@@ -329,11 +326,13 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRol
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-slate-50 dark:border-slate-700/50 flex flex-col gap-3 font-bold">
-                    <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-widest">
-                        <span>Ver Detalhes</span>
-                        <Eye size={12} />
+                  <div className="pt-3 border-t border-slate-50 dark:border-slate-700/50 flex flex-row items-center justify-between font-bold">
+                    <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20 active:scale-95 animate-pulse" title="Notificar WhatsApp">
+                             <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                        </div>
                     </div>
+                    <Eye size={12} className="text-slate-300" />
                   </div>
                 </div>
               </motion.div>
@@ -360,42 +359,42 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRol
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-white dark:bg-slate-800 rounded-[40px] w-full max-w-xl overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto"
+              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto"
             >
-              <div className="p-8 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
+              <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
                 <div>
-                    <h3 className="text-2xl font-black dark:text-white tracking-tighter uppercase italic flex items-center gap-2">
-                    <Package className="text-orange-500" /> {selectedPackage ? 'Modificar Registro' : 'Registrar Encomenda'}
-                    </h3>
-                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Gestão de Portaria AiCondo360</p>
+                    <h2 className="text-xl font-bold dark:text-white tracking-tighter uppercase italic flex items-center gap-2">
+                    <Package className="text-orange-500" size={20} /> {selectedPackage ? 'Editar Registro' : 'Nova Encomenda'}
+                    </h2>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Gestão de Portaria AiCondo360</p>
                 </div>
-                <button onClick={() => { setShowForm(false); setSelectedPackage(null); }} className="p-3 bg-slate-50 dark:bg-slate-700 hover:bg-rose-500 hover:text-white rounded-2xl transition-all group">
-                  <X size={20} className="group-hover:rotate-90 transition-all" />
+                <button onClick={() => { setShowForm(false); setSelectedPackage(null); }} className="p-2 bg-slate-50 dark:bg-slate-700 hover:bg-rose-500 hover:text-white rounded-xl transition-all group">
+                  <X size={18} className="group-hover:rotate-90 transition-all" />
                 </button>
               </div>
               
-              <form onSubmit={handleSavePackage} className="p-8 space-y-8">
+              <form onSubmit={handleSavePackage} className="p-6 space-y-6">
                  {/* Upload e Compressão de Foto */}
                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Foto da Encomenda</label>
-                    <div className="relative group h-48 rounded-[32px] overflow-hidden bg-slate-50 dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-orange-500 transition-all">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Foto da Encomenda</label>
+                    <div className="relative group h-40 rounded-2xl overflow-hidden bg-slate-50 dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-orange-500 transition-all">
                         {formData.image_url ? (
                             <>
                                 <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                                      <button 
                                         type="button"
                                         onClick={() => document.getElementById('camera-input')?.click()}
-                                        className="p-4 bg-white rounded-full text-zinc-900 shadow-xl transition-all hover:scale-110"
+                                        className="p-3 bg-white rounded-full text-zinc-900 shadow-xl transition-all hover:scale-110"
                                     >
-                                        <Upload size={24} />
+                                        <Upload size={20} />
                                     </button>
                                     <button 
                                         type="button"
                                         onClick={() => setFormData({ ...formData, image_url: '' })}
-                                        className="p-4 bg-rose-500 rounded-full text-white shadow-xl transition-all hover:scale-110"
+                                        className="p-3 bg-rose-500 rounded-full text-white shadow-xl transition-all hover:scale-110"
                                     >
-                                        <Trash2 size={24} />
+                                        <Trash2 size={20} />
                                     </button>
                                 </div>
                             </>
@@ -403,11 +402,10 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRol
                             <button 
                                 type="button"
                                 onClick={() => document.getElementById('camera-input')?.click()}
-                                className="w-full h-full flex flex-col items-center justify-center gap-2"
+                                className="w-full h-full flex flex-col items-center justify-center gap-1"
                             >
-                                <Upload size={32} className="text-orange-400" />
-                                <span className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-tight">Tirar Foto do Pacote</span>
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Otmização automática ativada</span>
+                                <Upload size={24} className="text-orange-400" />
+                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-tight">Foto do Pacote</span>
                             </button>
                         )}
                         <input id="camera-input" type="file" className="hidden" accept="image/*" capture="environment" onChange={handleImageUpload} />
@@ -416,11 +414,11 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRol
 
                 <div className="space-y-6">
                     <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">O que chegou? (Descrição)</label>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Descrição</label>
                     <input 
                         required
-                        placeholder="Ex: Pacote Mercado Livre, Caixa Amazon..."
-                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all font-bold"
+                        placeholder="Ex: Pacote Mercado Livre..."
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all font-bold"
                         value={formData.description}
                         onChange={e => setFormData({...formData, description: e.target.value})}
                     />
@@ -428,30 +426,30 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRol
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Nome do Morador</label>
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Nome/Unidade</label>
                             <input 
                                 required
-                                placeholder="Nome ou Unidade"
-                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all font-bold"
+                                placeholder="Nome ou Unid"
+                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all font-bold"
                                 value={formData.resident_name}
                                 onChange={e => setFormData({...formData, resident_name: e.target.value})}
                             />
                         </div>
 
                         <div>
-                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">WhatsApp Ativo (Notificações)</label>
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">WhatsApp</label>
                             <input 
                                 type="tel"
-                                placeholder="11999999999"
-                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all font-bold"
+                                placeholder="119..."
+                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all font-bold"
                                 value={formData.resident_whatsapp}
                                 onChange={e => setFormData({...formData, resident_whatsapp: e.target.value.replace(/\D/g, '')})}
                             />
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Status da Encomenda</label>
+                     <div>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Status da Encomenda</label>
                         <div className="grid grid-cols-3 gap-2">
                              {[
                                  { id: 'pending', label: 'Pendente', icon: Package, color: 'text-orange-500' },
@@ -462,14 +460,14 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRol
                                     key={s.id}
                                     type="button"
                                     onClick={() => setFormData({...formData, status: s.id as any})}
-                                    className={`flex flex-col items-center gap-2 py-3 rounded-2xl border-2 transition-all ${
+                                    className={`flex flex-col items-center gap-1 py-2 rounded-xl border-2 transition-all ${
                                         formData.status === s.id 
-                                        ? 'border-orange-500 bg-orange-50 dark:bg-orange-500/10' 
+                                        ? 'border-orange-500 bg-orange-50 dark:bg-orange-500/10 shadow-sm' 
                                         : 'border-slate-100 dark:border-slate-800'
                                     }`}
                                  >
-                                     <s.icon className={s.color} size={20} />
-                                     <span className="text-[10px] font-black uppercase tracking-widest">{s.label}</span>
+                                     <s.icon className={s.color} size={16} />
+                                     <span className="text-[9px] font-bold uppercase tracking-tight">{s.label}</span>
                                  </button>
                              ))}
                         </div>
@@ -477,10 +475,10 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRol
 
                     {formData.status === 'returned' && (
                         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Motivo da Devolução</label>
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Motivo da Devolução</label>
                             <textarea 
-                                placeholder="Ex: Morador não encontrado, endereço não localizado..."
-                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all font-medium h-24 resize-none"
+                                placeholder="Ex: Morador não encontrado..."
+                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all font-medium h-24 resize-none"
                                 value={formData.observation}
                                 onChange={e => setFormData({...formData, observation: e.target.value})}
                             />
@@ -488,21 +486,21 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRol
                     )}
                 </div>
 
-                <div className="flex gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+                <div className="flex gap-3 pt-2 border-t border-slate-100 dark:border-slate-700">
                   {selectedPackage && (
                       <button
                         type="button"
                         onClick={() => handleDelete(selectedPackage.id)}
-                        className="p-5 rounded-[24px] bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white transition-all shadow-lg shadow-rose-500/10"
+                        className="p-4 rounded-xl bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white transition-all"
                       >
-                        <Trash2 size={24} />
+                        <Trash2 size={20} />
                       </button>
                   )}
                   <button
                     type="submit"
-                    className="flex-1 px-8 py-5 rounded-[24px] bg-zinc-900 hover:bg-black text-white font-black uppercase text-xs tracking-widest shadow-2xl transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
+                    className="flex-1 px-6 py-4 rounded-xl bg-zinc-900 hover:bg-black text-white font-bold uppercase text-[10px] tracking-widest shadow-xl transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
                   >
-                    {selectedPackage ? 'Salvar Alterações' : 'Registrar Encomenda'}
+                    {selectedPackage ? 'Salvar' : 'Registrar'}
                   </button>
                 </div>
               </form>
@@ -519,23 +517,23 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRol
                     initial={{ opacity: 0, y: 50 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 50 }}
-                    className="bg-white dark:bg-slate-800 rounded-[48px] w-full max-w-2xl overflow-hidden shadow-2xl"
+                    className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl"
                     onClick={e => e.stopPropagation()}
                 >
-                    <div className="relative h-64 bg-slate-50 dark:bg-slate-900 overflow-hidden">
+                    <div className="relative h-48 bg-slate-50 dark:bg-slate-900 overflow-hidden">
                          {(selectedPackage.image_url || selectedPackage.photo_url) ? (
                              <img src={selectedPackage.image_url || selectedPackage.photo_url} alt="Pacote" className="w-full h-full object-cover" />
                          ) : (
                              <div className="w-full h-full flex flex-col items-center justify-center text-slate-300">
-                                 <Package size={80} strokeWidth={1} />
-                                 <span className="text-[10px] font-black uppercase tracking-widest mt-4">Sem foto anexada</span>
+                                 <Package size={60} strokeWidth={1} />
+                                 <span className="text-[9px] font-bold uppercase tracking-widest mt-3">Sem foto</span>
                              </div>
                          )}
-                         <button onClick={() => setSelectedPackage(null)} className="absolute top-6 right-6 p-4 bg-white/20 hover:bg-white/40 backdrop-blur-md text-white rounded-full transition-all">
-                            <X size={20} />
+                         <button onClick={() => setSelectedPackage(null)} className="absolute top-4 right-4 p-3 bg-white/20 hover:bg-white/40 backdrop-blur-md text-white rounded-full transition-all">
+                            <X size={18} />
                          </button>
-                         <div className="absolute bottom-6 left-8">
-                             <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl backdrop-blur-xl ${
+                         <div className="absolute bottom-4 left-6">
+                             <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest shadow-lg backdrop-blur-xl ${
                                  selectedPackage.status === 'pending' ? 'bg-orange-500 text-white' : 
                                  selectedPackage.status === 'returned' ? 'bg-rose-500 text-white' : 
                                  'bg-emerald-500 text-white'
@@ -547,47 +545,47 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRol
 
                     <div className="p-10 space-y-8">
                         <div>
-                            <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-tight mb-2">
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white uppercase tracking-tighter leading-tight mb-1">
                                 {selectedPackage.description}
                             </h3>
-                            <p className="text-slate-500 font-bold uppercase tracking-widest text-xs flex items-center gap-2">
-                                <Calendar size={14} className="text-orange-500" /> Recebido em {new Date(selectedPackage.arrival_date).toLocaleDateString('pt-BR')} às {new Date(selectedPackage.arrival_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            <p className="text-slate-500 font-bold uppercase tracking-widest text-[9px] flex items-center gap-1.5">
+                                <Calendar size={12} className="text-orange-500" /> {new Date(selectedPackage.arrival_date).toLocaleDateString('pt-BR')} às {new Date(selectedPackage.arrival_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-6 bg-slate-50 dark:bg-slate-900/50 p-8 rounded-[32px] border border-slate-100 dark:border-slate-800">
+                        <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-900/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
                              <div>
-                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Morador</label>
-                                 <p className="font-black text-lg text-zinc-800 dark:text-slate-200">{selectedPackage.resident_name}</p>
+                                 <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Morador</label>
+                                 <p className="font-bold text-sm text-zinc-800 dark:text-slate-200">{selectedPackage.resident_name}</p>
                              </div>
                              <div>
-                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">WhatsApp</label>
-                                 <p className="font-black text-lg text-zinc-800 dark:text-slate-200">{selectedPackage.resident_whatsapp || 'Não informado'}</p>
+                                 <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">WhatsApp</label>
+                                 <p className="font-bold text-sm text-zinc-800 dark:text-slate-200">{selectedPackage.resident_whatsapp || '-'}</p>
                              </div>
                         </div>
 
                         {selectedPackage.observation && (
-                            <div className="p-6 bg-rose-50 dark:bg-rose-900/20 rounded-[28px] border border-rose-100 dark:border-rose-900/30">
-                                <label className="text-[10px] font-black text-rose-500 uppercase tracking-widest block mb-1">Motivo/Obs</label>
-                                <p className="text-sm font-bold text-rose-700 dark:text-rose-300 italic">"{selectedPackage.observation}"</p>
+                            <div className="p-4 bg-rose-50 dark:bg-rose-900/20 rounded-2xl border border-rose-100 dark:border-rose-900/30">
+                                <label className="text-[9px] font-bold text-rose-500 uppercase tracking-widest block mb-0.5">Motivo/Obs</label>
+                                <p className="text-xs font-bold text-rose-700 dark:text-rose-300 italic">"{selectedPackage.observation}"</p>
                             </div>
                         )}
 
                         <div className="flex gap-4">
                             <button 
                                 onClick={() => handleEdit(selectedPackage)}
-                                className="flex-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-white py-5 rounded-[24px] font-black uppercase text-xs tracking-widest transition-all flex items-center justify-center gap-2"
+                                className="flex-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-white py-4 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all flex items-center justify-center gap-2"
                             >
-                                <Edit2 size={16} /> Editar Registro
+                                <Edit2 size={14} /> Editar
                             </button>
                             {selectedPackage.resident_whatsapp && (
                                 <a 
                                     href={`https://wa.me/${selectedPackage.resident_whatsapp.replace(/\D/g, '')}?text=Olá%20${selectedPackage.resident_name},%20sua%20encomenda%20(${selectedPackage.description})%20chegou%20na%20portaria!`}
                                     target="_blank" 
                                     rel="noopener noreferrer"
-                                    className="flex-[2] bg-[#25D366] text-white py-5 rounded-[24px] font-black uppercase text-xs tracking-widest transition-all flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/20 active:scale-95"
+                                    className="flex-[2] bg-[#25D366] text-white py-4 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95"
                                 >
-                                     <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                                      Notificar WhatsApp
                                 </a>
                             )}

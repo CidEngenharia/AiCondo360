@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, AlertTriangle, AlertCircle, Info, ChevronRight, MessageCircle, Edit2, Trash2, Eye, X, FileText, Download } from 'lucide-react';
+import { Plus, AlertTriangle, AlertCircle, Info, ChevronRight, MessageCircle, Edit2, Trash2, Eye, X, FileText, Download, UserCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { FeatureHeader } from '../components/FeatureHeader';
 import { useAuth } from '../hooks/useAuth';
@@ -194,11 +194,12 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white dark:bg-slate-800 rounded-[32px] p-6 border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-xl hover:shadow-rose-500/10 transition-all cursor-pointer group"
+                onClick={() => setSelectedOccurrence(item)}
+                className="bg-white dark:bg-slate-800 rounded-2xl p-3 border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:shadow-rose-500/5 transition-all cursor-pointer group"
               >
                 <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
-                  <div className={cn("hidden sm:flex w-14 h-14 rounded-full shrink-0 items-center justify-center", priorityConfig[item.priority].bg)}>
-                    <PriorityIcon size={28} className={priorityConfig[item.priority].color} />
+                  <div className={cn("hidden sm:flex w-10 h-10 rounded-full shrink-0 items-center justify-center", priorityConfig[item.priority].bg)}>
+                    <PriorityIcon size={20} className={priorityConfig[item.priority].color} />
                   </div>
                   
                   <div className="flex-1 min-w-0">
@@ -215,11 +216,11 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
                       </span>
                     </div>
                     
-                    <h3 className={cn("text-xl font-medium text-slate-900 dark:text-white truncate uppercase tracking-tighter", item.status === 'resolved' && "line-through opacity-50")}>
+                    <h3 className={cn("text-sm font-bold text-slate-900 dark:text-white truncate uppercase tracking-tighter", item.status === 'resolved' && "line-through opacity-50")}>
                       {item.title}
                     </h3>
                     
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 line-clamp-2 sm:line-clamp-1 italic font-normal">
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 line-clamp-2 sm:line-clamp-1 italic font-normal">
                       {item.description}
                     </p>
                   </div>
@@ -233,34 +234,41 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
                     </div>
 
                     <div className="flex items-center gap-2">
+                       <div className="flex items-center -space-x-1 mr-1">
+                          <div className="w-5 h-5 rounded-full bg-slate-100 border-2 border-white dark:border-slate-800 flex items-center justify-center" title="Visualizado por Síndico">
+                            <UserCircle size={10} className="text-slate-400" />
+                          </div>
+                          <div className="text-[9px] font-bold text-slate-400 ml-2">Visualizado</div>
+                       </div>
+                    
                       <button 
                         onClick={(e) => { e.stopPropagation(); setSelectedOccurrence(item); }}
-                        className="p-3 bg-slate-50 dark:bg-slate-700 hover:bg-rose-500 hover:text-white rounded-2xl text-slate-400 transition-all"
+                        className="p-1.5 bg-slate-50 dark:bg-slate-700 hover:bg-rose-500 hover:text-white rounded-lg text-slate-400 transition-all"
                         title="Visualizar"
                       >
-                        <Eye size={18} />
+                        <Eye size={14} />
                       </button>
 
                       {canManage && (
                         <>
                           <button 
                             onClick={(e) => { e.stopPropagation(); handleEdit(item); }}
-                            className="p-3 bg-slate-50 dark:bg-slate-700 hover:bg-amber-500 hover:text-white rounded-2xl text-slate-400 transition-all"
+                            className="p-1.5 bg-slate-50 dark:bg-slate-700 hover:bg-amber-500 hover:text-white rounded-lg text-slate-400 transition-all"
                             title="Editar"
                           >
-                            <Edit2 size={18} />
+                            <Edit2 size={14} />
                           </button>
                           <button 
                             onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
-                            className="p-3 bg-slate-50 dark:bg-slate-700 hover:bg-red-500 hover:text-white rounded-2xl text-slate-400 transition-all"
+                            className="p-1.5 bg-slate-50 dark:bg-slate-700 hover:bg-red-500 hover:text-white rounded-lg text-slate-400 transition-all"
                             title="Excluir"
                           >
-                            <Trash2 size={18} />
+                            <Trash2 size={14} />
                           </button>
                         </>
                       )}
                       
-                      <ChevronRight size={24} className="text-slate-200 group-hover:text-rose-500 transition-colors transform group-hover:translate-x-1 duration-300" />
+                      <ChevronRight size={18} className="text-slate-200 group-hover:text-rose-500 transition-colors transform group-hover:translate-x-1 duration-300" />
                     </div>
                   </div>
                 </div>
@@ -278,18 +286,18 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-white dark:bg-slate-800 rounded-[48px] w-full max-w-2xl overflow-hidden shadow-2xl"
+              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
             >
-              <div className="p-8 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+              <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                 <div>
-                  <h3 className={cn("text-2xl font-medium dark:text-white uppercase tracking-tighter", selectedOccurrence.status === 'resolved' && "line-through opacity-50")}>{selectedOccurrence.title}</h3>
+                  <h3 className={cn("text-xl font-bold dark:text-white uppercase tracking-tighter", selectedOccurrence.status === 'resolved' && "line-through opacity-50")}>{selectedOccurrence.title}</h3>
                   <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mt-1">#{selectedOccurrence.id} • {selectedOccurrence.category}</p>
                 </div>
-                <button onClick={() => setSelectedOccurrence(null)} className="p-3 bg-slate-50 dark:bg-slate-700 hover:bg-rose-500 hover:text-white rounded-2xl transition-all">
-                  <X size={20} className="text-slate-400" />
+                <button onClick={() => setSelectedOccurrence(null)} className="p-2 bg-slate-50 dark:bg-slate-700 hover:bg-rose-500 hover:text-white rounded-xl transition-all">
+                  <X size={18} className="text-slate-400" />
                 </button>
               </div>
-              <div className="p-10 space-y-8">
+              <div className="p-6 space-y-6">
                 <div className="flex gap-4">
                   <div className={cn("px-4 py-1.5 rounded-full text-[10px] font-medium uppercase tracking-widest shadow-xl", statusConfig[selectedOccurrence.status].bg, statusConfig[selectedOccurrence.status].color)}>
                     {statusConfig[selectedOccurrence.status].label}
@@ -300,14 +308,14 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-3 px-1">Descrição do Registro</h4>
-                  <div className="bg-slate-50 dark:bg-slate-900/50 p-8 rounded-[32px] border border-slate-100 dark:border-slate-800 font-normal italic leading-relaxed text-slate-700 dark:text-slate-300">
+                  <h4 className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-2 px-1">Descrição do Registro</h4>
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 font-normal italic leading-relaxed text-slate-700 dark:text-slate-300 text-xs">
                     "{selectedOccurrence.description}"
                   </div>
                 </div>
-                <div className="pt-4">
-                  <button className="w-full bg-zinc-900 border-2 border-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-medium px-8 py-5 rounded-[24px] uppercase text-xs tracking-widest transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2">
-                    <MessageCircle size={18} /> Abrir Chamado de Mensagens ({selectedOccurrence.messages})
+                <div className="pt-2">
+                  <button className="w-full bg-zinc-900 border-2 border-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold px-6 py-4 rounded-xl uppercase text-[10px] tracking-widest transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2">
+                    <MessageCircle size={16} /> Abrir Chamado ({selectedOccurrence.messages})
                   </button>
                 </div>
               </div>
@@ -324,24 +332,24 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
               initial={{ opacity: 0, y: 100 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 100 }}
-              className="bg-white dark:bg-slate-800 rounded-[40px] w-full max-w-lg overflow-hidden shadow-2xl"
+              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
             >
-              <div className="p-8 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+              <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                 <div>
-                    <h3 className="text-2xl font-medium dark:text-white uppercase tracking-tighter italic">{editingId ? 'Editar Ocorrência' : 'Relatar Ocorrência'}</h3>
+                    <h3 className="text-xl font-bold dark:text-white uppercase tracking-tighter italic">{editingId ? 'Editar Ocorrência' : 'Relatar Ocorrência'}</h3>
                     <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mt-1">Canal Direto com a Gestão</p>
                 </div>
-                <button onClick={() => { setIsNewModalOpen(false); setEditingId(null); setNewTitle(''); setNewDesc(''); setNewStatus('open'); }} className="p-3 bg-slate-50 dark:bg-slate-700 hover:bg-rose-500 hover:text-white rounded-2xl transition-all group">
-                  <X size={20} className="group-hover:rotate-90 transition-all text-slate-400" />
+                <button onClick={() => { setIsNewModalOpen(false); setEditingId(null); setNewTitle(''); setNewDesc(''); setNewStatus('open'); }} className="p-2 bg-slate-50 dark:bg-slate-700 hover:bg-rose-500 hover:text-white rounded-xl transition-all group">
+                  <X size={18} className="group-hover:rotate-90 transition-all text-slate-400" />
                 </button>
               </div>
-              <form className="p-8 space-y-6" onSubmit={(e) => { e.preventDefault(); handleCreateNew(); }}>
+              <form className="p-6 space-y-4" onSubmit={(e) => { e.preventDefault(); handleCreateNew(); }}>
                 <div>
-                  <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 px-1">Título do Chamado</label>
-                  <input type="text" required value={newTitle} onChange={e => setNewTitle(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all font-normal" placeholder="Resumo do problema" />
+                  <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1 px-1">Título do Chamado</label>
+                  <input type="text" required value={newTitle} onChange={e => setNewTitle(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all font-bold" placeholder="Resumo do problema" />
                 </div>
                 <div>
-                  <select value={newCat} onChange={e => setNewCat(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all font-normal appearance-none cursor-pointer">
+                  <select value={newCat} onChange={e => setNewCat(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all font-normal appearance-none cursor-pointer text-xs">
                     <option>Convivência</option>
                     <option>Manutenção</option>
                     <option>Segurança</option>
@@ -354,10 +362,10 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
                     value={newStatus} 
                     onChange={e => setNewStatus(e.target.value as Status)} 
                     className={cn(
-                      "w-full border rounded-2xl px-5 py-4 text-sm focus:outline-none transition-all font-medium appearance-none cursor-pointer",
-                      newStatus === 'open' ? "bg-emerald-50 border-emerald-200 text-emerald-700" :
-                      newStatus === 'in_progress' ? "bg-blue-50 border-blue-200 text-blue-700" :
-                      "bg-rose-50 border-rose-200 text-rose-700"
+                      "w-full border rounded-xl px-4 py-3 text-xs focus:outline-none transition-all font-bold appearance-none cursor-pointer",
+                      newStatus === 'open' ? "bg-emerald-50 border-emerald-200 text-emerald-700 shadow-sm" :
+                      newStatus === 'in_progress' ? "bg-blue-50 border-blue-200 text-blue-700 shadow-sm" :
+                      "bg-rose-50 border-rose-200 text-rose-700 shadow-sm"
                     )}
                   >
                     <option value="open">Aberto</option>
@@ -367,21 +375,21 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
                 </div>
                 <div>
                   <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 px-1">Detalhamento</label>
-                  <textarea value={newDesc} required onChange={e => setNewDesc(e.target.value)} rows={4} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all font-normal resize-none" placeholder="Conte-nos o que aconteceu..." />
+                  <textarea value={newDesc} required onChange={e => setNewDesc(e.target.value)} rows={3} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all font-normal resize-none text-xs" placeholder="Conte-nos o que aconteceu..." />
                 </div>
-                <div className="flex gap-4 pt-4">
+                <div className="flex gap-3 pt-2">
                     <button 
                         type="button" 
                         onClick={() => setIsNewModalOpen(false)}
-                        className="flex-1 px-8 py-5 rounded-[24px] border-2 border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-medium uppercase text-xs tracking-widest hover:bg-slate-50 dark:hover:bg-slate-900 transition-all"
+                        className="flex-1 px-6 py-4 rounded-xl border-2 border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:bg-slate-50 dark:hover:bg-slate-900 transition-all"
                     >
                         Cancelar
                     </button>
                     <button 
                         type="submit"
-                        className="flex-1 bg-rose-500 text-white font-medium uppercase text-xs tracking-widest px-8 py-5 rounded-[24px] hover:bg-rose-600 transition-all shadow-2xl shadow-rose-500/40 active:scale-95"
+                        className="flex-1 bg-rose-500 text-white font-bold uppercase text-[10px] tracking-widest px-6 py-4 rounded-xl hover:bg-rose-600 transition-all shadow-xl shadow-rose-500/20 active:scale-95"
                     >
-                        {editingId ? 'Salvar Alterações' : 'Enviar Registro'}
+                        {editingId ? 'Salvar' : 'Enviar'}
                     </button>
                 </div>
               </form>
@@ -398,15 +406,15 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
                     initial={{ opacity: 0, y: 100 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 100 }}
-                    className="bg-white dark:bg-slate-900 w-full max-w-[95vw] md:max-w-4xl rounded-[48px] overflow-hidden shadow-2xl border border-white/10"
+                    className="bg-white dark:bg-slate-900 w-full max-w-[95vw] md:max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-white/10"
                   >
-                       <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                       <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                            <div>
-                               <h3 className="text-2xl font-medium text-slate-900 dark:text-white uppercase tracking-tighter">Relatório de Ocorrências</h3>
+                               <h3 className="text-xl font-bold text-slate-900 dark:text-white uppercase tracking-tighter">Relatório de Ocorrências</h3>
                                <p className="text-xs font-medium text-slate-400 uppercase tracking-widest mt-1">Período: Últimos {showReportModal.days} dias</p>
                            </div>
-                           <button onClick={() => setShowReportModal({show: false, days: 0})} className="p-4 bg-slate-100 dark:bg-slate-800 rounded-full hover:bg-rose-500 hover:text-white transition-all">
-                               <X size={20} />
+                           <button onClick={() => setShowReportModal({show: false, days: 0})} className="p-3 bg-slate-100 dark:bg-slate-800 rounded-full hover:bg-rose-500 hover:text-white transition-all">
+                               <X size={18} />
                            </button>
                        </div>
 

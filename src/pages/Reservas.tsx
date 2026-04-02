@@ -81,6 +81,7 @@ const AREAS: Area[] = [
 const DAYS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
 
 export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedArea, setSelectedArea] = useState<Area | null>(null);
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -90,6 +91,19 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const loadingRef = React.useRef(false);
+
+  const nextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+    setSelectedDate(null);
+  };
+
+  const prevMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    setSelectedDate(null);
+  };
+
+  const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+  const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
 
   React.useEffect(() => {
     if (userId && condoId) {
@@ -118,7 +132,9 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
 
   const isDayReserved = (day: number) => {
     if (!selectedArea) return false;
-    const dateStr = `2025-05-${day.toString().padStart(2, '0')}`; // Simplificado para este mês mockado no UI
+    const year = currentDate.getFullYear();
+    const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+    const dateStr = `${year}-${month}-${day.toString().padStart(2, '0')}`;
     return condoReservations.some(r => r.area_name === selectedArea.name && r.reservation_date.startsWith(dateStr));
   };
 
@@ -133,7 +149,9 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
 
     setLoading(true);
     try {
-        const dateStr = `2025-05-${selectedDate.toString().padStart(2, '0')}`;
+        const year = currentDate.getFullYear();
+        const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+        const dateStr = `${year}-${month}-${selectedDate.toString().padStart(2, '0')}`;
         await ReservationService.createReserva({
             condominio_id: condoId,
             user_id: userId,
@@ -250,10 +268,12 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
                     >
                       <div className="p-5">
                         <div className="flex justify-between items-center mb-4">
-                          <h5 className="text-sm font-bold text-slate-800 dark:text-white">Maio 2025</h5>
+                          <h5 className="text-sm font-bold text-slate-800 dark:text-white capitalize">
+                            {currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                          </h5>
                           <div className="flex gap-1">
-                            <button className="p-1 text-rose-500 hover:bg-rose-50 rounded"><ChevronLeft size={16} /></button>
-                            <button className="p-1 text-rose-500 hover:bg-rose-50 rounded"><ChevronRight size={16} /></button>
+                            <button onClick={prevMonth} className="p-1 text-rose-500 hover:bg-rose-50 rounded"><ChevronLeft size={16} /></button>
+                            <button onClick={nextMonth} className="p-1 text-rose-500 hover:bg-rose-50 rounded"><ChevronRight size={16} /></button>
                           </div>
                         </div>
 
@@ -261,10 +281,18 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
                           {DAYS.map(day => (
                             <div key={day} className="text-center text-[9px] font-bold text-slate-400 mb-1">{day}</div>
                           ))}
-                          {Array.from({ length: 31 }).map((_, i) => {
+                          
+                          {/* Empty spaces for the first week */}
+                          {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+                            <div key={`empty-${i}`} />
+                          ))}
+
+                          {Array.from({ length: daysInMonth }).map((_, i) => {
                             const day = i + 1;
                             const isReserved = isDayReserved(day);
-                            const isPast = day < new Date().getDate() && new Date().getMonth() === 4;
+                            
+                            const today = new Date();
+                            const isPast = new Date(currentDate.getFullYear(), currentDate.getMonth(), day) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
                             return (
                               <div key={i} className="flex justify-center">

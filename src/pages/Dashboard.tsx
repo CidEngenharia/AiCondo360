@@ -166,10 +166,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
     return feature.roles.includes(userRole);
   });
 
+  const totalNotifications = 
+    announcements.length + 
+    upcomingReservations.length + 
+    pendingPackages.length + 
+    expectedVisitors.length + 
+    openOcorrencias.length + 
+    (nextBoleto ? 1 : 0);
+
   return (
     <div className="p-4 space-y-6">
       {/* Welcome Section */}
-      <section className="relative overflow-hidden rounded-[2.5rem] bg-slate-100/50 dark:bg-slate-800/80 p-8 lg:p-12 text-slate-800 dark:text-white shadow-sm border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 min-h-[220px] flex flex-col justify-center group">
+      <section className="relative overflow-hidden rounded-[2.5rem] bg-slate-200/70 dark:bg-slate-800/80 p-8 lg:p-12 text-slate-800 dark:text-white shadow-sm border border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 transition-all duration-300 min-h-[240px] flex flex-col justify-center group">
         {/* Decorative Blurs */}
         <div className="absolute inset-0 opacity-30 pointer-events-none">
           <div className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
@@ -191,7 +199,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
 
           <h2 className="text-3xl lg:text-4xl font-semibold tracking-tight text-slate-900 dark:text-white max-w-2xl leading-tight">
             {greeting}, {userName}! <br className="hidden md:block" />
-            <span className="text-rose-600 dark:text-rose-400 text-base block mt-3 font-semibold brightness-110">Há comunicados ativos em seu Dashboard.</span>
+            <span className="text-rose-600 dark:text-rose-400 text-xl block mt-4 font-black brightness-110 uppercase tracking-tight">
+              Você possui {totalNotifications} notificações no seu Dashboard
+            </span>
           </h2>
         </div>
 
