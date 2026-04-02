@@ -1,0 +1,2 @@
+origin	https://github.com/CidEngenharia/AiCondo360.git (fetch)
+origin	https://github.com/CidEngenharia/AiCondo360.git (push)

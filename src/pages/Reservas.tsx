@@ -224,20 +224,18 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="bg-white dark:bg-slate-800 rounded-[56px] shadow-2xl border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col"
+                className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col max-w-[360px] w-full mx-auto lg:ml-0 xl:mx-auto"
               >
-                {/* Header Image */}
-                <div className="h-40 relative group cursor-pointer" onClick={() => setShowCalendar(!showCalendar)}>
+                {/* Header Image minimalista */}
+                <div className="h-28 relative group cursor-pointer" onClick={() => setShowCalendar(!showCalendar)}>
                   <img src={selectedArea.imageUrl} className="w-full h-full object-cover" alt={selectedArea.name} />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 to-transparent" />
-                  <div className="absolute bottom-4 left-6 text-white flex items-center justify-between w-full pr-12">
-                    <div>
-                      <h3 className="text-xl font-bold uppercase tracking-tight leading-none mb-1 shadow-sm">{selectedArea.name}</h3>
-                      <p className="text-[9px] font-medium uppercase tracking-widest opacity-70 leading-none">{selectedArea.description}</p>
-                    </div>
-                    <div className="p-2 bg-white/20 rounded-full backdrop-blur-sm">
-                      {showCalendar ? <X size={14} /> : <Calendar size={14} />}
-                    </div>
+                  <div className="absolute inset-0 bg-slate-900/40 group-hover:bg-slate-900/50 transition-colors" />
+                  <div className="absolute inset-0 flex flex-col justify-end p-4">
+                    <h3 className="text-base font-bold text-white uppercase tracking-tight leading-none mb-1">{selectedArea.name}</h3>
+                    <p className="text-[9px] font-medium text-white/80 uppercase tracking-widest leading-none truncate">{selectedArea.description}</p>
+                  </div>
+                  <div className="absolute top-3 right-3 p-1.5 bg-black/30 rounded-full backdrop-blur-sm text-white">
+                    {showCalendar ? <X size={12} /> : <Calendar size={12} />}
                   </div>
                 </div>
 
@@ -250,51 +248,49 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
                       exit={{ height: 0, opacity: 0 }}
                       className="overflow-hidden bg-white dark:bg-slate-800"
                     >
-                      <div className="p-8 border-t border-slate-100 dark:border-slate-700">
-                        <div className="flex justify-between items-center mb-6">
-                          <h5 className="text-base font-bold text-slate-800 dark:text-white uppercase tracking-tight">Selecione uma data (Maio de 2025)</h5>
-                          <div className="flex gap-2">
-                            <button className="p-2 bg-slate-50 dark:bg-slate-900 rounded-lg hover:bg-slate-100"><ChevronLeft size={14} /></button>
-                            <button className="p-2 bg-slate-50 dark:bg-slate-900 rounded-lg hover:bg-slate-100"><ChevronRight size={14} /></button>
+                      <div className="p-5">
+                        <div className="flex justify-between items-center mb-4">
+                          <h5 className="text-sm font-bold text-slate-800 dark:text-white">Maio 2025</h5>
+                          <div className="flex gap-1">
+                            <button className="p-1 text-rose-500 hover:bg-rose-50 rounded"><ChevronLeft size={16} /></button>
+                            <button className="p-1 text-rose-500 hover:bg-rose-50 rounded"><ChevronRight size={16} /></button>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-7 gap-2 mb-8">
+                        <div className="grid grid-cols-7 gap-y-2 mb-6">
                           {DAYS.map(day => (
-                            <div key={day} className="text-center text-[9px] font-bold text-slate-400 mb-1 uppercase tracking-widest">{day}</div>
+                            <div key={day} className="text-center text-[9px] font-bold text-slate-400 mb-1">{day}</div>
                           ))}
                           {Array.from({ length: 31 }).map((_, i) => {
                             const day = i + 1;
                             const isReserved = isDayReserved(day);
-                            const isPast = day < new Date().getDate() && new Date().getMonth() === 4; // Mock para Maio
+                            const isPast = day < new Date().getDate() && new Date().getMonth() === 4;
 
                             return (
-                              <button
-                                key={i}
-                                disabled={isPast}
-                                onClick={() => setSelectedDate(day)}
-                                className={`aspect-square rounded-xl flex items-center justify-center text-xs font-bold border transition-all active:scale-95 relative ${
-                                  isReserved
-                                  ? 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed group' 
-                                  : isPast
-                                  ? 'bg-slate-50 text-slate-200 border-transparent cursor-not-allowed opacity-40' 
-                                  : selectedDate === day 
-                                  ? 'bg-emerald-500 text-white border-emerald-600 shadow-md translate-y-[-2px]' 
-                                  : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-100 dark:border-slate-700 hover:border-emerald-500/50'
-                                }`}
-                              >
-                                {isReserved ? (
-                                  <>
-                                    <X size={12} className="text-rose-500 absolute" />
-                                    <span className="opacity-20">{day}</span>
-                                  </>
-                                ) : day}
-                                {isReserved && (
-                                  <div className="absolute bottom-[-100%] left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[8px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none z-20">
-                                    Indisponível
-                                  </div>
-                                )}
-                              </button>
+                              <div key={i} className="flex justify-center">
+                                <button
+                                  disabled={isPast}
+                                  onClick={() => setSelectedDate(day)}
+                                  className={`w-8 h-8 rounded-full flex items-center justify-center text-[13px] transition-colors relative ${
+                                    isReserved
+                                    ? 'text-slate-400 cursor-not-allowed group' 
+                                    : isPast
+                                    ? 'text-slate-200 cursor-not-allowed opacity-40' 
+                                    : selectedDate === day 
+                                    ? 'bg-rose-500 text-white font-bold' 
+                                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                  }`}
+                                >
+                                  {isReserved ? (
+                                    <X size={16} className="text-rose-500" />
+                                  ) : day}
+                                  {isReserved && (
+                                    <div className="absolute bottom-[-20px] left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[8px] py-0.5 px-1.5 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none z-20 transition-opacity">
+                                      Ocupado
+                                    </div>
+                                  )}
+                                </button>
+                              </div>
                             );
                           })}
                         </div>
@@ -305,51 +301,39 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
                               initial={{ opacity: 0, y: -10 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0 }}
-                              className="mb-4 p-3 bg-rose-50 text-rose-600 text-[10px] font-bold uppercase tracking-widest rounded-xl border border-rose-100 flex items-center gap-2"
+                              className="mb-4 p-2 bg-rose-50 text-rose-600 text-[9px] font-bold uppercase tracking-widest rounded-lg flex items-center gap-1.5"
                             >
-                              <AlertCircle size={14} /> {bookingError}
+                              <AlertCircle size={12} /> {bookingError}
                             </motion.div>
                           )}
                         </AnimatePresence>
 
-                        <div className="flex flex-col md:flex-row gap-8 p-6 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800">
-                          <div className="flex-1">
-                            <h6 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                              <ShieldCheck size={14} className="text-emerald-500" /> Regras do Local
+                        <div className="flex flex-col gap-3 p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
+                          <div>
+                            <h6 className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                              <ShieldCheck size={10} className="text-emerald-500" /> Regras Básicas
                             </h6>
-                            <ul className="space-y-3">
-                              {selectedArea.rules.map((rule, idx) => (
-                                <li key={idx} className="flex items-start gap-3 text-[9px] font-medium text-slate-600 dark:text-slate-400">
-                                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-1.5 flex-shrink-0" />
+                            <ul className="space-y-1">
+                              {selectedArea.rules.slice(0, 2).map((rule, idx) => (
+                                <li key={idx} className="flex items-center gap-1.5 text-[9px] font-medium text-slate-600 dark:text-slate-400">
+                                  <span className="w-1 h-1 bg-emerald-500 rounded-full flex-shrink-0" />
                                   {rule}
                                 </li>
                               ))}
                             </ul>
                           </div>
                           
-                          <div className="flex flex-col justify-end">
-                            <button 
-                              disabled={!selectedDate || isSuccess}
-                              onClick={handleBooking}
-                              className={`px-8 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all w-full md:w-auto overflow-hidden relative shadow-lg ${
-                                selectedDate 
-                                ? 'bg-slate-900 text-white hover:bg-black active:scale-95' 
-                                : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
-                              }`}
-                            >
-                              <span className="relative z-10">
-                                {isSuccess ? 'Reservado!' : 'Finalizar Agendamento'}
-                              </span>
-                              {isSuccess && (
-                                <motion.div 
-                                  initial={{ x: '-100%' }}
-                                  animate={{ x: '100%' }}
-                                  transition={{ duration: 1 }}
-                                  className="absolute inset-0 bg-emerald-500 z-0"
-                                />
-                              )}
-                            </button>
-                          </div>
+                          <button 
+                            disabled={!selectedDate || isSuccess}
+                            onClick={handleBooking}
+                            className={`py-2.5 mt-1 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all w-full relative ${
+                              selectedDate 
+                              ? 'bg-slate-900 text-white hover:bg-black active:scale-95' 
+                              : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                            }`}
+                          >
+                            {isSuccess ? 'Reservado!' : 'Confirmar Data'}
+                          </button>
                         </div>
                       </div>
                     </motion.div>
@@ -357,12 +341,12 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
                 </AnimatePresence>
                 
                 {!showCalendar && (
-                  <div className="p-8 text-center bg-slate-50/50 dark:bg-slate-900/20">
+                  <div className="p-4 bg-slate-50/50 dark:bg-slate-900/20 text-center">
                     <button 
                       onClick={() => setShowCalendar(true)}
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-blue-600 hover:bg-blue-50 transition-all shadow-sm"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg text-[9px] font-bold uppercase tracking-widest text-slate-600 hover:text-slate-900 transition-colors shadow-sm w-full justify-center"
                     >
-                      <Calendar size={14} /> Abrir Calendário para Reserva
+                      <Calendar size={12} /> Selecionar Data
                     </button>
                   </div>
                 )}

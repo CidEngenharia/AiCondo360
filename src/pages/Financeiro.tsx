@@ -26,6 +26,16 @@ interface Despesa {
   created_at: string;
 }
 
+interface IBoleto {
+  id: string;
+  nome: string;
+  valor: number;
+  vencimento: string;
+  status: 'pendente' | 'pago' | 'atrasado';
+  alerta: boolean;
+  created_at: string;
+}
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 const ORIGENS: { label: ExpenseOrigin; icon: React.ElementType; color: string }[] = [
   { label: 'Água',                 icon: Droplets,  color: 'bg-cyan-500/10 text-cyan-500' },
@@ -37,10 +47,13 @@ const ORIGENS: { label: ExpenseOrigin; icon: React.ElementType; color: string }[
 ];
 
 const EMPTY_FORM = {
+  activeTab: 'despesa' as 'despesa' | 'boleto',
   nome: '',
   valor: '',
   origem: 'Condomínio' as ExpenseOrigin,
   observacao: '',
+  vencimento: new Date().toISOString().split('T')[0],
+  alerta: true
 };
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
@@ -65,11 +78,13 @@ const FinanceiroPage: React.FC = () => {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
 
-  // lista local (sem backend por enquanto — dados ficam em memória durante a sessão)
+  // listas locais
   const [despesas, setDespesas] = useState<Despesa[]>([]);
+  const [boletos, setBoletos] = useState<IBoleto[]>([]);
 
   // relatório
   const [reportDays, setReportDays] = useState<7 | 15 | null>(null);
+  const [boletoReportFilter, setBoletoReportFilter] = useState<7 | 15 | null>(null);
 
   // ── Computed ──────────────────────────────────────────────────────────────
   const totalGasto = useMemo(() => despesas.reduce((s, d) => s + d.valor, 0), [despesas]);
@@ -100,21 +115,67 @@ const FinanceiroPage: React.FC = () => {
 
     setSaving(true);
     try {
-      const nova: Despesa = {
-        id: crypto.randomUUID(),
-        nome: form.nome.trim(),
-        valor: parseFloat(form.valor.replace(',', '.')),
-        origem: form.origem,
-        observacao: form.observacao.trim(),
-        file_url: undefined,
-        created_at: new Date().toISOString(),
-      };
-      setDespesas(prev => [nova, ...prev]);
+      if (form.activeTab === 'despesa') {
+        const nova: Despesa = {
+          id: crypto.randomUUID(),
+          nome: form.nome.trim(),
+          valor: parseFloat(form.valor.replace(',', '.')),
+          origem: form.origem,
+          observacao: form.observacao.trim(),
+          created_at: new Date().toISOString(),
+        };
+        setDespesas(prev => [nova, ...prev]);
+      } else {
+        const novo: IBoleto = {
+          id: crypto.randomUUID(),
+          nome: form.nome.trim(),
+          valor: parseFloat(form.valor.replace(',', '.')),
+          vencimento: form.vencimento,
+          status: 'pendente',
+          alerta: form.alerta,
+          created_at: new Date().toISOString(),
+        };
+        setBoletos(prev => [novo, ...prev]);
+      }
       setForm(EMPTY_FORM);
       setIsModalOpen(false);
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleExportBoletoReport = (days: 7 | 15) => {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() + days);
+    
+    const filtered = boletos.filter(b => {
+      const dv = new Date(b.vencimento);
+      return dv <= cutoff && dv >= new Date() && b.status === 'pendente';
+    });
+
+    if (filtered.length === 0) {
+      alert(`Nenhum boleto a vencer nos próximos ${days} dias.`);
+      return;
+    }
+
+    const rows = [
+      ['Boleto', 'Valor', 'Vencimento', 'Status'],
+      ...filtered.map(b => [
+        b.nome,
+        fmt(b.valor),
+        new Date(b.vencimento).toLocaleDateString('pt-BR'),
+        b.status
+      ])
+    ];
+
+    const csv = rows.map(r => r.map(c => `"${c}"`).join(';')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `boletos_vencimento_${days}_dias.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleDelete = (id: string) => {
@@ -164,7 +225,14 @@ const FinanceiroPage: React.FC = () => {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => { setForm({...EMPTY_FORM, activeTab: 'boleto'}); setIsModalOpen(true); }}
+            className="flex items-center gap-2 px-5 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-2xl text-sm font-bold transition-all shadow-lg shadow-indigo-500/25 active:scale-95"
+          >
+            <Calendar size={18} />
+            Novo Boleto
+          </button>
+          <button
+            onClick={() => { setForm({...EMPTY_FORM, activeTab: 'despesa'}); setIsModalOpen(true); }}
             className="flex items-center gap-2 px-5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl text-sm font-bold transition-all shadow-lg shadow-emerald-500/25 active:scale-95"
           >
             <Plus size={18} />
@@ -326,32 +394,104 @@ const FinanceiroPage: React.FC = () => {
             )}
           </div>
 
-          {/* Relatórios rápidos */}
+          {/* Relatórios Rápidos Financeiro */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4">Relatórios</h2>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4">Relatórios de Despesas</h2>
             <div className="space-y-2">
-              {[
-                { label: 'Relatório 7 dias', days: 7 as const, desc: 'Despesas dos últimos 7 dias' },
-                { label: 'Relatório 15 dias', days: 15 as const, desc: 'Despesas dos últimos 15 dias' },
-              ].map(r => (
+              {[7, 15].map(days => (
                 <button
-                  key={r.days}
-                  onClick={() => { setReportDays(r.days); handleExportCSV(); }}
+                  key={days}
+                  onClick={() => { setReportDays(days as any); handleExportCSV(); }}
                   className="w-full text-left p-4 rounded-xl border border-slate-100 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200 transition-all flex items-center justify-between group"
                 >
                   <div>
-                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-emerald-600">{r.label}</h4>
-                    <p className="text-[10px] text-slate-400 mt-0.5">{r.desc}</p>
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-emerald-600">Últimos {days} dias</h4>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Baixar movimentações recentes</p>
                   </div>
-                  <div className="flex items-center gap-1 text-slate-300 group-hover:text-emerald-500 transition-colors">
-                    <Download size={14} />
-                    <ChevronRight size={14} />
+                  <Download size={14} className="text-slate-300 group-hover:text-emerald-500" />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Relatórios de Vencimento de Boletos */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5 border-l-4 border-l-indigo-500">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white mb-1">Vencimentos</h2>
+            <p className="text-[10px] text-slate-400 mb-4 uppercase font-bold tracking-widest">Próximos Boletos</p>
+            <div className="space-y-2">
+              {[7, 15].map(days => (
+                <button
+                  key={days}
+                  onClick={() => handleExportBoletoReport(days as any)}
+                  className="w-full text-left p-4 rounded-xl border border-slate-100 dark:border-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/10 hover:border-indigo-200 transition-all flex items-center justify-between group"
+                >
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600">Vencer em {days} dias</h4>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Gerar lista de pagamentos</p>
                   </div>
+                  <Download size={14} className="text-slate-300 group-hover:text-indigo-500" />
                 </button>
               ))}
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Lista de Boletos Cadastrados */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden mt-8">
+        <div className="p-5 border-b border-slate-100 dark:border-slate-800">
+           <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+             <Calendar size={18} className="text-indigo-500" />
+             Boletos Registrados
+           </h2>
+        </div>
+        {boletos.length === 0 ? (
+          <div className="p-12 text-center text-slate-400">Nenhum boleto cadastrado no momento.</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 divide-x divide-y divide-slate-50 dark:divide-slate-800">
+            {boletos.map(b => {
+              const dv = new Date(b.vencimento);
+              const hoje = new Date();
+              const diffTime = dv.getTime() - hoje.getTime();
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              const isUrgent = diffDays <= 3 && b.status === 'pendente';
+
+              return (
+                <div key={b.id} className={`p-5 transition-all hover:bg-slate-50 dark:hover:bg-slate-800/30 relative overflow-hidden group`}>
+                  {isUrgent && <div className="absolute top-0 right-0 w-20 h-20 bg-rose-500/10 rotate-45 translate-x-10 -translate-y-10" />}
+                  <div className="flex justify-between items-start mb-3">
+                    <h4 className="font-bold text-slate-800 dark:text-white truncate pr-8">{b.nome}</h4>
+                    {b.alerta && isUrgent && (
+                      <span className="flex h-2 w-2 relative">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xl font-black text-indigo-600 dark:text-indigo-400 mb-4">{fmt(b.valor)}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-[11px] text-slate-400 font-bold uppercase tracking-wider">
+                      <Calendar size={12} />
+                      {dv.toLocaleDateString('pt-BR')}
+                    </div>
+                    {isUrgent ? (
+                      <span className="text-[10px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-900/20 px-2 py-1 rounded-md uppercase tracking-tighter">Vence em {diffDays} dias</span>
+                    ) : (
+                      <span className="text-[10px] font-medium text-slate-400 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-md uppercase">Pendente</span>
+                    )}
+                  </div>
+                  
+                  <button 
+                    onClick={() => setBoletos(prev => prev.filter(x => x.id !== b.id))}
+                    className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-rose-500 transition-all"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* ─── Modal de Lançamento ─────────────────────────────────────────────── */}
@@ -374,12 +514,16 @@ const FinanceiroPage: React.FC = () => {
               {/* Header do modal */}
               <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-emerald-500/10 rounded-2xl flex items-center justify-center">
-                    <TrendingDown size={20} className="text-emerald-500" />
+                  <div className={`w-10 h-10 ${form.activeTab === 'despesa' ? 'bg-emerald-500/10' : 'bg-indigo-500/10'} rounded-2xl flex items-center justify-center transition-colors`}>
+                    {form.activeTab === 'despesa' ? <TrendingDown size={20} className="text-emerald-500" /> : <Calendar size={20} className="text-indigo-500" />}
                   </div>
                   <div>
-                    <h2 className="text-lg font-black text-slate-900 dark:text-white">Lançar Despesa</h2>
-                    <p className="text-xs text-slate-400">Registre uma nova saída financeira</p>
+                    <h2 className="text-lg font-black text-slate-900 dark:text-white">
+                      {form.activeTab === 'despesa' ? 'Lançar Despesa' : 'Cadastrar Boleto'}
+                    </h2>
+                    <p className="text-xs text-slate-400">
+                      {form.activeTab === 'despesa' ? 'Registre uma nova saída financeira' : 'Agende um pagamento futuro'}
+                    </p>
                   </div>
                 </div>
                 <button
@@ -392,20 +536,22 @@ const FinanceiroPage: React.FC = () => {
 
               <form onSubmit={handleSave} className="p-6 space-y-5">
 
-                {/* Nome da despesa */}
+                {/* Nome do Registro */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Nome da Despesa *</label>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
+                    {form.activeTab === 'despesa' ? 'Nome da Despesa *' : 'Nome do Boleto *'}
+                  </label>
                   <input
                     type="text"
                     required
-                    placeholder="Ex: Conta de água - Março"
+                    placeholder={form.activeTab === 'despesa' ? "Ex: Conta de água" : "Ex: Manutenção Elevador"}
                     value={form.nome}
                     onChange={e => setForm({ ...form, nome: e.target.value })}
                     className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-emerald-500/20 font-medium dark:text-white transition-all"
                   />
                 </div>
 
-                {/* Valor + Origem */}
+                {/* Valor + Dinâmico (Origem ou Vencimento) */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Valor (R$) *</label>
@@ -417,34 +563,66 @@ const FinanceiroPage: React.FC = () => {
                       placeholder="0,00"
                       value={form.valor}
                       onChange={e => setForm({ ...form, valor: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-emerald-500/20 font-medium dark:text-white transition-all"
+                      className={`w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 ${form.activeTab === 'despesa' ? 'focus:ring-emerald-500/20' : 'focus:ring-indigo-500/20'} font-medium dark:text-white transition-all`}
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Origem *</label>
-                    <select
-                      value={form.origem}
-                      onChange={e => setForm({ ...form, origem: e.target.value as ExpenseOrigin })}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-emerald-500/20 font-medium dark:text-white transition-all appearance-none"
-                    >
-                      {ORIGENS.map(o => (
-                        <option key={o.label} value={o.label}>{o.label}</option>
-                      ))}
-                    </select>
-                  </div>
+                  {form.activeTab === 'despesa' ? (
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Origem *</label>
+                      <select
+                        value={form.origem}
+                        onChange={e => setForm({ ...form, origem: e.target.value as ExpenseOrigin })}
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-emerald-500/20 font-medium dark:text-white transition-all appearance-none cursor-pointer"
+                      >
+                        {ORIGENS.map(o => (
+                          <option key={o.label} value={o.label}>{o.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Vencimento *</label>
+                      <input
+                        type="date"
+                        required
+                        value={form.vencimento}
+                        onChange={e => setForm({ ...form, vencimento: e.target.value })}
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-indigo-500/20 font-medium dark:text-white transition-all cursor-pointer"
+                      />
+                    </div>
+                  )}
                 </div>
 
-                {/* Observações */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Observações</label>
-                  <textarea
-                    rows={2}
-                    placeholder="Detalhes adicionais sobre esta despesa..."
-                    value={form.observacao}
-                    onChange={e => setForm({ ...form, observacao: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-emerald-500/20 font-medium dark:text-white transition-all resize-none"
-                  />
-                </div>
+                {form.activeTab === 'boleto' && (
+                  <div className="flex items-center justify-between p-4 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300 rounded-xl">
+                    <div className="flex items-center gap-2">
+                      <Zap size={16} />
+                      <span className="text-xs font-bold">Ativar Alerta de Vencimento</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="sr-only peer" 
+                        checked={form.alerta} 
+                        onChange={e => setForm({...form, alerta: e.target.checked})}
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                    </label>
+                  </div>
+                )}
+
+                {form.activeTab === 'despesa' && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Observações</label>
+                    <textarea
+                      rows={2}
+                      placeholder="Detalhes adicionais..."
+                      value={form.observacao}
+                      onChange={e => setForm({ ...form, observacao: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-emerald-500/20 font-medium dark:text-white transition-all resize-none"
+                    />
+                  </div>
+                )}
 
                 {/* Upload de comprovante */}
                 <div>
@@ -471,10 +649,10 @@ const FinanceiroPage: React.FC = () => {
                   <button
                     type="submit"
                     disabled={saving}
-                    className="flex-[2] py-3 bg-emerald-500 text-white rounded-xl font-bold hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/25 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                    className={`flex-[2] py-3 ${form.activeTab === 'despesa' ? 'bg-emerald-500' : 'bg-indigo-500'} text-white rounded-xl font-bold hover:brightness-110 transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2`}
                   >
-                    <Plus size={18} />
-                    {saving ? 'Salvando...' : 'Registrar Despesa'}
+                    {form.activeTab === 'despesa' ? <Plus size={18} /> : <Calendar size={18} />}
+                    {saving ? 'Salvando...' : (form.activeTab === 'despesa' ? 'Registrar Despesa' : 'Cadastrar Boleto')}
                   </button>
                 </div>
               </form>

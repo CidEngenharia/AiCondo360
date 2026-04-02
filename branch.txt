@@ -1,0 +1,1 @@
+* main 4cb3c61 [origin/main] chore: add new logo vectors and update assets

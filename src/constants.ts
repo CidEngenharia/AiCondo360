@@ -36,6 +36,7 @@ export interface Feature {
 }
 
 export const FEATURES: Feature[] = [
+  { id: 'moradores', label: 'Moradores', icon: Users, color: 'bg-emerald-600', category: 'social', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
   { id: 'boletos', label: 'Financeiro', icon: CreditCard, color: 'bg-emerald-500', category: 'financial', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
   { id: 'comunicados', label: 'Mensagens', icon: MessageSquare, color: 'bg-blue-500', category: 'communication', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },
   { id: 'reservas', label: 'Reservas', icon: Calendar, color: 'bg-purple-500', category: 'operations', roles: ['resident', 'admin', 'syndic'], plans: ['basic', 'enterprise', 'premium'] },

@@ -5,6 +5,7 @@ import { LandingPage } from './pages/LandingPage';
 import { AdminExclusivoPage } from './pages/AdminExclusivoPage';
 import { Configuracoes } from './pages/Configuracoes';
 import { Boletos } from './pages/Boletos';
+import Financeiro from './pages/Financeiro';
 import { Reservas } from './pages/Reservas';
 import { Comunicados } from './pages/Comunicados';
 import { FeatureDetail } from './pages/FeatureDetail';
@@ -18,6 +19,7 @@ import { Telefones } from './pages/Telefones';
 import { Agendamentos } from './pages/Agendamentos';
 import { Animais } from './pages/Animais';
 import { Classificados } from './pages/Classificados';
+import { Moradores } from './pages/Moradores';
 import { useAuth } from './hooks/useAuth';
 import { PricingPlan } from './constants';
 
@@ -83,7 +85,7 @@ export default function App() {
                 userRole={user.role}
                 userPlan={user.plan}
               >
-                <Boletos userId={user.id} />
+                <Financeiro />
               </Layout>
             ) : (
               <Navigate to="/login" />
@@ -264,6 +266,24 @@ export default function App() {
                 userPlan={user.plan}
               >
                 <Agendamentos />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        <Route 
+          path="/feature/moradores" 
+          element={
+            user ? (
+              <Layout 
+                condoName={user.condo} 
+                userName={user.name} 
+                onLogout={logout}
+                userRole={user.role}
+                userPlan={user.plan}
+              >
+                <Moradores />
               </Layout>
             ) : (
               <Navigate to="/login" />

@@ -75,17 +75,15 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
       )}>
         <div className="flex flex-col h-full">
           {/* Sidebar Header */}
-          <div className="h-16 flex items-center justify-between px-6 border-b border-slate-100 dark:border-slate-700">
-            <div className="flex items-center gap-2">
-              <img src="/favicon.jpg" alt="AiCondo360 Logo" className="w-14 h-14 object-contain rounded-xl shadow-sm" />
-              <div className="flex flex-col">
-                <span className="font-black text-slate-800 dark:text-white tracking-tighter text-xl">AiCondo360</span>
-                <span className="text-[9px] font-bold text-blue-600 uppercase tracking-widest leading-none">Management Pro</span>
-              </div>
+          <div className="h-16 flex items-center px-4 border-b border-slate-100 dark:border-slate-700">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={toggleSidebar}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all"
+              >
+                <Menu size={20} className="text-slate-600 dark:text-slate-300" />
+              </button>
             </div>
-            <button onClick={toggleSidebar} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all">
-              <X size={20} className="text-slate-500" />
-            </button>
           </div>
 
           {/* Sidebar Links */}
@@ -192,10 +190,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
             </div>
             <span className="text-sm font-medium flex-1 text-left">Suporte</span>
           </a>
-        </div>
 
-          {/* Sidebar Footer */}
-          <div className="p-4 border-t border-slate-100 dark:border-slate-700">
+          {/* User Profile & Logout */}
+          <div className="pt-4 pb-2 mt-4 border-t border-slate-100 dark:border-slate-800">
             <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold">
@@ -216,7 +213,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
             </div>
           </div>
         </div>
-      </aside>
+      </div>
+    </aside>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">

@@ -169,7 +169,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
   return (
     <div className="p-4 space-y-6">
       {/* Welcome Section */}
-      <section className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-emerald-600 via-teal-600 to-green-700 p-8 lg:p-12 text-white shadow-2xl shadow-emerald-200/50 dark:shadow-none min-h-[220px] flex flex-col justify-center border border-white/20">
+      <section className="relative overflow-hidden rounded-[2.5rem] bg-slate-100/50 dark:bg-slate-800/80 p-8 lg:p-12 text-slate-800 dark:text-white shadow-sm border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 min-h-[220px] flex flex-col justify-center group">
         {/* Decorative Blurs */}
         <div className="absolute inset-0 opacity-30 pointer-events-none">
           <div className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
@@ -180,121 +180,121 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5 mix-blend-overlay pointer-events-none" />
 
         <div className="relative z-10 flex flex-col items-center text-center space-y-6">
-          <div className="flex items-center gap-4 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
-            <p className="text-emerald-50 text-[10px] font-medium uppercase tracking-[0.2em]">{currentDate}</p>
-            <div className="w-1.5 h-1.5 rounded-full bg-white/30" />
+          <div className="flex items-center gap-4 bg-emerald-50 dark:bg-emerald-900/20 px-4 py-2 rounded-full border border-emerald-100 dark:border-emerald-800/30">
+            <p className="text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-[0.2em]">{currentDate}</p>
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-200 dark:bg-emerald-700" />
             <div className="flex items-center gap-2">
-              <weather.icon size={14} className="text-amber-300" />
-              <span className="text-xs font-medium">{weather.temp}°C {weather.condition}</span>
+              <weather.icon size={14} className="text-amber-500" />
+              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">{weather.temp}°C {weather.condition}</span>
             </div>
           </div>
 
-          <h2 className="text-3xl lg:text-4xl font-medium tracking-tight drop-shadow-xl max-w-2xl leading-tight">
+          <h2 className="text-3xl lg:text-4xl font-semibold tracking-tight text-slate-900 dark:text-white max-w-2xl leading-tight">
             {greeting}, {userName}! <br className="hidden md:block" />
-            <span className="text-emerald-200 text-sm block mt-2 opacity-90 font-normal">Há comunicados ativos em seu Dashboard.</span>
+            <span className="text-rose-600 dark:text-rose-400 text-base block mt-3 font-semibold brightness-110">Há comunicados ativos em seu Dashboard.</span>
           </h2>
         </div>
 
         <div className="mt-12 backdrop-blur-sm bg-white/5 p-2 rounded-[2rem] border border-white/10 relative z-10">
         
          <div className="grid grid-cols-2 gap-3">
-          <Link to="/feature/boletos" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform hover:bg-white/20">
+          <Link to="/feature/boletos" className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
             <div className="flex items-center gap-2 mb-2 relative">
-              <FileText size={16} className="text-emerald-200" />
+              <FileText size={16} className="text-emerald-500" />
                {nextBoleto && (
                   <span className="absolute -top-1 -right-1 flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                   </span>
                )}
-              <span className="text-xs font-medium uppercase tracking-wider opacity-80">Próxima Fatura</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Financeiro</span>
             </div>
-            <p className="text-lg text-emerald-300">
-              {nextBoleto ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(nextBoleto.amount) : 'R$ 0,00'}
+            <p className="text-lg font-bold text-slate-700 dark:text-slate-200">
+              {nextBoleto ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(nextBoleto.amount) : 'Painel Financeiro'}
             </p>
-            <p className="text-[10px] opacity-70">
-              {nextBoleto ? `Vencimento: ${new Date(nextBoleto.due_date).toLocaleDateString('pt-BR')}` : 'Sem faturas pendentes'}
+            <p className="text-[10px] text-slate-400">
+              {nextBoleto ? `Próximo: ${new Date(nextBoleto.due_date).toLocaleDateString('pt-BR')}` : 'Gerenciar boletos e contas'}
             </p>
           </Link>
-          <Link to="/feature/comunicados" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform hover:bg-white/20">
+          <Link to="/feature/comunicados" className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
             <div className="flex items-center gap-2 mb-2 relative">
-              <AlertCircle size={16} className="text-amber-300" />
+              <AlertCircle size={16} className="text-emerald-500" />
                {announcements.length > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                   </span>
                 )}
-              <span className="text-xs font-medium uppercase tracking-wider opacity-80">Avisos</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Avisos</span>
             </div>
-            <p className="text-lg text-emerald-300">{announcements.length} Ativos</p>
-            <p className="text-[10px] opacity-70">Mural atualizado</p>
+            <p className="text-lg font-bold text-slate-700 dark:text-slate-200">{announcements.length} Ativos</p>
+            <p className="text-[10px] text-slate-400">Mural atualizado</p>
           </Link>
-          <Link to="/feature/reservas" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform hover:bg-white/20">
+          <Link to="/feature/reservas" className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
             <div className="flex items-center gap-2 mb-2 relative">
-              <Calendar size={16} className="text-emerald-300" />
+              <Calendar size={16} className="text-emerald-500" />
               {upcomingReservations.length > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                   </span>
               )}
-              <span className="text-xs font-medium uppercase tracking-wider opacity-80">Reservas</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Reservas</span>
             </div>
-            <p className="text-lg text-emerald-300">{upcomingReservations.length} Ativas</p>
-            <p className="text-[10px] opacity-70">
+            <p className="text-lg font-bold text-slate-700 dark:text-slate-200">{upcomingReservations.length} Ativas</p>
+            <p className="text-[10px] text-slate-400">
               {upcomingReservations.length > 0 
                 ? `Próxima: ${new Date(upcomingReservations[0].reservation_date).toLocaleDateString('pt-BR')}` 
                 : 'Nenhuma reserva'}
             </p>
           </Link>
-          <Link to="/feature/encomendas" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform hover:bg-white/20">
+          <Link to="/feature/encomendas" className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
             <div className="flex items-center gap-2 mb-2 relative">
-              <Package size={16} className="text-purple-300" />
+              <Package size={16} className="text-emerald-500" />
               {pendingPackages.length > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                   </span>
                )}
-              <span className="text-xs font-medium uppercase tracking-wider opacity-80">Encomendas</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Encomendas</span>
             </div>
-            <p className="text-lg text-emerald-300">
+            <p className="text-lg font-bold text-slate-700 dark:text-slate-200">
               {pendingPackages.length} {(userRole === 'admin' || userRole === 'syndic' || userRole === 'global_admin') ? 'Registradas' : 'Pendentes'}
             </p>
-            <p className="text-[10px] opacity-70">
+            <p className="text-[10px] text-slate-400">
               {(userRole === 'admin' || userRole === 'syndic' || userRole === 'global_admin') 
                 ? 'Gerencie entregas' 
                 : (pendingPackages.length > 0 ? 'Retire na portaria' : 'Nenhuma pendência')}
             </p>
           </Link>
-          <Link to="/feature/visitantes" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform hover:bg-white/20">
+          <Link to="/feature/visitantes" className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
             <div className="flex items-center gap-2 mb-2 relative">
-              <UserPlus size={16} className="text-sky-300" />
+              <UserPlus size={16} className="text-emerald-500" />
               {expectedVisitors.length > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                   </span>
                )}
-              <span className="text-xs font-medium uppercase tracking-wider opacity-80">Visitantes</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Visitantes</span>
             </div>
-            <p className="text-lg text-emerald-300">{expectedVisitors.length} Esperados</p>
-            <p className="text-[10px] opacity-70">Liberações ativas</p>
+            <p className="text-lg font-bold text-slate-700 dark:text-slate-200">{expectedVisitors.length} Esperados</p>
+            <p className="text-[10px] text-slate-400">Liberações ativas</p>
           </Link>
-          <Link to="/feature/ocorrencias" className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 active:scale-95 transition-transform hover:bg-white/20">
+          <Link to="/feature/ocorrencias" className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
             <div className="flex items-center gap-2 mb-2 relative">
-              <ShieldAlert size={16} className="text-red-300" />
+              <ShieldAlert size={16} className="text-emerald-500" />
               {openOcorrencias.length > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                   </span>
               )}
-              <span className="text-xs font-medium uppercase tracking-wider opacity-80">Ocorrências</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ocorrências</span>
             </div>
-            <p className="text-lg text-emerald-300">{openOcorrencias.length} Abertas</p>
-            <p className="text-[10px] opacity-70">Acompanhamento</p>
+            <p className="text-lg font-bold text-slate-700 dark:text-slate-200">{openOcorrencias.length} Abertas</p>
+            <p className="text-[10px] text-slate-400">Acompanhamento</p>
           </Link>
         </div>
         

@@ -195,12 +195,12 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="flex items-center"
+                className="flex flex-col items-start w-fit"
               >
                 <img
                   src="/AICondo_Full_v2.png"
                   alt="Logo AiCondo360"
-                  className="h-32 md:h-48 w-auto object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500"
+                  className="h-20 md:h-[100px] w-auto object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500 ml-2"
                 />
               </motion.div>
               <motion.h1

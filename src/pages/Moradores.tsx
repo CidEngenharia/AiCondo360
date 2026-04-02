@@ -3,24 +3,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, 
   Search, 
-  Filter, 
-  MapPin, 
   Building2, 
   UserPlus, 
-  MoreVertical, 
   Mail, 
   Smartphone, 
   ShieldCheck, 
   ChevronRight, 
-  Circle,
-  Hash,
   Crown,
-  Star,
-  ShieldPlus,
   Zap,
-  CheckCircle2,
-  Lock,
-  MessageSquare
+  MessageSquare,
+  X,
+  Pencil,
+  Trash2,
+  FileText
 } from 'lucide-react';
 import { FeatureHeader } from '../components/FeatureHeader';
 
@@ -31,7 +26,6 @@ type Resident = {
   building: string;
   role: 'proprietario' | 'inquilino' | 'sindico' | 'zelador';
   status: 'online' | 'offline' | 'busy';
-  avatar?: string;
   phone: string;
   email: string;
 };
@@ -46,198 +40,253 @@ const RESIDENTS: Resident[] = [
 
 const RoleBadge = ({ role }: { role: Resident['role'] }) => {
   const styles = {
-    sindico: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-    proprietario: 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20',
-    inquilino: 'bg-slate-500/10 text-slate-500 border-slate-500/20',
-    zelador: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
+    sindico: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+    proprietario: 'bg-indigo-50 text-indigo-600 border-indigo-100',
+    inquilino: 'bg-slate-50 text-slate-600 border-slate-100',
+    zelador: 'bg-orange-50 text-orange-600 border-orange-100',
   };
 
-  const icons = {
-    sindico: <Crown size={10} />,
-    proprietario: <Star size={10} />,
-    inquilino: <UserPlus size={10} />,
-    zelador: <ShieldPlus size={10} />,
+  const labels = {
+    sindico: 'Síndico',
+    proprietario: 'Proprietário',
+    inquilino: 'Inquilino',
+    zelador: 'Equipe',
   };
 
   return (
-    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${styles[role]}`}>
-      {icons[role]} {role}
+    <div className={`inline-flex items-center px-2 py-0.5 rounded text-[9px] font-medium border ${styles[role]}`}>
+      {labels[role]}
     </div>
   );
 };
 
 export const Moradores: React.FC = () => {
+  const [residentsList, setResidentsList] = useState<Resident[]>(RESIDENTS);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedResident, setSelectedResident] = useState<Resident | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingResident, setEditingResident] = useState<Resident | null>(null);
 
-  const filteredResidents = RESIDENTS.filter(r => 
+  const filteredResidents = residentsList.filter(r => 
     r.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     r.unit.includes(searchTerm)
   );
+
+  const handleDelete = (id: string, name: string) => {
+    if (window.confirm(`Tem certeza que deseja remover o morador ${name}?`)) {
+      setResidentsList(prev => prev.filter(r => r.id !== id));
+      setSelectedResident(null);
+    }
+  };
+
+  const handleOpenEdit = (resident: Resident) => {
+    setEditingResident(resident);
+    setShowAddModal(true);
+  };
+
+  const handleSave = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    if (editingResident) {
+      // Lógica de Edição
+      setResidentsList(prev => prev.map(r => r.id === editingResident.id ? {
+        ...r,
+        name: formData.get('name') as string,
+        building: formData.get('building') as string,
+        unit: formData.get('unit') as string,
+        role: formData.get('role') as Resident['role'],
+        phone: formData.get('phone') as string,
+        email: formData.get('email') as string,
+      } : r));
+    } else {
+      // Lógica de Novo Cadastro
+      const newResident: Resident = {
+        id: Math.random().toString(36).substr(2, 9),
+        name: formData.get('name') as string,
+        building: formData.get('building') as string,
+        unit: formData.get('unit') as string,
+        role: formData.get('role') as Resident['role'],
+        phone: formData.get('phone') as string,
+        email: formData.get('email') as string,
+        status: 'offline'
+      };
+      setResidentsList(prev => [...prev, newResident]);
+    }
+    
+    setShowAddModal(false);
+    setEditingResident(null);
+  };
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
       <FeatureHeader 
         icon={Users}
-        title="Diretório de Moradores"
-        description="Conecte-se com vizinhos, acesse contatos de emergência e visualize a estrutura organizacional do condomínio."
-        color="bg-indigo-500"
+        title="Moradores"
+        description="Diretório de residentes e contatos do condomínio."
+        color="bg-slate-500"
       />
 
-      <div className="flex flex-col lg:flex-row gap-12">
-        {/* Left: Search and List */}
-        <div className="lg:col-span-8 flex-1">
-          <div className="flex gap-4 mb-10">
+      <div className="flex flex-col lg:flex-row gap-8 mt-8">
+        <div className="flex-1">
+          <div className="flex flex-col sm:flex-row gap-3 mb-6">
             <div className="flex-1 relative">
               <input 
                 type="text" 
-                placeholder="BUSCAR POR NOME OU APTO..."
+                placeholder="Buscar morador ou apt/casa..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-16 pr-8 py-6 bg-white dark:bg-slate-800 rounded-full border-2 border-slate-100 dark:border-slate-700 font-bold text-sm text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-500 focus:border-indigo-500 transition-all outline-none"
+                className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-normal focus:border-indigo-500 outline-none transition-all"
               />
-              <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600" size={24} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             </div>
-            <button className="px-10 bg-white dark:bg-slate-800 rounded-full border-2 border-slate-100 dark:border-slate-700 flex items-center gap-4 hover:border-indigo-500 transition-all">
-              <Filter className="text-slate-400" size={20} />
-              <span className="text-xs font-black uppercase tracking-widest text-slate-400">Torre</span>
-            </button>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => {
+                  alert("Gerando relatório detalhado de moradores por unidade...");
+                  // Aqui entraria a lógica de exportação PDF/Excel
+                }}
+                className="px-4 py-3 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm"
+                title="Gerar Relatório"
+              >
+                <FileText size={18} />
+                <span className="text-sm font-normal hidden md:inline">Relatório</span>
+              </button>
+              <button 
+                onClick={() => setShowAddModal(true)}
+                className="px-4 py-3 bg-indigo-600 text-white rounded-xl flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-sm shrink-0"
+              >
+                <UserPlus size={18} />
+                <span className="text-sm font-normal hidden sm:inline">Novo Morador</span>
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <AnimatePresence>
               {filteredResidents.map((resident) => (
                 <motion.button
                   key={resident.id}
                   layoutId={resident.id}
                   onClick={() => setSelectedResident(resident)}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  whileHover={{ y: -8 }}
-                  className="bg-white dark:bg-slate-800 rounded-[40px] shadow-sm hover:shadow-2xl hover:ring-2 hover:ring-indigo-500/20 border border-slate-50 dark:border-slate-700 p-8 flex items-center gap-6 group text-left"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 p-4 flex items-center gap-3 group text-left hover:border-indigo-300 transition-all shadow-sm"
                 >
-                  <div className="relative">
-                    <div className="w-20 h-20 bg-slate-100 dark:bg-slate-900 rounded-[24px] flex items-center justify-center text-indigo-500 overflow-hidden group-hover:rotate-6 transition-transform">
-                      {resident.avatar ? (
-                        <img src={resident.avatar} className="w-full h-full object-cover" alt={resident.name} />
-                      ) : (
-                        <Users size={32} />
-                      )}
-                    </div>
-                    <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-white dark:border-slate-800 transition-colors ${
-                      resident.status === 'online' ? 'bg-emerald-500' : resident.status === 'busy' ? 'bg-rose-500' : 'bg-slate-300'
-                    }`} />
-                  </div>
                   <div className="flex-1 min-w-0">
-                    <h5 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter truncate leading-none mb-1">{resident.name}</h5>
-                    <div className="flex items-center gap-4 mb-3">
-                      <span className="text-[10px] font-black uppercase text-indigo-500 tracking-widest flex items-center gap-1">
-                        <Building2 size={12} /> {resident.unit} • {resident.building}
+                    <h5 className="text-sm font-normal text-slate-900 dark:text-white truncate">{resident.name}</h5>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] text-slate-500 flex items-center gap-1 font-normal">
+                        <Building2 size={10} /> {resident.unit} • {resident.building}
                       </span>
+                      <RoleBadge role={resident.role} />
                     </div>
-                    <RoleBadge role={resident.role} />
                   </div>
-                  <ChevronRight size={24} className="text-slate-200 group-hover:text-indigo-500 group-hover:translate-x-2 transition-all" />
+                  <ChevronRight size={14} className="text-slate-300 group-hover:text-indigo-500 transition-all" />
                 </motion.button>
               ))}
             </AnimatePresence>
           </div>
         </div>
 
-        {/* Right: Selected Resident Detail / Stats */}
-        <div className="lg:w-96 space-y-12">
+        <div className="lg:w-80">
           {selectedResident ? (
             <motion.div 
               layoutId={selectedResident.id}
-              className="bg-slate-900 rounded-[56px] shadow-2xl border border-slate-800 p-12 text-white relative overflow-hidden"
+              className="bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 text-slate-900 dark:text-white relative hover:border-indigo-400 transition-colors shadow-sm"
             >
-              <div className="absolute top-0 right-0 p-8">
-                <button onClick={() => setSelectedResident(null)} className="text-white/20 hover:text-white">
-                  <Lock size={24} />
+              <div className="absolute top-4 right-4 flex items-center gap-2">
+                <button 
+                  onClick={() => handleOpenEdit(selectedResident)}
+                  className="p-2 text-slate-400 hover:text-indigo-500 transition-colors bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm"
+                  title="Editar"
+                >
+                  <Pencil size={14} />
+                </button>
+                <button 
+                  onClick={() => handleDelete(selectedResident.id, selectedResident.name)}
+                  className="p-2 text-slate-400 hover:text-rose-500 transition-colors bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm"
+                  title="Excluir"
+                >
+                  <Trash2 size={14} />
+                </button>
+                <button 
+                  onClick={() => setSelectedResident(null)}
+                  className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <X size={18} />
                 </button>
               </div>
               
-              <div className="flex flex-col items-center mb-12">
-                <div className="w-32 h-32 bg-white/5 rounded-[48px] flex items-center justify-center mb-6 ring-8 ring-indigo-500/10 relative">
-                  <Users size={56} className="text-indigo-400" />
-                  <div className="absolute inset-0 rounded-[48px] border border-white/10 animate-pulse" />
-                </div>
-                <h4 className="text-2xl font-black uppercase tracking-tighter text-center mb-2 italic">{selectedResident.name}</h4>
+              <div className="mb-6">
+                <h4 className="text-base font-normal mb-1">{selectedResident.name}</h4>
                 <RoleBadge role={selectedResident.role} />
               </div>
 
-              <div className="space-y-6">
-                <div className="p-6 bg-white/5 rounded-[28px] border border-white/5">
-                  <p className="text-[10px] uppercase font-black text-white/30 tracking-widest mb-4">Informações de Contato</p>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400">
-                        <Smartphone size={18} />
-                      </div>
-                      <span className="text-xs font-bold text-white/80">{selectedResident.phone}</span>
+              <div className="space-y-4">
+                <div className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
+                  <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider mb-2">Contato</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Smartphone size={14} className="text-slate-400" />
+                      <span className="text-xs text-slate-600 dark:text-slate-300 font-normal">{selectedResident.phone}</span>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400">
-                        <Mail size={18} />
-                      </div>
-                      <span className="text-xs font-bold text-white/80">{selectedResident.email}</span>
+                    <div className="flex items-center gap-2">
+                      <Mail size={14} className="text-slate-400" />
+                      <span className="text-xs text-slate-600 dark:text-slate-300 truncate font-normal">{selectedResident.email}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-6 bg-black/50 rounded-[28px] border border-white/5">
-                   <p className="text-[10px] uppercase font-black text-white/30 tracking-widest mb-4">Localização</p>
-                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400">
-                      <Building2 size={18} />
-                    </div>
-                    <span className="text-xs font-bold text-white/80">{selectedResident.building} • Unidade {selectedResident.unit}</span>
+                <div className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
+                   <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wider mb-2">Unidade</p>
+                   <div className="flex items-center gap-2">
+                    <Building2 size={14} className="text-slate-400" />
+                    <span className="text-xs text-slate-600 dark:text-slate-300 font-normal">{selectedResident.building} • {selectedResident.unit}</span>
                    </div>
                 </div>
 
-                <button className="w-full py-6 bg-white text-slate-900 rounded-full font-black uppercase tracking-widest text-[10px] hover:bg-slate-100 transition-all flex items-center justify-center gap-3">
-                  <MessageSquare size={16} /> Enviar Mensagem Privada
-                </button>
+                <a 
+                  href={`https://wa.me/${selectedResident.phone.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium text-xs transition-all flex items-center justify-center gap-2 shadow-sm shadow-emerald-500/20"
+                >
+                  <MessageSquare size={16} /> WhatsApp
+                </a>
               </div>
             </motion.div>
           ) : (
-            <div className="space-y-12">
-               {/* Stats / Board */}
-               <div className="bg-indigo-600 rounded-[56px] p-12 text-white shadow-2xl relative overflow-hidden group">
-                  <Zap size={120} className="absolute -bottom-10 -right-10 opacity-10 group-hover:rotate-12 transition-transform" />
-                  <h4 className="text-2xl font-black uppercase tracking-tighter italic mb-8">Administração</h4>
-                  <div className="space-y-8">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-indigo-200 uppercase tracking-widest">Total de Unidades</span>
-                      <span className="text-2xl font-black">120</span>
+            <div className="space-y-4">
+               <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm transition-all group hover:border-indigo-200">
+                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Administração</h4>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-500 font-normal tracking-tight">Unidades</span>
+                      <span className="font-medium text-indigo-600">120</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-indigo-200 uppercase tracking-widest">Moradores Ativos</span>
-                      <span className="text-2xl font-black">342</span>
-                    </div>
-                    <div className="w-full h-2 bg-indigo-800 rounded-full overflow-hidden">
-                      <div className="w-3/4 h-full bg-white shadow-[0_0_15px_rgba(255,255,255,0.5)]" />
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-500 font-normal tracking-tight">Moradores</span>
+                      <span className="font-medium text-indigo-600">342</span>
                     </div>
                   </div>
                </div>
 
-               {/* Help Board */}
-               <div className="bg-white dark:bg-slate-800 rounded-[56px] p-12 border border-slate-100 dark:border-slate-700 shadow-xl">
-                 <h4 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-8 italic">Organograma</h4>
-                 <div className="space-y-6">
-                    <div className="flex items-center gap-4 p-4 rounded-3xl hover:bg-slate-50 dark:hover:bg-slate-900 transition-all">
-                      <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500"><Crown size={24} /></div>
+               <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm transition-all hover:border-indigo-300">
+                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Estrutura</h4>
+                 <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg flex items-center justify-center text-emerald-500"><Crown size={16} /></div>
                       <div>
-                        <h6 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-white">Conselho Fiscal</h6>
-                        <p className="text-[10px] font-bold text-slate-400">3 MEMBROS ATIVOS</p>
+                        <p className="text-xs font-normal text-slate-800 dark:text-white">Síndico do Bloco</p>
+                        <p className="text-[9px] text-slate-400 uppercase font-medium">Gestão Principal</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 p-4 rounded-3xl hover:bg-slate-50 dark:hover:bg-slate-900 transition-all">
-                      <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-500"><ShieldCheck size={24} /></div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-indigo-50 dark:bg-indigo-500/10 rounded-lg flex items-center justify-center text-indigo-500"><ShieldCheck size={16} /></div>
                       <div>
-                        <h6 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-white">Comitê Segurança</h6>
-                        <p className="text-[10px] font-bold text-slate-400">EM OPERAÇÃO 24/7</p>
+                        <p className="text-xs font-normal text-slate-800 dark:text-white">Segurança 24h</p>
+                        <p className="text-[9px] text-slate-400 uppercase font-medium">Operacional</p>
                       </div>
                     </div>
                  </div>
@@ -246,6 +295,114 @@ export const Moradores: React.FC = () => {
           )}
         </div>
       </div>
+
+      <AnimatePresence>
+        {showAddModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
+              className="absolute inset-0 bg-slate-900/20 backdrop-blur-[2px]" 
+              onClick={() => setShowAddModal(false)}
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} 
+              className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 w-full max-w-sm relative z-10 border border-slate-100 dark:border-slate-800"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-base font-normal text-slate-900 dark:text-white">
+                  {editingResident ? 'Editar Morador' : 'Adicionar Morador'}
+                </h3>
+                <button 
+                  onClick={() => { setShowAddModal(false); setEditingResident(null); }} 
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <form className="space-y-4" onSubmit={handleSave}>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-slate-400 tracking-tight">Nome Completo</label>
+                  <input 
+                    name="name"
+                    defaultValue={editingResident?.name}
+                    required 
+                    className="w-full bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2.5 text-xs font-normal border border-transparent focus:border-indigo-400 outline-none transition-all dark:text-white" 
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase text-slate-400 tracking-tight">Torre/Casa</label>
+                    <input 
+                      name="building"
+                      defaultValue={editingResident?.building}
+                      placeholder="Ex: Torre A ou Casa 01"
+                      required 
+                      className="w-full bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2.5 text-xs font-normal border border-transparent focus:border-indigo-400 outline-none transition-all dark:text-white" 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase text-slate-400 tracking-tight">Apt/Casa</label>
+                    <input 
+                      name="unit"
+                      defaultValue={editingResident?.unit}
+                      placeholder="Ex: 101"
+                      required 
+                      className="w-full bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2.5 text-xs font-normal border border-transparent focus:border-indigo-400 outline-none transition-all dark:text-white" 
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase text-slate-400 tracking-tight">Telefone/Zap</label>
+                    <input 
+                      name="phone"
+                      defaultValue={editingResident?.phone}
+                      placeholder="(00) 00000-0000"
+                      required 
+                      className="w-full bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2.5 text-xs font-normal border border-transparent focus:border-indigo-400 outline-none transition-all dark:text-white" 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase text-slate-400 tracking-tight">E-mail</label>
+                    <input 
+                      name="email"
+                      type="email"
+                      defaultValue={editingResident?.email}
+                      placeholder="email@exemplo.com"
+                      required 
+                      className="w-full bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2.5 text-xs font-normal border border-transparent focus:border-indigo-400 outline-none transition-all dark:text-white" 
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-slate-400 tracking-tight">Perfil</label>
+                  <select 
+                    name="role"
+                    defaultValue={editingResident?.role || 'proprietario'}
+                    className="w-full bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2.5 text-xs font-normal border border-transparent focus:border-indigo-400 outline-none transition-all dark:text-white cursor-pointer appearance-none"
+                  >
+                    <option value="proprietario">Proprietário (Residente)</option>
+                    <option value="inquilino">Inquilino (Residente)</option>
+                    <option value="sindico">Síndico</option>
+                  </select>
+                </div>
+                <div className="flex justify-end gap-2 pt-4">
+                  <button 
+                    type="button" 
+                    onClick={() => { setShowAddModal(false); setEditingResident(null); }} 
+                    className="px-4 py-2 text-xs font-normal text-slate-500"
+                  >
+                    Cancelar
+                  </button>
+                  <button type="submit" className="px-6 py-2 bg-indigo-600 text-white rounded-xl text-xs font-medium hover:bg-indigo-700 transition-all shadow-sm">
+                    {editingResident ? 'Atualizar' : 'Salvar'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

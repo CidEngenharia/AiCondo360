@@ -1,0 +1,10 @@
+commit 4cb3c61f61a9ec45c50b963fad32830af6e921a7
+Author: CidEngenharia <cid.engenharia.ia@gmail.com>
+Date:   Wed Apr 1 19:20:01 2026 -0300
+
+    chore: add new logo vectors and update assets
+
+ public/AICondo_Full_v2.png     | Bin 129550 -> 736876 bytes
+ public/AICondo_Full_v2ioio.png | Bin 0 -> 129550 bytes
+ public/LogoVetor.png           | Bin 0 -> 736876 bytes
+ 3 files changed, 0 insertions(+), 0 deletions(-)

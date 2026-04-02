@@ -1,0 +1,8 @@
+commit fd6f3563604039138f69d772bc668f9e83692d38
+Author: CidEngenharia <cid.engenharia.ia@gmail.com>
+Date:   Mon Mar 16 22:43:40 2026 -0300
+
+    fix: resolve login issues and activate dashboard features
+
+ src/pages/Login.tsx | 150 +++++++++++++++++++++++++++++++++-------------------
+ 1 file changed, 95 insertions(+), 55 deletions(-)
