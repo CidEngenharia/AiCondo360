@@ -228,13 +228,15 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="h-full bg-slate-50 dark:bg-slate-900/50 rounded-[56px] border-4 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center text-center p-12"
+                className="min-h-[400px] flex-1 bg-slate-50/50 dark:bg-slate-900/30 rounded-[40px] border-2 border-dashed border-slate-200 dark:border-slate-800/50 flex flex-col items-center justify-center text-center p-8 lg:p-12"
               >
-                <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-300 mb-8 border border-white dark:border-slate-700 shadow-xl">
-                  <Plus size={48} />
+                <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-200 mb-6 border border-slate-100 dark:border-slate-700 shadow-sm">
+                  <Star size={32} strokeWidth={1} />
                 </div>
-                <h4 className="text-3xl font-black text-slate-300 uppercase tracking-tighter">Selecione um Espaço</h4>
-                <p className="text-sm font-bold text-slate-400 mt-4 max-w-sm uppercase tracking-widest">Escolha o local do seu evento para visualizar a disponibilidade no calendário.</p>
+                <h4 className="text-xl font-black text-slate-300 dark:text-slate-700 uppercase tracking-tighter leading-none mb-3">Selecione um Espaço</h4>
+                <p className="text-[10px] font-bold text-slate-400 max-w-[200px] uppercase tracking-widest leading-relaxed">
+                  Escolha um dos locais ao lado para gerenciar datas e disponibilidade.
+                </p>
               </motion.div>
             ) : (
               <motion.div

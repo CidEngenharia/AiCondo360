@@ -133,6 +133,17 @@ export const Condominios: React.FC = () => {
     </div>
   );
 
+  const counts = {
+    basic: condos.filter(c => c.plan === 'basic').length,
+    professional: condos.filter(c => c.plan === 'professional').length,
+    premium: condos.filter(c => c.plan === 'premium').length,
+    active: condos.filter(c => c.status === 'active').length
+  };
+
+  const totalRevenue = condos.reduce((acc, c) => 
+    acc + (c.plan === 'premium' ? 399 : c.plan === 'professional' ? 320 : 250), 0
+  );
+
   const formatWhatsAppLink = (phone: string) => {
     const clean = phone.replace(/\D/g, '');
     return `https://wa.me/${clean.startsWith('55') ? clean : '55' + clean}`;
@@ -159,23 +170,36 @@ export const Condominios: React.FC = () => {
         </button>
       </header>
 
-      {/* Stats Quick View - Smaller Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col justify-between h-24">
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Clientes</p>
-          <p className="text-2xl font-bold text-slate-800 dark:text-white">{condos.length}</p>
+      {/* Stats Quick View - Manager Dashboard */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col justify-between h-20">
+          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Total Clientes</p>
+          <div className="flex items-baseline gap-1">
+             <p className="text-xl font-black text-slate-800 dark:text-white">{condos.length}</p>
+             <span className="text-[10px] text-emerald-500 font-bold">Ativos: {counts.active}</span>
+          </div>
         </div>
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col justify-between h-24 md:col-span-2">
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Faturamento Estimado</p>
-          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-              condos.reduce((acc, c) => acc + (c.plan === 'premium' ? 399 : c.plan === 'professional' ? 320 : 250), 0)
-            )}
+
+        <div className="bg-slate-50/50 dark:bg-blue-500/5 p-4 rounded-2xl border border-blue-100/50 dark:border-blue-500/20 shadow-sm flex flex-col justify-between h-20">
+          <p className="text-[8px] font-black text-blue-400/80 uppercase tracking-widest leading-none">Planos Basic</p>
+          <p className="text-xl font-black text-blue-600 dark:text-blue-400">{counts.basic}</p>
+        </div>
+
+        <div className="bg-slate-50/50 dark:bg-indigo-500/5 p-4 rounded-2xl border border-indigo-100/50 dark:border-indigo-500/20 shadow-sm flex flex-col justify-between h-20">
+          <p className="text-[8px] font-black text-indigo-400/80 uppercase tracking-widest leading-none">Profissional</p>
+          <p className="text-xl font-black text-indigo-600 dark:text-indigo-400">{counts.professional}</p>
+        </div>
+
+        <div className="bg-slate-50/50 dark:bg-emerald-500/5 p-4 rounded-2xl border border-emerald-100/50 dark:border-emerald-500/20 shadow-sm flex flex-col justify-between h-20">
+          <p className="text-[8px] font-black text-emerald-400/80 uppercase tracking-widest leading-none">Planos Premium</p>
+          <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{counts.premium}</p>
+        </div>
+
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col justify-between h-20 col-span-2 md:col-span-1">
+          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Faturamento Mensal</p>
+          <p className="text-lg font-black text-slate-800 dark:text-white">
+            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalRevenue)}
           </p>
-        </div>
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col justify-between h-24">
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Adesão</p>
-          <p className="text-2xl font-bold text-emerald-500">{condos.length > 0 ? ((condos.filter(c => c.status === 'active').length / condos.length) * 100).toFixed(0) : 0}%</p>
         </div>
       </div>
 

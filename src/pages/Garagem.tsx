@@ -296,9 +296,9 @@ export const Garagem: React.FC<GaragemProps> = ({ userId, condoId, userRole }) =
               initial={{ opacity: 0, scale: 0.9, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 30 }}
-              className="bg-white dark:bg-slate-800 rounded-[48px] w-full max-w-2xl overflow-y-auto max-h-[95vh] shadow-2xl border border-white/20 custom-scrollbar"
+              className="bg-white dark:bg-slate-800 rounded-[32px] w-full max-w-lg overflow-y-auto max-h-[90vh] shadow-2xl border border-white/20 custom-scrollbar"
             >
-              <div className="p-8 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between sticky top-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md z-10">
+              <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between sticky top-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md z-10">
                 <div>
                   <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic">
                     {editingVehicle ? 'Editar Veículo' : 'Novo Veículo'}
@@ -310,11 +310,11 @@ export const Garagem: React.FC<GaragemProps> = ({ userId, condoId, userRole }) =
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-8 space-y-8">
+              <form onSubmit={handleSubmit} className="p-6 space-y-6">
                 {/* Upload de Foto */}
                 <div className="relative group">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Foto do Veículo</label>
-                  <div className="relative h-56 rounded-[32px] overflow-hidden bg-slate-50 dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-700 group-hover:border-zinc-500 transition-all">
+                  <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Foto do Veículo</label>
+                  <div className="relative h-32 rounded-[24px] overflow-hidden bg-slate-50 dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-700 group-hover:border-zinc-500 transition-all">
                     {formData.image_url ? (
                       <>
                         <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" />
@@ -342,11 +342,11 @@ export const Garagem: React.FC<GaragemProps> = ({ userId, condoId, userRole }) =
                         className="w-full h-full flex flex-col items-center justify-center gap-4 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-all"
                       >
                         <div className="p-6 bg-white dark:bg-slate-800 rounded-[32px] shadow-xl text-slate-400">
-                          <Camera size={40} strokeWidth={1.5} />
+                          <Camera size={24} strokeWidth={2} />
                         </div>
                         <div className="text-center">
-                          <p className="text-sm font-black text-slate-700 dark:text-slate-300 tracking-tight">Cliqu para fazer upload</p>
-                          <p className="text-xs font-bold text-slate-400">Formatos: JPG, PNG • Max 5MB</p>
+                          <p className="text-[11px] font-black text-slate-700 dark:text-slate-300 tracking-tight leading-none mb-1">Click para upload</p>
+                          <p className="text-[9px] font-bold text-slate-400">JPG, PNG • Max 5MB</p>
                         </div>
                       </button>
                     )}
@@ -368,19 +368,19 @@ export const Garagem: React.FC<GaragemProps> = ({ userId, condoId, userRole }) =
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="md:col-span-1">
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Placa</label>
+                        <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Placa</label>
                         <input 
                           required
                           placeholder="ABC-1234"
-                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-zinc-500/10 focus:border-zinc-500 transition-all font-black uppercase text-center text-lg"
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-zinc-500/10 focus:border-zinc-500 transition-all font-black uppercase text-center text-sm"
                           value={formData.plate}
                           onChange={e => setFormData({...formData, plate: e.target.value.toUpperCase()})}
                         />
                       </div>
                       <div className="md:col-span-1">
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Tipo</label>
+                        <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Tipo</label>
                         <select
-                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-zinc-500/10 focus:border-zinc-500 transition-all font-bold appearance-none cursor-pointer"
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-zinc-500/10 focus:border-zinc-500 transition-all font-bold appearance-none cursor-pointer"
                           value={formData.type}
                           onChange={e => setFormData({...formData, type: e.target.value as any})}
                         >
@@ -390,34 +390,34 @@ export const Garagem: React.FC<GaragemProps> = ({ userId, condoId, userRole }) =
                         </select>
                       </div>
                       <div className="md:col-span-1">
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Cor</label>
+                        <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Cor</label>
                         <input 
                           required
                           placeholder="Ex: Prata"
-                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-zinc-500/10 focus:border-zinc-500 transition-all font-bold"
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-zinc-500/10 focus:border-zinc-500 transition-all font-bold"
                           value={formData.color}
                           onChange={e => setFormData({...formData, color: e.target.value})}
                         />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div className="grid grid-cols-2 gap-4 mt-3">
                       <div>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Marca</label>
+                        <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Marca</label>
                         <input 
                           required
                           placeholder="Ex: Toyota"
-                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-zinc-500/10 focus:border-zinc-500 transition-all font-bold"
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-zinc-500/10 focus:border-zinc-500 transition-all font-bold"
                           value={formData.brand}
                           onChange={e => setFormData({...formData, brand: e.target.value})}
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Modelo</label>
+                        <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Modelo</label>
                         <input 
                           required
                           placeholder="Ex: Corolla"
-                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-zinc-500/10 focus:border-zinc-500 transition-all font-bold"
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-zinc-500/10 focus:border-zinc-500 transition-all font-bold"
                           value={formData.model}
                           onChange={e => setFormData({...formData, model: e.target.value})}
                         />
@@ -430,32 +430,32 @@ export const Garagem: React.FC<GaragemProps> = ({ userId, condoId, userRole }) =
                     <h4 className="flex items-center gap-2 text-xs font-black text-zinc-900 dark:text-white uppercase tracking-widest mb-4">
                       <User size={14} /> Detalhes de Identificação
                     </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="md:col-span-1">
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Proprietário</label>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Proprietário</label>
                         <input 
                           required
                           placeholder="Nome Completo"
-                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-zinc-500/10 focus:border-zinc-500 transition-all font-bold"
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-zinc-500/10 focus:border-zinc-500 transition-all font-bold"
                           value={formData.owner_name}
                           onChange={e => setFormData({...formData, owner_name: e.target.value})}
                         />
                       </div>
-                      <div className="md:col-span-1">
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Vaga Garagem</label>
+                      <div>
+                        <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Vaga</label>
                         <input 
                           placeholder="Ex: G-12"
-                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-zinc-500/10 focus:border-zinc-500 transition-all font-bold"
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-zinc-500/10 focus:border-zinc-500 transition-all font-bold text-center"
                           value={formData.garage_number}
                           onChange={e => setFormData({...formData, garage_number: e.target.value})}
                         />
                       </div>
-                      <div className="md:col-span-1">
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Unidade / Ap</label>
+                      <div>
+                        <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Unidade</label>
                         <input 
                           required
-                          placeholder="Ex: 502 Bloco B"
-                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-zinc-500/10 focus:border-zinc-500 transition-all font-bold"
+                          placeholder="Ex: 502 B"
+                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-zinc-500/10 focus:border-zinc-500 transition-all font-bold text-center"
                           value={formData.unit_number}
                           onChange={e => setFormData({...formData, unit_number: e.target.value})}
                         />
@@ -465,12 +465,12 @@ export const Garagem: React.FC<GaragemProps> = ({ userId, condoId, userRole }) =
 
                   {/* Observações */}
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1 flex items-center gap-1">
-                      <FileText size={10} /> Observações Internas
+                    <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1 flex items-center gap-1">
+                      <FileText size={10} /> Observações
                     </label>
                     <textarea 
-                      placeholder="Alguma observação importante sobre o veículo, avarias ou acessos..."
-                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[24px] px-5 py-4 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-zinc-500/10 focus:border-zinc-500 transition-all font-medium h-32 resize-none"
+                      placeholder="Alguma observação importante..."
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[16px] px-4 py-2.5 text-[11px] text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-zinc-500/10 focus:border-zinc-500 transition-all font-medium h-20 resize-none"
                       value={formData.observation}
                       onChange={e => setFormData({...formData, observation: e.target.value})}
                     />
@@ -481,15 +481,15 @@ export const Garagem: React.FC<GaragemProps> = ({ userId, condoId, userRole }) =
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="flex-1 px-8 py-5 rounded-[24px] border-2 border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-black uppercase text-xs tracking-widest hover:bg-slate-50 dark:hover:bg-slate-900 transition-all"
+                    className="flex-1 px-8 py-4 rounded-xl border-2 border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 dark:hover:bg-slate-900 transition-all"
                   >
                     Descartar
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-8 py-5 rounded-[24px] bg-zinc-900 hover:bg-black text-white font-black uppercase text-xs tracking-widest shadow-2xl shadow-zinc-500/40 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
+                    className="flex-1 px-8 py-4 rounded-xl bg-zinc-900 hover:bg-black text-white font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-zinc-500/40 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
                   >
-                    {editingVehicle ? 'Atualizar Registro' : 'Finalizar Cadastro'}
+                    {editingVehicle ? 'Atualizar' : 'Finalizar'}
                   </button>
                 </div>
               </form>

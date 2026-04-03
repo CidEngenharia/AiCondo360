@@ -18,6 +18,9 @@ import {
   FileText
 } from 'lucide-react';
 import { FeatureHeader } from '../components/FeatureHeader';
+import { useAuth } from '../contexts/AuthContext';
+import { ProfileService, Profile } from '../services/supabaseService';
+import { useEffect } from 'react';
 
 type Resident = {
   id: string;
@@ -30,13 +33,7 @@ type Resident = {
   email: string;
 };
 
-const RESIDENTS: Resident[] = [
-  { id: '1', name: 'Sidney Rodrigues', unit: '1201', building: 'Torre A', role: 'sindico', status: 'online', phone: '(11) 98888-7777', email: 'sidney@condo360.com' },
-  { id: '2', name: 'Ana Oliveira', unit: '402', building: 'Torre B', role: 'proprietario', status: 'offline', phone: '(11) 97777-6666', email: 'ana.oliveira@gmail.com' },
-  { id: '3', name: 'Marcos Souza', unit: '805', building: 'Torre A', role: 'inquilino', status: 'busy', phone: '(11) 96666-5555', email: 'marcos.souza@yahoo.com' },
-  { id: '4', name: 'Zelador Joaquim', unit: 'Térreo', building: 'Administração', role: 'zelador', status: 'online', phone: '(11) 95555-4444', email: 'joaquim@condo360.com' },
-  { id: '5', name: 'Carlos Alberto', unit: '1504', building: 'Torre C', role: 'proprietario', status: 'online', phone: '(11) 94444-3333', email: 'carlos.alberto@gmail.com' },
-];
+// RESIDENTS constant removed since we fetch from DB
 
 const RoleBadge = ({ role }: { role: Resident['role'] }) => {
   const styles = {
@@ -61,7 +58,9 @@ const RoleBadge = ({ role }: { role: Resident['role'] }) => {
 };
 
 export const Moradores: React.FC = () => {
-  const [residentsList, setResidentsList] = useState<Resident[]>(RESIDENTS);
+  const { user } = useAuth();
+  const [residentsList, setResidentsList] = useState<Resident[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedResident, setSelectedResident] = useState<Resident | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -69,13 +68,52 @@ export const Moradores: React.FC = () => {
 
   const filteredResidents = residentsList.filter(r => 
     r.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    r.unit.includes(searchTerm)
+    r.unit.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleDelete = (id: string, name: string) => {
+  const fetchResidents = async () => {
+    if (!user?.condoId) return;
+    try {
+      setLoading(true);
+      const profiles = await ProfileService.getCondoResidents(user.condoId);
+      
+      const mapped: Resident[] = profiles.map(p => ({
+        id: p.id,
+        name: p.full_name || 'Sem Nome',
+        unit: p.unit || 'S/N',
+        building: p.building || 'Geral',
+        role: (p.role === 'resident' || p.role === 'morador') ? 'inquilino' : 
+              (p.role === 'syndic' || p.role === 'sindico') ? 'sindico' : 'proprietario',
+        status: 'online',
+        phone: p.phone || '(00) 00000-0000',
+        email: p.email || ''
+      }));
+      
+      setResidentsList(mapped);
+    } catch (err) {
+      console.error('Error loading residents:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchResidents();
+  }, [user?.condoId]);
+
+  const totalUnits = Array.from(new Set(residentsList.map(r => `${r.building}-${r.unit}`))).length;
+  const totalResidents = residentsList.length;
+
+  const handleDelete = async (id: string, name: string) => {
     if (window.confirm(`Tem certeza que deseja remover o morador ${name}?`)) {
-      setResidentsList(prev => prev.filter(r => r.id !== id));
-      setSelectedResident(null);
+      try {
+        await ProfileService.deleteProfile(id);
+        setResidentsList(prev => prev.filter(r => r.id !== id));
+        setSelectedResident(null);
+      } catch (err) {
+        console.error('Error deleting resident:', err);
+        alert('Erro ao remover morador do banco de dados.');
+      }
     }
   };
 
@@ -84,38 +122,37 @@ export const Moradores: React.FC = () => {
     setShowAddModal(true);
   };
 
-  const handleSave = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
-    if (editingResident) {
-      // Lógica de Edição
-      setResidentsList(prev => prev.map(r => r.id === editingResident.id ? {
-        ...r,
-        name: formData.get('name') as string,
-        building: formData.get('building') as string,
-        unit: formData.get('unit') as string,
-        role: formData.get('role') as Resident['role'],
-        phone: formData.get('phone') as string,
-        email: formData.get('email') as string,
-      } : r));
-    } else {
-      // Lógica de Novo Cadastro
-      const newResident: Resident = {
-        id: Math.random().toString(36).substr(2, 9),
-        name: formData.get('name') as string,
-        building: formData.get('building') as string,
-        unit: formData.get('unit') as string,
-        role: formData.get('role') as Resident['role'],
-        phone: formData.get('phone') as string,
-        email: formData.get('email') as string,
-        status: 'offline'
-      };
-      setResidentsList(prev => [...prev, newResident]);
+    const residentData: Partial<Profile> = {
+      full_name: formData.get('name') as string,
+      building: formData.get('building') as string,
+      unit: formData.get('unit') as string,
+      role: formData.get('role') as any, // 'proprietario' maps to resident/proprietario
+      phone: formData.get('phone') as string,
+      email: formData.get('email') as string,
+      condominio_id: user?.condoId
+    };
+
+    try {
+      setLoading(true);
+      if (editingResident) {
+        await ProfileService.updateProfile(editingResident.id, residentData);
+      } else {
+        await ProfileService.createProfile(residentData);
+      }
+      
+      await fetchResidents();
+      setShowAddModal(false);
+      setEditingResident(null);
+    } catch (err: any) {
+      console.error('Error saving resident:', err);
+      alert(`Erro ao salvar morador: ${err.message || 'Erro desconhecido'}`);
+    } finally {
+      setLoading(false);
     }
-    
-    setShowAddModal(false);
-    setEditingResident(null);
   };
 
   return (
@@ -163,29 +200,42 @@ export const Moradores: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <AnimatePresence>
-              {filteredResidents.map((resident) => (
-                <motion.button
-                  key={resident.id}
-                  layoutId={resident.id}
-                  onClick={() => setSelectedResident(resident)}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 p-4 flex items-center gap-3 group text-left hover:border-indigo-300 transition-all shadow-sm"
-                >
-                  <div className="flex-1 min-w-0">
-                    <h5 className="text-sm font-normal text-slate-900 dark:text-white truncate">{resident.name}</h5>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] text-slate-500 flex items-center gap-1 font-normal">
-                        <Building2 size={10} /> {resident.unit} • {resident.building}
-                      </span>
-                      <RoleBadge role={resident.role} />
+            {loading ? (
+              <div className="col-span-full py-10 flex flex-col items-center justify-center gap-3">
+                <div className="w-8 h-8 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+                <p className="text-xs text-slate-400 font-medium uppercase tracking-widest">Carregando moradores...</p>
+              </div>
+            ) : (
+              <AnimatePresence>
+                {filteredResidents.map((resident) => (
+                  <motion.button
+                    key={resident.id}
+                    layoutId={resident.id}
+                    onClick={() => setSelectedResident(resident)}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 p-4 flex items-center gap-3 group text-left hover:border-indigo-300 transition-all shadow-sm"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <h5 className="text-sm font-normal text-slate-900 dark:text-white truncate">{resident.name}</h5>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] text-slate-500 flex items-center gap-1 font-normal">
+                          <Building2 size={10} /> {resident.unit} • {resident.building}
+                        </span>
+                        <RoleBadge role={resident.role} />
+                      </div>
                     </div>
-                  </div>
-                  <ChevronRight size={14} className="text-slate-300 group-hover:text-indigo-500 transition-all" />
-                </motion.button>
-              ))}
-            </AnimatePresence>
+                    <ChevronRight size={14} className="text-slate-300 group-hover:text-indigo-500 transition-all" />
+                  </motion.button>
+                ))}
+              </AnimatePresence>
+            )}
+            {!loading && filteredResidents.length === 0 && (
+              <div className="col-span-full py-16 text-center">
+                <Users size={40} className="text-slate-200 mx-auto mb-4" />
+                <p className="text-slate-400 text-sm font-normal">Nenhum morador encontrado.</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -263,11 +313,11 @@ export const Moradores: React.FC = () => {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-slate-500 font-normal tracking-tight">Unidades</span>
-                      <span className="font-medium text-indigo-600">120</span>
+                      <span className="font-medium text-emerald-600">{totalUnits}</span>
                     </div>
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-slate-500 font-normal tracking-tight">Moradores</span>
-                      <span className="font-medium text-indigo-600">342</span>
+                      <span className="font-medium text-emerald-600">{totalResidents}</span>
                     </div>
                   </div>
                </div>

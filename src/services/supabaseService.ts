@@ -9,6 +9,8 @@ export interface Profile {
   condominio_id: string;
   role: 'resident' | 'admin' | 'syndic' | 'global_admin' | 'morador' | 'sindico' | 'administrador' | 'admin_global';
   unit: string;
+  building?: string;
+  phone?: string;
   avatar_url?: string;
 }
 
@@ -211,6 +213,48 @@ export const ProfileService = {
 
     if (error) throw error;
     return data as Profile;
+  },
+
+  async getCondoResidents(condoId: string): Promise<Profile[]> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('condominio_id', condoId)
+      .order('full_name', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching condo residents:', error);
+      return [];
+    }
+    return data as Profile[];
+  },
+
+  async createProfile(profile: Partial<Profile>) {
+    const insertData = { ...profile };
+    if (!insertData.id) {
+      insertData.id = crypto.randomUUID();
+    }
+    
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert([insertData])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("[ProfileService] Create error:", error.message, error.details);
+      throw error;
+    }
+    return data as Profile;
+  },
+
+  async deleteProfile(userId: string) {
+    const { error } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', userId);
+
+    if (error) throw error;
   }
 };
 
@@ -246,6 +290,68 @@ export const BoletoService = {
     }
 
     return data as Boleto;
+  },
+
+  async getCondoBoletos(condoId: string): Promise<Boleto[]> {
+    const { data, error } = await supabase
+      .from('boletos')
+      .select('*')
+      .eq('condominio_id', condoId)
+      .order('due_date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching condo boletos:', error);
+      return [];
+    }
+    return data as Boleto[];
+  },
+
+  async createBoleto(boleto: Omit<Boleto, 'id' | 'created_at'>) {
+    const insertData: any = {
+      ...boleto,
+      created_at: new Date().toISOString()
+    };
+    
+    // Se não houver user_id (cadastro geral por admin), removemos para o Supabase ignorar
+    if (!boleto.user_id) {
+       delete insertData.user_id;
+    }
+
+    const { data, error } = await supabase
+      .from('boletos')
+      .insert([insertData])
+      .select()
+      .maybeSingle();
+
+    if (error) {
+      console.error("[BoletoService] Error creating boleto:", error.message, error.details);
+      throw error;
+    }
+    return data as Boleto;
+  },
+
+  async updateBoleto(id: string, updates: Partial<Boleto>) {
+    const { data, error } = await supabase
+      .from('boletos')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .maybeSingle();
+
+    if (error) {
+       console.error("[BoletoService] Error updating boleto:", error.message, error.details);
+       throw error;
+    }
+    return data as Boleto;
+  },
+
+  async deleteBoleto(id: string) {
+    const { error } = await supabase
+      .from('boletos')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
   }
 };
 
@@ -262,7 +368,6 @@ export const AnnouncementService = {
       console.error('Error fetching announcements:', error);
       return [];
     }
-
     return data as Comunicado[];
   },
 
@@ -280,26 +385,67 @@ export const AnnouncementService = {
     return data as Comunicado[];
   },
 
-  async createAnnouncement(announcement: Omit<Comunicado, 'id' | 'created_at'>) {
+  async createAnnouncement(comunicado: any) {
+    return ComunicadoService.createComunicado(comunicado);
+  },
+
+  async updateAnnouncement(id: string, updates: any) {
+    return ComunicadoService.updateComunicado(id, updates);
+  },
+
+  async deleteAnnouncement(id: string) {
+    return ComunicadoService.deleteAnnouncement(id);
+  }
+};
+
+export const ComunicadoService = {
+  async createComunicado(comunicado: any) {
+    // Mapeia para as colunas reais do banco (author_id, title, content)
+    const dbComunicado: any = {
+      condominio_id: comunicado.condominio_id,
+      title: comunicado.title,
+      content: comunicado.content,
+      created_at: new Date().toISOString()
+    };
+
+    // Se tivermos o ID do usuário (author_id), usamos. Caso contrário, tentamos manter o autor se a coluna existir
+    if (comunicado.author_id) {
+       dbComunicado.author_id = comunicado.author_id;
+    }
+
     const { data, error } = await supabase
       .from('comunicados')
-      .insert([{
-        ...announcement,
-        author_id: (announcement as any).author_id,
-        user_id: (announcement as any).user_id,
-        created_at: new Date().toISOString()
-      }])
+      .insert([dbComunicado])
       .select()
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      console.error("[ComunicadoService] Create error:", error.message, error.details);
+      // Se o erro for de coluna inexistente (author_id), tenta o básico apenas com title/content
+      if (error.message?.includes('author_id')) {
+         const { author_id, ...minimalDoc } = dbComunicado;
+         const { data: d2, error: e2 } = await supabase
+           .from('comunicados')
+           .insert([minimalDoc])
+           .select()
+           .maybeSingle();
+         if (e2) throw e2;
+         return d2 as Comunicado;
+      }
+      throw error;
+    }
     return data as Comunicado;
   },
 
-  async updateAnnouncement(id: string, updates: Partial<Comunicado>) {
+  async updateComunicado(id: string, updates: any) {
+    const dbUpdates: any = {
+      title: updates.title,
+      content: updates.content
+    };
+
     const { data, error } = await supabase
       .from('comunicados')
-      .update(updates)
+      .update(dbUpdates)
       .eq('id', id)
       .select()
       .single();
@@ -1024,6 +1170,69 @@ export const DocumentoService = {
   }
 };
 
+export interface FinanceiroRecord {
+  id: string;
+  condominio_id: string;
+  nome: string;
+  valor: number;
+  origem: string;
+  observacao?: string;
+  created_at: string;
+}
+
+// --- Services ---
+
+export const FinanceiroService = {
+  async getCondoExpenses(condoId: string): Promise<FinanceiroRecord[]> {
+    const { data, error } = await supabase
+      .from('financeiro')
+      .select('*')
+      .eq('condominio_id', condoId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching condo expenses:', error);
+      return [];
+    }
+    return data as FinanceiroRecord[];
+  },
+
+  async createExpense(expense: Omit<FinanceiroRecord, 'id' | 'created_at'>) {
+    const { data, error } = await supabase
+      .from('financeiro')
+      .insert([{
+        ...expense,
+        created_at: new Date().toISOString()
+      }])
+      .select()
+      .maybeSingle();
+
+    if (error) throw error;
+    return data as FinanceiroRecord;
+  },
+
+  async updateExpense(id: string, updates: Partial<FinanceiroRecord>) {
+    const { data, error } = await supabase
+      .from('financeiro')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .maybeSingle();
+
+    if (error) throw error;
+    return data as FinanceiroRecord;
+  },
+
+  async deleteExpense(id: string) {
+    const { error } = await supabase
+      .from('financeiro')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+};
+
 export const CondominioService = {
   async getAllCondominios(): Promise<Condominio[]> {
     const { data, error } = await supabase
@@ -1052,7 +1261,6 @@ export const CondominioService = {
 
     if (error) {
       console.error("[CondominioService] Insert error:", error.message, error.details);
-      // Fallback: se o erro for coluna inexistente, tenta o básico
       const missingColumns = ['syndic_name', 'syndic_phone', 'address', 'cnpj', 'status'];
       if (missingColumns.some(col => error.message?.includes(col))) {
          console.warn("[CondominioService] Columns missing, retrying minimal insert...");
@@ -1085,7 +1293,6 @@ export const CondominioService = {
 
     if (error) {
       console.error("[CondominioService] Update error:", error.message, error.details);
-       // Fallback se colunas novas faltarem
        const missingColumns = ['syndic_name', 'syndic_phone', 'address', 'cnpj', 'status'];
        if (missingColumns.some(col => error.message?.includes(col))) {
           console.warn("[CondominioService] Columns missing on update, retrying basic update...");

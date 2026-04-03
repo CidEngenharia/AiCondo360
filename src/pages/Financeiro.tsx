@@ -1,105 +1,120 @@
-import React, { useState, useMemo } from 'react';
-import {
-  CreditCard, Landmark, Receipt, TrendingUp, TrendingDown, DollarSign,
-  Plus, X, FileText, Download, ChevronRight, Droplets, Zap, Building2,
-  Wrench, Waves, MoreHorizontal, Calendar, Filter, Trash2
+import React, { useState, useMemo, useEffect } from 'react';
+import { 
+  DollarSign, 
+  TrendingUp, 
+  TrendingDown, 
+  Calendar, 
+  Filter, 
+  Plus,
+  FileText,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  Download,
+  Search,
+  MoreVertical,
+  ChevronRight,
+  ArrowUpRight,
+  ArrowDownRight,
+  Building2,
+  Wallet,
+  CreditCard,
+  PieChart,
+  ExternalLink,
+  RefreshCcw,
+  X,
+  Trash2,
+  Eye,
+  BarChart3,
+  Pencil
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { FinanceiroService, BoletoService } from '../services/supabaseService';
 import { useAuth } from '../contexts/AuthContext';
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-type ExpenseOrigin =
-  | 'Água'
-  | 'Luz'
-  | 'Condomínio'
-  | 'Manutenção Predial'
-  | 'Manutenção da Piscina'
-  | 'Outros';
+// --- Types ---
+type FinanceiroTab = 'geral' | 'boletos' | 'relatorios';
 
-interface Despesa {
+interface DespesaItem {
   id: string;
   nome: string;
   valor: number;
-  origem: ExpenseOrigin;
+  origem: 'manutencao' | 'limpeza' | 'seguranca' | 'utilitarios' | 'pessoal' | 'outros';
   observacao: string;
-  file_url?: string;
   created_at: string;
 }
 
-interface IBoleto {
+interface BoletoItem {
   id: string;
   nome: string;
   valor: number;
   vencimento: string;
-  status: 'pendente' | 'pago' | 'atrasado';
-  alerta: boolean;
+  status: 'paid' | 'pending' | 'overdue' | 'pago' | 'pendente' | 'atrasado';
+  alerta?: boolean;
   created_at: string;
 }
-
-// ─── Constants ───────────────────────────────────────────────────────────────
-const ORIGENS: { label: ExpenseOrigin; icon: React.ElementType; color: string }[] = [
-  { label: 'Água',                 icon: Droplets,  color: 'bg-cyan-500/10 text-cyan-500' },
-  { label: 'Luz',                  icon: Zap,       color: 'bg-yellow-500/10 text-yellow-500' },
-  { label: 'Condomínio',           icon: Building2, color: 'bg-blue-500/10 text-blue-500' },
-  { label: 'Manutenção Predial',   icon: Wrench,    color: 'bg-orange-500/10 text-orange-500' },
-  { label: 'Manutenção da Piscina',icon: Waves,     color: 'bg-teal-500/10 text-teal-500' },
-  { label: 'Outros',               icon: MoreHorizontal, color: 'bg-slate-500/10 text-slate-500' },
-];
 
 const EMPTY_FORM = {
   activeTab: 'despesa' as 'despesa' | 'boleto',
   nome: '',
   valor: '',
-  origem: 'Condomínio' as ExpenseOrigin,
-  observacao: '',
-  vencimento: new Date().toISOString().split('T')[0],
-  alerta: true
+  vencimento: format(new Date(), 'yyyy-MM-dd'),
+  origem: 'manutencao' as DespesaItem['origem'],
+  observacao: ''
 };
 
-// ─── Helper ───────────────────────────────────────────────────────────────────
 const fmt = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
-const filterByDays = (items: Despesa[], days: number) => {
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - days);
-  return items.filter(d => new Date(d.created_at) >= cutoff);
-};
-
-const originInfo = (o: ExpenseOrigin) =>
-  ORIGENS.find(r => r.label === o) ?? ORIGENS[ORIGENS.length - 1];
-
-// ─── Component ────────────────────────────────────────────────────────────────
+// --- Component ---
 const FinanceiroPage: React.FC = () => {
   const { user } = useAuth();
-
-  // modal
+  const [activeTab, setActiveTab] = useState<FinanceiroTab>('geral');
+  const [boletos, setBoletos] = useState<BoletoItem[]>([]);
+  const [despesas, setDespesas] = useState<DespesaItem[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<{type: 'despesa' | 'boleto', id: string} | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
-
-  // listas locais
-  const [despesas, setDespesas] = useState<Despesa[]>([]);
-  const [boletos, setBoletos] = useState<IBoleto[]>([]);
-
-  // relatório
-  const [reportDays, setReportDays] = useState<7 | 15 | null>(null);
-  const [boletoReportFilter, setBoletoReportFilter] = useState<7 | 15 | null>(null);
+  const [reportDays, setReportDays] = useState(7);
 
   // ── Computed ──────────────────────────────────────────────────────────────
   const totalGasto = useMemo(() => despesas.reduce((s, d) => s + d.valor, 0), [despesas]);
 
-  const reportItems = useMemo(
-    () => (reportDays ? filterByDays(despesas, reportDays) : despesas),
-    [despesas, reportDays]
-  );
+  // Dados combinados para relatórios
+  const reportItems = useMemo(() => {
+    return [
+      ...despesas,
+      ...boletos.map(b => ({
+        id: b.id,
+        nome: b.nome,
+        valor: b.valor,
+        origem: 'outros' as const,
+        observacao: `Boleto - Status: ${b.status}`,
+        created_at: b.created_at
+      }))
+    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [despesas, boletos]);
 
   const reportTotal = useMemo(
     () => reportItems.reduce((s, d) => s + d.valor, 0),
     [reportItems]
   );
 
-  // agrupamento por origem para sumário
+  const stats = useMemo(() => {
+    const totalBoletos = boletos.reduce((acc, b) => acc + b.valor, 0);
+    const pendentes = boletos.filter(b => b.status === 'pending' || b.status === 'pendente').length;
+    
+    return {
+      total: totalBoletos + totalGasto,
+      boletos: totalBoletos,
+      despesas: totalGasto,
+      pendentes
+    };
+  }, [boletos, totalGasto]);
+
   const byOrigin = useMemo(() => {
     const acc: Record<string, number> = {};
     reportItems.forEach(d => {
@@ -108,555 +123,359 @@ const FinanceiroPage: React.FC = () => {
     return Object.entries(acc).sort((a, b) => b[1] - a[1]);
   }, [reportItems]);
 
+  // ── Fetching ──────────────────────────────────────────────────────────────
+  const fetchData = async () => {
+    if (!user?.condoId) return;
+    try {
+      const [b, e] = await Promise.all([
+        BoletoService.getCondoBoletos(user.condoId),
+        FinanceiroService.getCondoExpenses(user.condoId)
+      ]);
+      
+      setBoletos(b.map(x => ({
+          id: x.id,
+          nome: x.barcode || 'Boleto Geral',
+          valor: Number(x.amount),
+          vencimento: x.due_date,
+          status: x.status as any,
+          alerta: true,
+          created_at: x.created_at
+      })));
+
+      setDespesas(e.map(x => ({
+          id: x.id,
+          nome: x.nome,
+          valor: x.valor,
+          origem: x.origem as any,
+          observacao: x.observacao || '',
+          created_at: x.created_at
+      })));
+    } catch (err) {
+       console.error("Error fetching financial data:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [user?.condoId]);
+
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.nome.trim() || !form.valor) return;
+    if (!form.nome.trim() || !form.valor || !user?.condoId) return;
 
     setSaving(true);
     try {
-      if (form.activeTab === 'despesa') {
-        const nova: Despesa = {
-          id: crypto.randomUUID(),
-          nome: form.nome.trim(),
-          valor: parseFloat(form.valor.replace(',', '.')),
-          origem: form.origem,
-          observacao: form.observacao.trim(),
-          created_at: new Date().toISOString(),
-        };
-        setDespesas(prev => [nova, ...prev]);
+      const dueDate = new Date(form.vencimento);
+      const monthYear = format(dueDate, "MM/yyyy");
+
+      if (editingRecord) {
+        if (editingRecord.type === 'despesa') {
+          await FinanceiroService.updateExpense(editingRecord.id, {
+            nome: form.nome.trim(),
+            valor: parseFloat(String(form.valor).replace(',', '.')),
+            origem: form.origem,
+            observacao: form.observacao.trim()
+          });
+        } else {
+          await BoletoService.updateBoleto(editingRecord.id, {
+            amount: parseFloat(String(form.valor).replace(',', '.')),
+            due_date: form.vencimento,
+            barcode: form.nome.trim(),
+            month: monthYear
+          });
+        }
       } else {
-        const novo: IBoleto = {
-          id: crypto.randomUUID(),
-          nome: form.nome.trim(),
-          valor: parseFloat(form.valor.replace(',', '.')),
-          vencimento: form.vencimento,
-          status: 'pendente',
-          alerta: form.alerta,
-          created_at: new Date().toISOString(),
-        };
-        setBoletos(prev => [novo, ...prev]);
+        if (form.activeTab === 'despesa') {
+          await FinanceiroService.createExpense({
+            condominio_id: user.condoId,
+            nome: form.nome.trim(),
+            valor: parseFloat(String(form.valor).replace(',', '.')),
+            origem: form.origem,
+            observacao: form.observacao.trim()
+          });
+        } else {
+          await BoletoService.createBoleto({
+            condominio_id: user.condoId,
+            user_id: null as any, 
+            amount: parseFloat(String(form.valor).replace(',', '.')),
+            due_date: form.vencimento,
+            status: 'pending',
+            barcode: form.nome.trim(),
+            month: monthYear
+          });
+        }
       }
+      await fetchData();
       setForm(EMPTY_FORM);
       setIsModalOpen(false);
+      setEditingRecord(null);
+    } catch (err: any) {
+       console.error("Error saving financial record:", err);
+       alert(`Erro ao salvar dados financeiros: ${err.message || 'Erro desconhecido'}`);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleExportBoletoReport = (days: 7 | 15) => {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() + days);
-    
-    const filtered = boletos.filter(b => {
-      const dv = new Date(b.vencimento);
-      return dv <= cutoff && dv >= new Date() && b.status === 'pendente';
+  const handleEdit = (type: 'despesa' | 'boleto', record: any) => {
+    setEditingRecord({ type, id: record.id });
+    setForm({
+      nome: type === 'despesa' ? record.nome : record.barcode,
+      valor: type === 'despesa' ? record.valor : record.amount,
+      vencimento: type === 'despesa' ? new Date().toISOString().split('T')[0] : record.due_date,
+      origem: type === 'despesa' ? record.origem : 'Outros',
+      observacao: type === 'despesa' ? record.observacao : '',
+      activeTab: type
     });
-
-    if (filtered.length === 0) {
-      alert(`Nenhum boleto a vencer nos próximos ${days} dias.`);
-      return;
-    }
-
-    const rows = [
-      ['Boleto', 'Valor', 'Vencimento', 'Status'],
-      ...filtered.map(b => [
-        b.nome,
-        fmt(b.valor),
-        new Date(b.vencimento).toLocaleDateString('pt-BR'),
-        b.status
-      ])
-    ];
-
-    const csv = rows.map(r => r.map(c => `"${c}"`).join(';')).join('\n');
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `boletos_vencimento_${days}_dias.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Excluir esta despesa?')) {
-      setDespesas(prev => prev.filter(d => d.id !== id));
+  const handleDelete = async (type: 'despesa' | 'boleto', id: string) => {
+    if (!confirm('Deseja realmente excluir este registro?')) return;
+    try {
+      if (type === 'despesa') await FinanceiroService.deleteExpense(id);
+      else await BoletoService.deleteBoleto(id);
+      fetchData();
+    } catch (err) {
+      alert('Erro ao excluir.');
     }
   };
 
-  const handleExportCSV = () => {
-    const rows = [
-      ['Nome', 'Origem', 'Valor', 'Observação', 'Data'],
-      ...reportItems.map(d => [
-        d.nome,
-        d.origem,
-        d.valor.toFixed(2).replace('.', ','),
-        d.observacao,
-        new Date(d.created_at).toLocaleDateString('pt-BR'),
-      ]),
-    ];
-    const csv = rows.map(r => r.map(c => `"${c}"`).join(';')).join('\n');
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `relatorio_despesas_${reportDays ?? 'total'}_dias.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="p-4 sm:p-6 lg:p-10 space-y-8 min-h-screen bg-slate-50/50 dark:bg-slate-950/50">
-
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-600 rounded-full text-xs font-bold uppercase tracking-wider mb-3">
-            <DollarSign size={13} />
-            Gestão Financeira
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 md:p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        
+        {/* Header Section */}
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-indigo-600 rounded-2xl text-white shadow-lg">
+                <Wallet size={20} />
+              </div>
+              <h1 className="text-xl font-medium text-slate-800 dark:text-white tracking-tight">Financeiro</h1>
+            </div>
+            <p className="text-xs text-slate-500 font-normal">Gestão inteligente de contas e despesas</p>
           </div>
-          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Controle <span className="text-emerald-500">Financeiro</span>
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">
-            Gerencie despesas, boletos e gere relatórios do condomínio.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => { setForm({...EMPTY_FORM, activeTab: 'boleto'}); setIsModalOpen(true); }}
-            className="flex items-center gap-2 px-5 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-2xl text-sm font-bold transition-all shadow-lg shadow-indigo-500/25 active:scale-95"
-          >
-            <Calendar size={18} />
-            Novo Boleto
-          </button>
-          <button
-            onClick={() => { setForm({...EMPTY_FORM, activeTab: 'despesa'}); setIsModalOpen(true); }}
-            className="flex items-center gap-2 px-5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl text-sm font-bold transition-all shadow-lg shadow-emerald-500/25 active:scale-95"
+
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-5 py-3 rounded-2xl font-medium transition-all shadow-md hover:translate-y-[-1px] active:translate-y-[0px] text-sm"
           >
             <Plus size={18} />
-            Lançar Despesa
+            Lançar Novo
           </button>
-        </div>
-      </div>
+        </header>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Total de Despesas', value: fmt(totalGasto), icon: TrendingDown, color: 'bg-rose-500' },
-          { label: 'Registros', value: `${despesas.length} lançamentos`, icon: Receipt, color: 'bg-blue-500' },
-          { label: 'Últimos 7 dias', value: fmt(filterByDays(despesas, 7).reduce((s, d) => s + d.valor, 0)), icon: Calendar, color: 'bg-amber-500' },
-          { label: 'Últimos 15 dias', value: fmt(filterByDays(despesas, 15).reduce((s, d) => s + d.valor, 0)), icon: Landmark, color: 'bg-indigo-500' },
-        ].map((stat, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.07 }}
-            className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm"
-          >
-            <div className="flex items-center gap-4">
-              <div className={`${stat.color} p-3 rounded-xl text-white shadow`}>
-                <stat.icon size={20} />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{stat.label}</p>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-0.5">{stat.value}</h3>
-              </div>
+        {/* Dashboard Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm relative group">
+            <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1">Balanço Total</p>
+            <h3 className="text-lg font-medium text-slate-800 dark:text-white">{fmt(stats.total)}</h3>
+            <div className="mt-2 flex items-center gap-1.5 text-indigo-500">
+              <TrendingUp size={14} />
+              <span className="text-[10px] font-medium uppercase tracking-tight">Recursos Ativos</span>
             </div>
           </motion.div>
-        ))}
-      </div>
 
-      {/* Relatórios rápidos + Lista */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* Lista de despesas */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4 flex-wrap">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">Últimas Movimentações</h2>
-            <div className="flex items-center gap-2">
-              {([null, 7, 15] as const).map(d => (
-                <button
-                  key={String(d)}
-                  onClick={() => setReportDays(d)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                    reportDays === d
-                      ? 'bg-emerald-500 text-white shadow'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200'
-                  }`}
-                >
-                  {d === null ? 'Tudo' : `${d} dias`}
-                </button>
-              ))}
-              {reportItems.length > 0 && (
-                <button
-                  onClick={handleExportCSV}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 transition-all"
-                >
-                  <Download size={13} />
-                  CSV
-                </button>
-              )}
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="p-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+            <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1">Despesas Fixas</p>
+            <h3 className="text-lg font-medium text-rose-500">{fmt(stats.despesas)}</h3>
+            <div className="mt-2 text-rose-400 text-[10px] font-medium flex items-center gap-1">
+              <TrendingDown size={14} />
+              {despesas.length} REGISTROS
             </div>
-          </div>
+          </motion.div>
 
-          {reportItems.length === 0 ? (
-            <div className="p-16 text-center">
-              <DollarSign size={48} className="mx-auto mb-4 text-slate-200 dark:text-slate-700" />
-              <p className="font-medium text-slate-400 dark:text-slate-500">
-                Nenhuma despesa registrada {reportDays ? `nos últimos ${reportDays} dias` : ''}.
-              </p>
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="mt-4 px-5 py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-bold hover:bg-emerald-600 transition-all"
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="p-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+            <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1">Contas (Boletos)</p>
+            <h3 className="text-lg font-medium text-amber-500">{fmt(stats.boletos)}</h3>
+            <div className="mt-2 text-amber-500 text-[10px] font-medium flex items-center gap-1">
+              <Clock size={14} />
+              {stats.pendentes} PENDENTES
+            </div>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="p-5 bg-indigo-600 rounded-3xl shadow-lg shadow-indigo-200 dark:shadow-none">
+            <p className="text-[10px] font-medium text-indigo-100 uppercase tracking-widest mb-1">Saldo Líquido</p>
+            <h3 className="text-lg font-medium text-white">{fmt(stats.total * -0.8)}</h3>
+            <div className="mt-2 text-indigo-100 text-[10px] font-medium flex items-center gap-1">
+              <CheckCircle2 size={14} />
+              DISPONÍVEL
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Tabs Control */}
+        <div className="flex p-1 bg-slate-200/50 dark:bg-slate-800/50 rounded-2xl w-fit border border-white/10 mt-4">
+          {(['geral', 'boletos', 'relatorios'] as FinanceiroTab[]).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-1.5 rounded-xl font-medium text-[11px] uppercase transition-all ${
+                activeTab === tab 
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Content Section */}
+        <div className="mt-6">
+          <AnimatePresence mode="wait">
+            {activeTab === 'geral' && (
+              <motion.div 
+                key="geral" 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                className="grid grid-cols-1 lg:grid-cols-3 gap-6"
               >
-                + Lançar primeiro
-              </button>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-50 dark:divide-slate-800">
-              <AnimatePresence>
-                {reportItems.map((d) => {
-                  const info = originInfo(d.origem);
-                  return (
-                    <motion.div
-                      key={d.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 10 }}
-                      className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group"
-                    >
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${info.color}`}>
-                        <info.icon size={18} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{d.nome}</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">{d.origem} · {new Date(d.created_at).toLocaleDateString('pt-BR')}</p>
-                        {d.observacao && <p className="text-[11px] text-slate-500 truncate mt-0.5 italic">"{d.observacao}"</p>}
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-sm font-bold text-rose-500">- {fmt(d.valor)}</p>
-                      </div>
-                      <button
-                        onClick={() => handleDelete(d.id)}
-                        className="opacity-0 group-hover:opacity-100 p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
-              <div className="px-5 py-4 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total do período</span>
-                <span className="text-base font-black text-rose-500">{fmt(reportTotal)}</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Painel lateral: sumário e relatórios */}
-        <div className="space-y-6">
-
-          {/* Sumário por origem */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4">Por Categoria</h2>
-            {byOrigin.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-4">Nenhuma despesa ainda.</p>
-            ) : (
-              <div className="space-y-3">
-                {byOrigin.map(([origem, valor]) => {
-                  const info = originInfo(origem as ExpenseOrigin);
-                  const pct = reportTotal > 0 ? (valor / reportTotal) * 100 : 0;
-                  return (
-                    <div key={origem}>
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-6 h-6 rounded-lg flex items-center justify-center ${info.color}`}>
-                            <info.icon size={12} />
-                          </div>
-                          <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{origem}</span>
+                <div className="lg:col-span-1 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                  <h4 className="font-medium text-sm text-slate-800 dark:text-white mb-6 uppercase tracking-tight">Origem das Despesas</h4>
+                  <div className="space-y-4">
+                    {byOrigin.map(([org, val]) => (
+                      <div key={org}>
+                        <div className="flex justify-between text-[10px] font-medium uppercase text-slate-400 mb-1">
+                          <span>{org}</span>
+                          <span className="text-slate-700 dark:text-white">{fmt(val)}</span>
                         </div>
-                        <span className="text-xs font-bold text-slate-800 dark:text-white">{fmt(valor)}</span>
+                        <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-indigo-500 rounded-full"
+                            style={{ width: `${(val / totalGasto) * 100}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Relatórios Rápidos Financeiro */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4">Relatórios de Despesas</h2>
-            <div className="space-y-2">
-              {[7, 15].map(days => (
-                <button
-                  key={days}
-                  onClick={() => { setReportDays(days as any); handleExportCSV(); }}
-                  className="w-full text-left p-4 rounded-xl border border-slate-100 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200 transition-all flex items-center justify-between group"
-                >
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-emerald-600">Últimos {days} dias</h4>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Baixar movimentações recentes</p>
+                    ))}
                   </div>
-                  <Download size={14} className="text-slate-300 group-hover:text-emerald-500" />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Relatórios de Vencimento de Boletos */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5 border-l-4 border-l-indigo-500">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white mb-1">Vencimentos</h2>
-            <p className="text-[10px] text-slate-400 mb-4 uppercase font-bold tracking-widest">Próximos Boletos</p>
-            <div className="space-y-2">
-              {[7, 15].map(days => (
-                <button
-                  key={days}
-                  onClick={() => handleExportBoletoReport(days as any)}
-                  className="w-full text-left p-4 rounded-xl border border-slate-100 dark:border-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/10 hover:border-indigo-200 transition-all flex items-center justify-between group"
-                >
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600">Vencer em {days} dias</h4>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Gerar lista de pagamentos</p>
-                  </div>
-                  <Download size={14} className="text-slate-300 group-hover:text-indigo-500" />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Lista de Boletos Cadastrados */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden mt-8">
-        <div className="p-5 border-b border-slate-100 dark:border-slate-800">
-           <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-             <Calendar size={18} className="text-indigo-500" />
-             Boletos Registrados
-           </h2>
-        </div>
-        {boletos.length === 0 ? (
-          <div className="p-12 text-center text-slate-400">Nenhum boleto cadastrado no momento.</div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 divide-x divide-y divide-slate-50 dark:divide-slate-800">
-            {boletos.map(b => {
-              const dv = new Date(b.vencimento);
-              const hoje = new Date();
-              const diffTime = dv.getTime() - hoje.getTime();
-              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-              const isUrgent = diffDays <= 3 && b.status === 'pendente';
-
-              return (
-                <div key={b.id} className={`p-5 transition-all hover:bg-slate-50 dark:hover:bg-slate-800/30 relative overflow-hidden group`}>
-                  {isUrgent && <div className="absolute top-0 right-0 w-20 h-20 bg-rose-500/10 rotate-45 translate-x-10 -translate-y-10" />}
-                  <div className="flex justify-between items-start mb-3">
-                    <h4 className="font-bold text-slate-800 dark:text-white truncate pr-8">{b.nome}</h4>
-                    {b.alerta && isUrgent && (
-                      <span className="flex h-2 w-2 relative">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xl font-black text-indigo-600 dark:text-indigo-400 mb-4">{fmt(b.valor)}</p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-[11px] text-slate-400 font-bold uppercase tracking-wider">
-                      <Calendar size={12} />
-                      {dv.toLocaleDateString('pt-BR')}
-                    </div>
-                    {isUrgent ? (
-                      <span className="text-[10px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-900/20 px-2 py-1 rounded-md uppercase tracking-tighter">Vence em {diffDays} dias</span>
-                    ) : (
-                      <span className="text-[10px] font-medium text-slate-400 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-md uppercase">Pendente</span>
-                    )}
-                  </div>
-                  
-                  <button 
-                    onClick={() => setBoletos(prev => prev.filter(x => x.id !== b.id))}
-                    className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-rose-500 transition-all"
-                  >
-                    <Trash2 size={14} />
-                  </button>
                 </div>
-              );
-            })}
-          </div>
-        )}
+
+                <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                  <div className="flex items-center justify-between mb-6">
+                    <h4 className="font-medium text-sm text-slate-800 dark:text-white uppercase tracking-tight">Últimos Lançamentos</h4>
+                    <button className="text-[10px] font-medium text-indigo-500 uppercase tracking-widest">Ver todos</button>
+                  </div>
+                  <div className="divide-y divide-slate-50 dark:divide-slate-800">
+                    {reportItems.slice(0, 6).map(item => (
+                      <div key={item.id} className="flex items-center justify-between py-3 group">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 group-hover:scale-105 transition-transform">
+                            {item.origem === 'outros' ? <CreditCard size={14} className="text-amber-500" /> : <TrendingDown size={14} className="text-rose-400" />}
+                          </div>
+                          <div>
+                            <p className="text-sm font-normal text-slate-700 dark:text-white">{item.nome}</p>
+                            <p className="text-[10px] text-slate-400 uppercase">{format(new Date(item.created_at), 'dd/MM/yyyy')}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                           <span className="text-sm font-medium text-slate-800 dark:text-white">{fmt(item.valor)}</span>
+                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => handleEdit(item.origem === 'outros' ? 'boleto' : 'despesa', item)} className="p-1.5 text-slate-400 hover:text-indigo-500"><Pencil size={12}/></button>
+                              <button onClick={() => handleDelete(item.origem === 'outros' ? 'boleto' : 'despesa', item.id)} className="p-1.5 text-slate-400 hover:text-rose-500"><Trash2 size={12}/></button>
+                           </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'boletos' && (
+              <motion.div key="boletos" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {boletos.map(boleto => (
+                  <div key={boleto.id} className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm relative group">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                        <FileText className="text-amber-500" size={18} />
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-lg text-[9px] font-medium uppercase ${
+                        boleto.status === 'paid' || boleto.status === 'pago' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                      }`}>
+                        {boleto.status === 'paid' || boleto.status === 'pago' ? 'Pago' : 'Pendente'}
+                      </span>
+                    </div>
+                    <h5 className="text-sm font-medium text-slate-800 dark:text-white mb-1">{boleto.nome}</h5>
+                    <p className="text-[10px] text-slate-400">Vencimento: {format(new Date(boleto.vencimento), 'dd/MM/yyyy')}</p>
+                    <div className="mt-4 flex items-center justify-between border-t border-slate-50 dark:border-slate-800 pt-3">
+                      <span className="text-md font-medium text-slate-800 dark:text-white">{fmt(boleto.valor)}</span>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                         <button onClick={() => handleEdit('boleto', boleto)} className="p-1.5 text-slate-400 hover:text-indigo-500"><Pencil size={14}/></button>
+                         <button onClick={() => handleDelete('boleto', boleto.id)} className="p-1.5 text-slate-400 hover:text-rose-500"><Trash2 size={14}/></button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
-      {/* ─── Modal de Lançamento ─────────────────────────────────────────────── */}
+      {/* Cadastro Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsModalOpen(false)}
-              className="absolute inset-0 bg-slate-950/40 backdrop-blur-md"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
-            >
-              {/* Header do modal */}
-              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 ${form.activeTab === 'despesa' ? 'bg-emerald-500/10' : 'bg-indigo-500/10'} rounded-2xl flex items-center justify-center transition-colors`}>
-                    {form.activeTab === 'despesa' ? <TrendingDown size={20} className="text-emerald-500" /> : <Calendar size={20} className="text-indigo-500" />}
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-black text-slate-900 dark:text-white">
-                      {form.activeTab === 'despesa' ? 'Lançar Despesa' : 'Cadastrar Boleto'}
-                    </h2>
-                    <p className="text-xs text-slate-400">
-                      {form.activeTab === 'despesa' ? 'Registre uma nova saída financeira' : 'Agende um pagamento futuro'}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <form onSubmit={handleSave} className="p-6 space-y-5">
-
-                {/* Nome do Registro */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
-                    {form.activeTab === 'despesa' ? 'Nome da Despesa *' : 'Nome do Boleto *'}
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder={form.activeTab === 'despesa' ? "Ex: Conta de água" : "Ex: Manutenção Elevador"}
-                    value={form.nome}
-                    onChange={e => setForm({ ...form, nome: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-emerald-500/20 font-medium dark:text-white transition-all"
-                  />
-                </div>
-
-                {/* Valor + Dinâmico (Origem ou Vencimento) */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Valor (R$) *</label>
-                    <input
-                      type="number"
-                      required
-                      min="0.01"
-                      step="0.01"
-                      placeholder="0,00"
-                      value={form.valor}
-                      onChange={e => setForm({ ...form, valor: e.target.value })}
-                      className={`w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 ${form.activeTab === 'despesa' ? 'focus:ring-emerald-500/20' : 'focus:ring-indigo-500/20'} font-medium dark:text-white transition-all`}
-                    />
-                  </div>
-                  {form.activeTab === 'despesa' ? (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { setIsModalOpen(false); setEditingRecord(null); }} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+             <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="bg-white dark:bg-slate-900 w-full max-w-[380px] rounded-3xl overflow-hidden shadow-2xl relative border border-white/20">
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-6">
                     <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Origem *</label>
-                      <select
-                        value={form.origem}
-                        onChange={e => setForm({ ...form, origem: e.target.value as ExpenseOrigin })}
-                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-emerald-500/20 font-medium dark:text-white transition-all appearance-none cursor-pointer"
-                      >
-                        {ORIGENS.map(o => (
-                          <option key={o.label} value={o.label}>{o.label}</option>
-                        ))}
-                      </select>
+                      <h3 className="text-md font-medium text-slate-800 dark:text-white tracking-tight">{editingRecord ? 'Editar' : 'Lançar Novo'}</h3>
+                      <p className="text-[10px] text-slate-500">Dados financeiros do condomínio</p>
                     </div>
-                  ) : (
-                    <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Vencimento *</label>
-                      <input
-                        type="date"
-                        required
-                        value={form.vencimento}
-                        onChange={e => setForm({ ...form, vencimento: e.target.value })}
-                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-indigo-500/20 font-medium dark:text-white transition-all cursor-pointer"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {form.activeTab === 'boleto' && (
-                  <div className="flex items-center justify-between p-4 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300 rounded-xl">
-                    <div className="flex items-center gap-2">
-                      <Zap size={16} />
-                      <span className="text-xs font-bold">Ativar Alerta de Vencimento</span>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        className="sr-only peer" 
-                        checked={form.alerta} 
-                        onChange={e => setForm({...form, alerta: e.target.checked})}
-                      />
-                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
-                    </label>
+                    <button onClick={() => { setIsModalOpen(false); setEditingRecord(null); }} className="text-slate-400 hover:text-slate-600"><X size={18}/></button>
                   </div>
-                )}
 
-                {form.activeTab === 'despesa' && (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Observações</label>
-                    <textarea
-                      rows={2}
-                      placeholder="Detalhes adicionais..."
-                      value={form.observacao}
-                      onChange={e => setForm({ ...form, observacao: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-emerald-500/20 font-medium dark:text-white transition-all resize-none"
-                    />
+                  <div className="flex gap-2 mb-6 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-fit">
+                    <button onClick={() => setForm({...form, activeTab: 'despesa'})} className={`px-4 py-1.5 rounded-lg text-[10px] font-medium uppercase transition-all ${form.activeTab === 'despesa' ? 'bg-white dark:bg-slate-700 text-slate-900 shadow-sm' : 'text-slate-400'}`}>Despesa</button>
+                    <button onClick={() => setForm({...form, activeTab: 'boleto'})} className={`px-4 py-1.5 rounded-lg text-[10px] font-medium uppercase transition-all ${form.activeTab === 'boleto' ? 'bg-white dark:bg-slate-700 text-slate-900 shadow-sm' : 'text-slate-400'}`}>Boleto</button>
                   </div>
-                )}
 
-                {/* Upload de comprovante */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Comprovante / Boleto</label>
-                  <button
-                    type="button"
-                    className="w-full px-4 py-3 bg-indigo-50 dark:bg-indigo-900/10 border-2 border-dashed border-indigo-200 dark:border-indigo-800 rounded-xl flex items-center justify-center gap-3 text-indigo-500 hover:bg-indigo-100 dark:hover:bg-indigo-900/20 transition-all group"
-                  >
-                    <FileText size={18} className="group-hover:scale-110 transition-transform" />
-                    <span className="text-sm font-bold">Anexar PDF / Imagem</span>
-                  </button>
-                  <p className="text-[10px] text-slate-400 mt-1.5 text-center">Upload disponível após integração com Supabase Storage</p>
-                </div>
+                  <form onSubmit={handleSave} className="space-y-4">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-medium text-slate-400 uppercase tracking-widest ml-1">Descrição</label>
+                      <input required value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border-none px-4 py-2.5 rounded-xl text-sm font-normal text-slate-800 dark:text-white focus:ring-1 ring-indigo-500" placeholder="Ex: Manutenção Mensal"/>
+                    </div>
 
-                {/* Ações */}
-                <div className="flex gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-xl font-bold hover:bg-slate-200 transition-all"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className={`flex-[2] py-3 ${form.activeTab === 'despesa' ? 'bg-emerald-500' : 'bg-indigo-500'} text-white rounded-xl font-bold hover:brightness-110 transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2`}
-                  >
-                    {form.activeTab === 'despesa' ? <Plus size={18} /> : <Calendar size={18} />}
-                    {saving ? 'Salvando...' : (form.activeTab === 'despesa' ? 'Registrar Despesa' : 'Cadastrar Boleto')}
-                  </button>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-medium text-slate-400 uppercase tracking-widest ml-1">Valor (R$)</label>
+                        <input required type="number" step="0.01" value={form.valor} onChange={e => setForm({...form, valor: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border-none px-4 py-2.5 rounded-xl text-sm font-normal text-slate-800 dark:text-white focus:ring-1 ring-indigo-500" placeholder="0,00"/>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-medium text-slate-400 uppercase tracking-widest ml-1">Vencimento</label>
+                        <input required type="date" value={form.vencimento} onChange={e => setForm({...form, vencimento: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border-none px-4 py-2.5 rounded-xl text-sm font-normal text-slate-800 dark:text-white focus:ring-1 ring-indigo-500"/>
+                      </div>
+                    </div>
+
+                    {form.activeTab === 'despesa' && (
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-medium text-slate-400 uppercase tracking-widest ml-1">Categoria</label>
+                        <select value={form.origem} onChange={e => setForm({...form, origem: e.target.value as any})} className="w-full bg-slate-50 dark:bg-slate-800 border-none px-4 py-2.5 rounded-xl text-sm font-normal text-slate-800 dark:text-white focus:ring-1 ring-indigo-500">
+                          <option value="manutencao">Manutenção</option>
+                          <option value="limpeza">Limpeza</option>
+                          <option value="seguranca">Segurança</option>
+                          <option value="utilitarios">Utilitários</option>
+                          <option value="outros">Outros</option>
+                        </select>
+                      </div>
+                    )}
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-medium text-slate-400 uppercase tracking-widest ml-1">Observações</label>
+                      <textarea value={form.observacao} onChange={e => setForm({...form, observacao: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border-none px-4 py-2.5 rounded-xl text-xs font-normal text-slate-800 dark:text-white h-20 resize-none" placeholder="Opcional..."/>
+                    </div>
+
+                    <button disabled={saving} type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 mt-2">
+                       {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : (editingRecord ? 'Atualizar' : 'Confirmar')}
+                    </button>
+                  </form>
                 </div>
-              </form>
-            </motion.div>
+             </motion.div>
           </div>
         )}
       </AnimatePresence>

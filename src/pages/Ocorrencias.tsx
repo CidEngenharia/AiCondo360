@@ -227,19 +227,19 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
 
                   <div className="flex items-center justify-between sm:justify-end gap-3 sm:w-auto shrink-0 border-t border-slate-50 dark:border-slate-700/50 pt-4 sm:pt-0 sm:border-t-0 mt-2 sm:mt-0">
                     <div className="flex items-center gap-4 mr-2">
-                      <div className="flex items-center gap-1.5 text-slate-400">
-                        <MessageCircle size={18} />
-                        <span className="text-sm font-medium">{item.messages}</span>
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                        <Eye size={12} className="text-blue-500" />
+                        <span className="text-[10px] font-black text-blue-600">{item.views_count || 12}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-slate-400" title="Mensagens">
+                        <MessageCircle size={18} className="text-indigo-400" />
+                        <span className="text-sm font-black tracking-tighter">
+                          {item.messages || 0}
+                        </span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                       <div className="flex items-center -space-x-1 mr-1">
-                          <div className="w-5 h-5 rounded-full bg-slate-100 border-2 border-white dark:border-slate-800 flex items-center justify-center" title="Visualizado por Síndico">
-                            <UserCircle size={10} className="text-slate-400" />
-                          </div>
-                          <div className="text-[9px] font-bold text-slate-400 ml-2">Visualizado</div>
-                       </div>
                     
                       <button 
                         onClick={(e) => { e.stopPropagation(); setSelectedOccurrence(item); }}
@@ -334,16 +334,16 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
               exit={{ opacity: 0, y: 100 }}
               className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
             >
-              <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                 <div>
-                    <h3 className="text-xl font-bold dark:text-white uppercase tracking-tighter italic">{editingId ? 'Editar Ocorrência' : 'Relatar Ocorrência'}</h3>
-                    <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mt-1">Canal Direto com a Gestão</p>
+                    <h3 className="text-lg font-black dark:text-white uppercase tracking-tighter italic leading-none">{editingId ? 'Editar Registro' : 'Novo Registro'}</h3>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Canal de Gestão</p>
                 </div>
-                <button onClick={() => { setIsNewModalOpen(false); setEditingId(null); setNewTitle(''); setNewDesc(''); setNewStatus('open'); }} className="p-2 bg-slate-50 dark:bg-slate-700 hover:bg-rose-500 hover:text-white rounded-xl transition-all group">
+                <button onClick={() => { setIsNewModalOpen(false); setEditingId(null); setNewTitle(''); setNewDesc(''); setNewStatus('open'); }} className="p-2 transition-all group">
                   <X size={18} className="group-hover:rotate-90 transition-all text-slate-400" />
                 </button>
               </div>
-              <form className="p-6 space-y-4" onSubmit={(e) => { e.preventDefault(); handleCreateNew(); }}>
+              <form className="p-5 space-y-3" onSubmit={(e) => { e.preventDefault(); handleCreateNew(); }}>
                 <div>
                   <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1 px-1">Título do Chamado</label>
                   <input type="text" required value={newTitle} onChange={e => setNewTitle(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all font-bold" placeholder="Resumo do problema" />
@@ -374,8 +374,8 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 px-1">Detalhamento</label>
-                  <textarea value={newDesc} required onChange={e => setNewDesc(e.target.value)} rows={3} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all font-normal resize-none text-xs" placeholder="Conte-nos o que aconteceu..." />
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Detalhamento</label>
+                  <textarea value={newDesc} required onChange={e => setNewDesc(e.target.value)} rows={2} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all font-normal resize-none text-[11px]" placeholder="Conte-nos o que aconteceu..." />
                 </div>
                 <div className="flex gap-3 pt-2">
                     <button 
