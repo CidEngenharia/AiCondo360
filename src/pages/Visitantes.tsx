@@ -155,13 +155,13 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
        <div className="flex justify-end gap-2 mb-4">
           <button 
             onClick={() => setShowReportModal({show: true, days: 7})}
-            className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-sky-600 flex items-center gap-1 transition-colors px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full"
+            className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 hover:text-sky-600 flex items-center gap-1 transition-colors px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full"
           >
               <FileText size={12} /> Relatório 7 Dias
           </button>
           <button 
             onClick={() => setShowReportModal({show: true, days: 15})}
-            className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-sky-600 flex items-center gap-1 transition-colors px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full"
+            className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 hover:text-sky-600 flex items-center gap-1 transition-colors px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full"
           >
               <FileText size={12} /> Relatório 15 Dias
           </button>
@@ -203,7 +203,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
           
           <button 
             onClick={() => handleOpenModal()}
-            className="flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-5 py-2.5 rounded-2xl font-bold transition-all shadow-lg shadow-sky-500/20 hover:scale-105"
+            className="flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-5 py-2.5 rounded-2xl font-semibold transition-all shadow-lg shadow-sky-500/20 hover:scale-105"
           >
             <Plus size={20} />
             <span className="hidden lg:inline">Nova Liberação</span>
@@ -239,7 +239,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                    <div className={`px-4 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-widest ${
                       visitor.status === 'autorizado' ? 'bg-emerald-100 text-emerald-600' :
                       visitor.status === 'pendente' ? 'bg-amber-100 text-amber-600' :
                       'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
@@ -270,13 +270,14 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                   <h3 className="font-bold text-xl text-slate-900 dark:text-white group-hover:text-sky-600 transition-colors">
                     {visitor.name}
                   </h3>
-                  <div className="flex items-center gap-2 text-sm text-slate-500 mt-1 font-bold italic opacity-80 uppercase tracking-tight">
-                    <span className="text-sky-600 font-black">{visitor.type}</span>
+                  <div className="flex flex-col gap-1 mt-1">
+                    <span className="text-sky-600 font-semibold text-xs uppercase tracking-tight italic opacity-80">{visitor.type}</span>
                     {visitor.observation && (
-                      <>
-                        <span className="w-1 h-1 rounded-full bg-slate-200"></span>
-                        <span className="italic text-[10px] truncate max-w-[120px]">{visitor.observation}</span>
-                      </>
+                      <div className="bg-slate-50 dark:bg-slate-900/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/50 mt-1">
+                        <p className="italic text-[11px] text-slate-500 leading-relaxed font-normal">
+                          "{visitor.observation}"
+                        </p>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -294,9 +295,9 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                   <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-700/50">
                     <div className="flex items-center gap-2 text-slate-400 mb-1">
                       <Clock size={12} />
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Horário</span>
+                      <span className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">Horário</span>
                     </div>
-                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{visitor.time}</p>
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{visitor.time}</p>
                   </div>
                 </div>
 
@@ -343,56 +344,56 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
       {/* Modal Nova Liberação / Edição */}
       <AnimatePresence>
         {showModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-white dark:bg-slate-800 rounded-[40px] w-full max-w-lg overflow-y-auto max-h-[90vh] shadow-2xl custom-scrollbar"
+              className="bg-white dark:bg-slate-800 rounded-[32px] w-full max-w-[360px] overflow-hidden shadow-2xl flex flex-col"
             >
-              <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
+              <div className="p-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-white dark:bg-slate-800 z-10">
                 <div>
-                  <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                     {editingVisitor ? 'Editar Liberação' : 'Nova Liberação'}
                   </h3>
-                  <p className="text-xs text-slate-500 font-medium font-bold uppercase tracking-widest opacity-60">Dados do convidado</p>
+                  <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest mt-0.5">Dados do convidado</p>
                 </div>
                 <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all">
-                  <X size={20} className="text-slate-400" />
+                  <X size={18} className="text-slate-400" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <form onSubmit={handleSubmit} className="p-5 space-y-4 max-h-[75vh] overflow-y-auto custom-scrollbar">
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Nome Completo</label>
+                  <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 px-1">Nome Completo</label>
                   <input 
                     required
                     maxLength={50}
-                    placeholder="Nome do visitante ou prestador..."
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-bold placeholder:font-medium"
+                    placeholder="Nome do visitante..."
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium placeholder:font-normal"
                     value={formData.name}
                     onChange={e => setFormData({...formData, name: e.target.value})}
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Tipo</label>
+                    <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 px-1">Tipo</label>
                     <select
-                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-bold appearance-none"
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium appearance-none cursor-pointer"
                       value={formData.type}
                       onChange={e => setFormData({...formData, type: e.target.value})}
                     >
                       <option value="Visitante">Visitante</option>
-                      <option value="Prestador de Serviço">Prestador de Serviço</option>
+                      <option value="Prestador de Serviço">Service</option>
                       <option value="Entregador">Entregador</option>
                       <option value="Familiar">Familiar</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Status</label>
+                    <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 px-1">Status</label>
                     <select
-                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-bold appearance-none"
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium appearance-none cursor-pointer"
                       value={formData.status}
                       onChange={e => setFormData({...formData, status: e.target.value as any})}
                     >
@@ -403,23 +404,23 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Data Prevista</label>
+                    <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 px-1">Data</label>
                     <input 
                       required
                       type="date"
-                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-bold"
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium"
                       value={formData.date}
                       onChange={e => setFormData({...formData, date: e.target.value})}
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Horário Aproximado</label>
+                    <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 px-1">Horário</label>
                     <input 
                       required
                       type="time"
-                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-bold"
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium"
                       value={formData.time}
                       onChange={e => setFormData({...formData, time: e.target.value})}
                     />
@@ -427,11 +428,11 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1">Observação (Motivo da Visita)</label>
+                  <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 px-1">Observação</label>
                   <textarea 
                     rows={2}
-                    placeholder="Ex: Entregar documentos, reparo hidráulico..."
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-bold placeholder:font-medium resize-none text-xs"
+                    placeholder="Motivo da visita..."
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-normal placeholder:font-normal resize-none"
                     value={formData.observation}
                     onChange={e => setFormData({...formData, observation: e.target.value})}
                   />
@@ -441,13 +442,13 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="flex-1 px-6 py-4 rounded-2xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                    className="flex-1 px-4 py-3.5 rounded-xl border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-semibold uppercase text-[10px] tracking-widest hover:bg-slate-50 dark:hover:bg-slate-900 transition-all"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-6 py-4 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-black uppercase text-[10px] tracking-widest shadow-lg shadow-sky-500/20 transition-all hover:scale-[1.02]"
+                    className="flex-1 px-4 py-3.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-semibold uppercase text-[10px] tracking-widest shadow-lg shadow-sky-500/20 transition-all active:scale-95"
                   >
                     {editingVisitor ? 'Salvar' : 'Confirmar'}
                   </button>
@@ -470,8 +471,8 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                   >
                        <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                            <div>
-                               <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Relatório de Visitantes</h3>
-                               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Período: Últimos {showReportModal.days} dias</p>
+                               <h3 className="text-2xl font-bold text-slate-900 dark:text-white uppercase tracking-tighter">Relatório de Visitantes</h3>
+                               <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mt-1">Período: Últimos {showReportModal.days} dias</p>
                            </div>
                            <button onClick={() => setShowReportModal({show: false, days: 0})} className="p-4 bg-slate-100 dark:bg-slate-800 rounded-full hover:bg-rose-500 hover:text-white transition-all">
                                <X size={20} />
@@ -491,11 +492,11 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                                 <tbody>
                                     {getReportData(showReportModal.days).map(v => (
                                         <tr key={v.id} className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                                            <td className="py-4 px-2 text-xs font-bold text-slate-600 dark:text-slate-400">{new Date(v.date || v.created_at || '').toLocaleDateString()}</td>
-                                            <td className="py-4 px-2 text-xs font-black text-slate-900 dark:text-white uppercase">{v.name}</td>
-                                            <td className="py-4 px-2 text-xs font-bold text-slate-500">{v.type}</td>
+                                            <td className="py-4 px-2 text-xs font-semibold text-slate-600 dark:text-slate-400">{new Date(v.date || v.created_at || '').toLocaleDateString()}</td>
+                                            <td className="py-4 px-2 text-xs font-bold text-slate-900 dark:text-white uppercase">{v.name}</td>
+                                            <td className="py-4 px-2 text-xs font-semibold text-slate-500">{v.type}</td>
                                             <td className="py-4 px-2">
-                                                <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-full ${
+                                                <span className={`text-[9px] font-bold uppercase px-2 py-1 rounded-full ${
                                                     v.status === 'autorizado' ? 'bg-emerald-100 text-emerald-600' : 
                                                     v.status === 'pendente' ? 'bg-amber-100 text-amber-600' : 
                                                     'bg-slate-100 text-slate-400'
@@ -510,11 +511,11 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                        </div>
 
                        <div className="p-8 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
                                 Total: {getReportData(showReportModal.days).length} registros encontrados
                             </p>
                             <div className="flex gap-4">
-                               <button className="flex items-center gap-2 bg-zinc-900 text-white px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all">
+                               <button className="flex items-center gap-2 bg-zinc-900 text-white px-6 py-4 rounded-2xl font-semibold uppercase text-[10px] tracking-widest hover:scale-105 transition-all">
                                    <Download size={16} /> Baixar PDF
                                </button>
                             </div>

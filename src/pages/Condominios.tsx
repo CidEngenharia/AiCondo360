@@ -15,9 +15,39 @@ import {
   AlertCircle,
   User,
   MessageCircle,
-  Phone
+  Phone,
+  Mail,
+  Eye,
+  EyeOff,
+  Key as KeyIcon,
+  ChevronRight
 } from 'lucide-react';
-import { CondominioService, Condominio } from '../services/supabaseService';
+
+import { useAuth } from '../hooks/useAuth';
+
+/** Generates a system email from síndico name: "Adailton Salles" → "adailton.salles.sindico@aicondo360.com" */
+const generateSyndicEmail = (name: string): string => {
+  const slug = name
+    .trim()
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // remove accents
+    .replace(/[^a-z\s]/g, '')
+    .trim()
+    .replace(/\s+/g, '.');
+  return slug ? `${slug}.sindico@aicondo360.com` : '';
+};
+
+/** Generates a system password */
+const generateSyndicPassword = (name: string): string => {
+  const slug = name
+    .trim()
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z]/g, '');
+  return slug ? `senha-${slug.substring(0, 4)}2026` : '';
+};
+import { CondominioService, Condominio, ProfileService } from '../services/supabaseService';
+import { supabase } from '../lib/supabase';
 
 export const Condominios: React.FC = () => {
   const [condos, setCondos] = useState<Condominio[]>([]);
@@ -28,14 +58,36 @@ export const Condominios: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   
-  const [formData, setFormData] = useState<Omit<Condominio, 'id' | 'created_at'>>({
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
+  const [showModalPassword, setShowModalPassword] = useState(false);
+  const togglePassword = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setVisiblePasswords(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const { user } = useAuth();
+  const [showPaymentReport, setShowPaymentReport] = useState(false);
+
+  // Simulated Stripe payment data (replace with real API when available)
+  const stripePayments = [
+    { id: 'pi_1', condo: 'Condomínio Verde Vale',    amount: 399,   date: new Date(Date.now() - 1 * 3600000) },
+    { id: 'pi_2', condo: 'Residencial Parque Azul',  amount: 320,   date: new Date(Date.now() - 5 * 3600000) },
+    { id: 'pi_3', condo: 'Ed. Solar dos Ipês',       amount: 250,   date: new Date(Date.now() - 26 * 3600000) },
+    { id: 'pi_4', condo: 'Cond. Bosque Verde',       amount: 399,   date: new Date(Date.now() - 48 * 3600000) },
+    { id: 'pi_5', condo: 'Res. Águas Claras',        amount: 320,   date: new Date(Date.now() - 72 * 3600000) },
+  ];
+  const latestPayment = stripePayments[0];
+  const monthTotal = stripePayments.reduce((s, p) => s + p.amount, 0);
+
+  const [formData, setFormData] = useState<Omit<Condominio, 'id' | 'created_at'> & { syndic_email?: string }>({
     name: '',
     address: '',
     cnpj: '',
     plan: 'basic',
     status: 'active',
     syndic_name: '',
-    syndic_phone: ''
+    syndic_phone: '',
+    syndic_email: ''
   });
 
   const loadCondos = async () => {
@@ -62,13 +114,16 @@ export const Condominios: React.FC = () => {
       plan: 'basic',
       status: 'active',
       syndic_name: '',
-      syndic_phone: ''
+      syndic_phone: '',
+      syndic_email: ''
     });
+    setShowModalPassword(false);
     setIsModalOpen(true);
   };
 
   const openEditModal = (condo: Condominio) => {
     setEditingId(condo.id);
+    const email = (condo as any).syndic_email || generateSyndicEmail(condo.syndic_name || '');
     setFormData({
       name: condo.name,
       address: condo.address || '',
@@ -76,8 +131,10 @@ export const Condominios: React.FC = () => {
       plan: condo.plan,
       status: condo.status,
       syndic_name: condo.syndic_name || '',
-      syndic_phone: condo.syndic_phone || ''
+      syndic_phone: condo.syndic_phone || '',
+      syndic_email: email
     });
+    setShowModalPassword(false);
     setIsModalOpen(true);
   };
 
@@ -85,16 +142,76 @@ export const Condominios: React.FC = () => {
     e.preventDefault();
     setIsProcessing(true);
     try {
+      const { syndic_email, ...dbPayload } = formData;
+      
       if (editingId) {
-        await CondominioService.updateCondominio(editingId, formData);
+        await CondominioService.updateCondominio(editingId, dbPayload);
       } else {
-        await CondominioService.createCondominio(formData);
+        const novoCondo = await CondominioService.createCondominio(dbPayload);
+        
+        if (formData.syndic_name && novoCondo) {
+          const generatedEmail = formData.syndic_email || generateSyndicEmail(formData.syndic_name);
+          const generatedPassword = generateSyndicPassword(formData.syndic_name);
+          
+          if (generatedEmail && generatedPassword) {
+            console.log("[Condominios] Criando auth para:", generatedEmail);
+
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+              email: generatedEmail,
+              password: generatedPassword,
+              options: {
+                data: {
+                  full_name: formData.syndic_name,
+                  role: 'syndic',
+                  condominio_id: novoCondo.id
+                }
+              }
+            });
+            
+            if (authError) {
+              console.error("[Auth] Erro ao criar login:", authError);
+              // If user already exists, try to proceed gracefully
+              if (authError.message?.includes('already registered')) {
+                alert(`⚠️ Este e-mail já possui conta no sistema.\nE-mail: ${generatedEmail}`);
+              } else {
+                alert(`Erro ao criar conta de acesso: ${authError.message}`);
+              }
+            } else if (authData?.user) {
+              const userId = authData.user.id;
+
+              // CRITICAL: Insert profile row so AuthContext.fetchProfile() works on login
+              const { error: profileError } = await supabase
+                .from('profiles')
+                .upsert({
+                  id: userId,
+                  email: generatedEmail,
+                  full_name: formData.syndic_name,
+                  role: 'syndic',
+                  condominio_id: novoCondo.id,
+                  unit: 'sindico',
+                }, { onConflict: 'id' });
+
+              if (profileError) {
+                console.error("[Condominios] Erro ao criar perfil:", profileError);
+                alert(`Conta criada, mas houve erro ao salvar o perfil: ${profileError.message}\nO síndico pode precisar de ajuste manual na tabela profiles.`);
+              } else {
+                console.log("[Condominios] Perfil do síndico criado com sucesso:", userId);
+                const isUnconfirmed = authData.user.identities?.length === 0;
+                if (isUnconfirmed) {
+                  alert(`⚠️ Conta criada, mas o e-mail precisa ser confirmado.\n\nNo painel do Supabase, desative "Confirm email" em Authentication > Settings, ou confirme o usuário manualmente.\n\nE-mail: ${generatedEmail}\nSenha: ${generatedPassword}`);
+                } else {
+                  alert(`✅ Síndico cadastrado com sucesso!\n\nE-mail de Acesso: ${generatedEmail}\nSenha: ${generatedPassword}\n\nGuarde essas credenciais com segurança.`);
+                }
+              }
+            }
+          }
+        }
       }
       setIsModalOpen(false);
       loadCondos();
     } catch (error: any) {
       console.error('[Condominios] Submission error:', error);
-      const detail = error.message || error.details || 'Verifique as permissões de RLS e se as colunas syndic_name/phone existem.';
+      const detail = error.message || error.details || 'Verifique as permissões de RLS.';
       alert(`Erro ao processar: ${detail}`);
     } finally {
       setIsProcessing(false);
@@ -151,6 +268,93 @@ export const Condominios: React.FC = () => {
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6">
+
+      {/* Stripe Payment Notification Banner (Global Admin Only) */}
+      {user?.role === 'global_admin' && (
+        <motion.div
+          initial={{ opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative flex items-center gap-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 rounded-2xl px-5 py-3.5 shadow-sm"
+        >
+          <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/30">
+            <CreditCard size={16} className="text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Stripe · Pagamento Recebido</p>
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{latestPayment.condo}</p>
+            <p className="text-[10px] text-slate-400">
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(latestPayment.amount)}
+              {' · '}{latestPayment.date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+            </p>
+          </div>
+          <button
+            onClick={() => setShowPaymentReport(true)}
+            className="shrink-0 flex items-center gap-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 border border-emerald-200 bg-white dark:bg-emerald-900/20 dark:border-emerald-700 rounded-xl px-3 py-1.5 transition-all hover:shadow-sm"
+          >
+            Relatório <ChevronRight size={12} />
+          </button>
+        </motion.div>
+      )}
+
+      {/* Monthly Payment Report Popup */}
+      <AnimatePresence>
+      {showPaymentReport && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowPaymentReport(false)}
+            className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-[24px] shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden"
+          >
+            <div className="p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Stripe · Relatório</p>
+                  <h3 className="text-base font-bold text-slate-800 dark:text-white">
+                    Pagamentos — {new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                  </h3>
+                </div>
+                <button onClick={() => setShowPaymentReport(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all">
+                  <X size={16} className="text-slate-400" />
+                </button>
+              </div>
+
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {stripePayments.map((p) => (
+                  <div key={p.id} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                      <CreditCard size={13} className="text-emerald-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-semibold text-slate-800 dark:text-white truncate">{p.condo}</p>
+                      <p className="text-[9px] text-slate-400">{p.date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                    </div>
+                    <span className="text-[11px] font-bold text-emerald-600 shrink-0">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.amount)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total do mês</span>
+                <span className="text-base font-bold text-emerald-600">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthTotal)}
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+      </AnimatePresence>
+
       {/* Header Section - Compact */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-0.5">
@@ -240,11 +444,33 @@ export const Condominios: React.FC = () => {
                     <Building2 size={20} />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-bold text-sm text-slate-800 dark:text-white truncate">{condo.name}</h3>
+                    <h3 className="font-bold text-sm text-slate-800 dark:text-white truncate">Condomínio: {condo.name}</h3>
                     <div className="flex items-center gap-1.5 mt-0.5">
                        <User size={10} className="shrink-0 text-blue-500" />
-                       <span className="text-[10px] text-slate-600 dark:text-slate-300 font-bold truncate">{condo.syndic_name || 'Síndico não informado'}</span>
+                       <span className="text-[10px] text-slate-600 dark:text-slate-300 font-medium truncate">Síndico: {condo.syndic_name || 'Não informado'}</span>
                     </div>
+                    {(condo.syndic_name) && (
+                      <div className="flex flex-col gap-1 mt-1.5 p-2 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center gap-1.5">
+                          <Mail size={10} className="shrink-0 text-slate-400" />
+                          <span className="text-[10px] text-slate-500 font-medium truncate">{generateSyndicEmail(condo.syndic_name)}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <KeyIcon size={10} className="shrink-0 text-slate-400" />
+                          <span className="text-[10px] text-slate-500 font-medium">
+                            {visiblePasswords[condo.id] ? generateSyndicPassword(condo.syndic_name) : '••••••••'}
+                          </span>
+                          <button 
+                            type="button"
+                            onClick={(e) => togglePassword(condo.id, e)}
+                            className="ml-auto p-1 text-slate-400 hover:text-blue-500 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-all"
+                            title="Ver senha"
+                          >
+                            {visiblePasswords[condo.id] ? <EyeOff size={11} /> : <Eye size={11} />}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -324,120 +550,158 @@ export const Condominios: React.FC = () => {
               initial={{ scale: 0.95, opacity: 0, y: 10 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              className="bg-white dark:bg-slate-800 w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden relative border border-white/10"
+              className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden relative border border-white/10"
             >
-              <div className="p-8 space-y-6">
+              <div className="p-4 md:p-5 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-2xl font-black text-slate-800 dark:text-white leading-none">
+                    <h2 className="text-xl font-black text-slate-800 dark:text-white leading-none">
                       {editingId ? 'Editar Cliente' : 'Novo Cliente'}
                     </h2>
-                    <span className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] mt-2 block">AiCondo360 Global Service</span>
+                    <span className="text-[9px] font-black text-blue-500 uppercase tracking-[0.2em] mt-1 block">AiCondo360 Global Service</span>
                   </div>
                   <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl group">
                     <X size={20} className="text-slate-400 group-hover:rotate-90 transition-transform" />
                   </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome do Condomínio</label>
+                <form onSubmit={handleSubmit} className="space-y-2.5">
+                  <div className="space-y-0.5">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome do Condomínio</label>
                     <input 
                       required
                       type="text" 
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-500/10 transition-all shadow-inner"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border-none rounded-lg text-xs font-bold focus:ring-4 focus:ring-blue-500/10 transition-all shadow-inner"
                       placeholder="Ex: Res. Parque das Águas"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Síndico</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-0.5">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Síndico</label>
                       <div className="relative">
-                         <User size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                         <User size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
                          <input 
                           required
                           type="text" 
                           value={formData.syndic_name}
-                          onChange={(e) => setFormData({ ...formData, syndic_name: e.target.value })}
-                          className="w-full pl-10 pr-4 py-3.5 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-500/10 transition-all shadow-inner"
+                          onChange={(e) => {
+                            const name = e.target.value;
+                            setFormData({ ...formData, syndic_name: name, syndic_email: generateSyndicEmail(name) });
+                          }}
+                          className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border-none rounded-lg text-xs font-bold focus:ring-4 focus:ring-blue-500/10 transition-all shadow-inner"
                           placeholder="Nome"
                         />
                       </div>
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">WhatsApp</label>
+                    <div className="space-y-0.5">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">WhatsApp</label>
                       <div className="relative">
-                         <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500" />
+                         <Phone size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500" />
                          <input 
                           type="text" 
                           value={formData.syndic_phone}
                           onChange={(e) => setFormData({ ...formData, syndic_phone: e.target.value })}
-                          className="w-full pl-10 pr-4 py-3.5 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-500/10 transition-all shadow-inner"
+                          className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border-none rounded-lg text-xs font-bold focus:ring-4 focus:ring-blue-500/10 transition-all shadow-inner"
                           placeholder="(00) 00000-0000"
                         />
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">CNPJ</label>
+                  {/* Generated email & password - read only */}
+                  {formData.syndic_email && (
+                    <div className="space-y-1.5">
+                      <div className="space-y-0.5">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1">
+                          <Mail size={10} /> E-mail Gerado
+                        </label>
+                        <div className="w-full px-3 py-1.5 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30 rounded-lg text-[10px] font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                          <Mail size={12} className="shrink-0" />
+                          <span className="truncate">{formData.syndic_email}</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-0.5">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center justify-between">
+                          <div className="flex items-center gap-1">
+                            <KeyIcon size={10} /> Senha 
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => setShowModalPassword(!showModalPassword)}
+                            className="text-slate-400 hover:text-blue-500 flex items-center gap-1 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 shadow-sm"
+                          >
+                            {showModalPassword ? <EyeOff size={9} /> : <Eye size={9} />}
+                            <span className="text-[7px] font-bold uppercase tracking-wider">{showModalPassword ? 'Ocultar' : 'Exibir'}</span>
+                          </button>
+                        </label>
+                        <div className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800/30 rounded-lg text-[10px] font-bold text-slate-600 dark:text-slate-400 flex items-center gap-2">
+                          <KeyIcon size={12} className="shrink-0" />
+                          {showModalPassword ? generateSyndicPassword(formData.syndic_name) : '••••••••'}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-0.5">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">CNPJ</label>
                       <input 
                         type="text" 
                         value={formData.cnpj}
                         onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
-                        className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl text-sm font-medium shadow-inner"
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border-none rounded-lg text-xs font-medium shadow-inner"
                         placeholder="00.000.000/0001-00"
                       />
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Licença</label>
+                    <div className="space-y-0.5">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Licença</label>
                       <select 
                         value={formData.status}
                         onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                        className={`w-full px-5 py-3.5 border-none rounded-2xl text-[11px] font-black uppercase tracking-widest appearance-none shadow-sm transition-colors ${formData.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'} dark:bg-slate-900`}
+                        className={`w-full px-3 py-2 border-none rounded-lg text-[10px] font-black uppercase tracking-widest appearance-none shadow-sm transition-colors ${formData.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'} dark:bg-slate-900`}
                       >
                         <option value="active">✓ Ativa</option>
-                        <option value="inactive">⚠ Bloqueada</option>
+                        <option value="inactive">⚠ Bloq.</option>
                       </select>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Plano SaaS</label>
-                    <div className="flex gap-2">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Plano SaaS</label>
+                    <div className="flex gap-1.5">
                        {['basic', 'professional', 'premium'].map((p) => (
                          <button
                            key={p}
                            type="button"
                            onClick={() => setFormData({ ...formData, plan: p as any })}
-                           className={`flex-1 py-2.5 rounded-2xl border-2 text-[10px] font-black uppercase tracking-widest transition-all ${formData.plan === p ? 'border-blue-600 bg-blue-50 text-blue-600 shadow-md' : 'border-slate-100 bg-slate-50 text-slate-400 dark:border-slate-800'}`}
+                           className={`flex-1 py-1.5 rounded-lg border-2 text-[9px] font-black uppercase tracking-widest transition-all ${formData.plan === p ? 'border-blue-600 bg-blue-50 text-blue-600 shadow-md' : 'border-slate-100 bg-slate-50 text-slate-400 dark:border-slate-800'}`}
                          >
-                           {p === 'professional' ? 'Profissional' : p}
+                           {p === 'professional' ? 'Profiss.' : p}
                          </button>
                        ))}
                     </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Localização</label>
+                  <div className="space-y-0.5">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Localização</label>
                     <input 
                       type="text" 
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl text-sm font-medium shadow-inner"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border-none rounded-lg text-xs font-medium shadow-inner"
                       placeholder="Endereço Completo"
                     />
                   </div>
 
-                  <div className="pt-4 flex gap-4">
+                  <div className="pt-1 flex gap-4">
                     <button 
                       type="submit"
                       disabled={isProcessing}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl shadow-blue-500/30 transition-all active:scale-95 disabled:opacity-50"
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-black uppercase text-[10px] tracking-[0.2em] shadow-xl shadow-blue-500/30 transition-all active:scale-95 disabled:opacity-50"
                     >
                       {isProcessing ? 'Sincronizando...' : editingId ? 'Salvar Alterações' : 'Confirmar Registro'}
                     </button>

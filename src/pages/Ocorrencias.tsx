@@ -122,6 +122,17 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
     }
   };
 
+  const handleOpenOccurrence = async (item: IOcorrencia) => {
+    setSelectedOccurrence(item);
+    try {
+        await OcorrenciaService.incrementViews(item.id, item.views_count || 0);
+        // Atualiza o estado local para refletir o incremento imediatamente
+        setOcorrencias(prev => prev.map(o => o.id === item.id ? { ...o, views_count: (o.views_count || 0) + 1 } : o));
+    } catch (error) {
+        console.error('Error incrementing views:', error);
+    }
+  };
+
   const getReportData = (days: number) => {
     const cutOff = new Date();
     cutOff.setDate(cutOff.getDate() - days);
@@ -132,7 +143,7 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 pt-6 sm:pt-8 w-full max-w-7xl mx-auto space-y-8">
+    <div className="p-3 sm:p-6 lg:p-8 pt-6 sm:pt-8 w-full max-w-7xl mx-auto space-y-8">
       <FeatureHeader 
         icon={AlertCircle}
         title="Ocorrências"
@@ -184,7 +195,7 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
       <div className="grid gap-4">
         <AnimatePresence mode="popLayout">
           {filtered.map(item => {
-            const PriorityIcon = priorityConfig[item.priority].icon;
+            const PriorityIcon = priorityConfig[item.priority || 'low'].icon;
             const statusLabel = statusConfig[item.status].label;
             
             return (
@@ -194,12 +205,12 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                onClick={() => setSelectedOccurrence(item)}
-                className="bg-white dark:bg-slate-800 rounded-2xl p-3 border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:shadow-rose-500/5 transition-all cursor-pointer group"
+                onClick={() => handleOpenOccurrence(item)}
+                className="bg-white dark:bg-slate-800 rounded-2xl p-2 sm:p-3 border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:shadow-rose-500/5 transition-all cursor-pointer group"
               >
                 <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
-                  <div className={cn("hidden sm:flex w-10 h-10 rounded-full shrink-0 items-center justify-center", priorityConfig[item.priority].bg)}>
-                    <PriorityIcon size={20} className={priorityConfig[item.priority].color} />
+                  <div className={cn("hidden sm:flex w-10 h-10 rounded-full shrink-0 items-center justify-center", priorityConfig[item.priority || 'low'].bg)}>
+                    <PriorityIcon size={20} className={priorityConfig[item.priority || 'low'].color} />
                   </div>
                   
                   <div className="flex-1 min-w-0">
@@ -209,7 +220,7 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
                           #{item.id} • {item.category}
                         </span>
                         <span className="w-1 h-1 rounded-full bg-slate-200" />
-                        <span className="text-[10px] font-medium text-slate-400 uppercase tracking-widest italic">{new Date(item.created_at).toLocaleDateString()}</span>
+                        <span className="text-[10px] font-medium text-slate-400 uppercase tracking-widest italic">{item.created_at ? new Date(item.created_at).toLocaleDateString() : '-'}</span>
                       </div>
                       <span className={cn("px-4 py-1.5 rounded-full text-[10px] font-medium uppercase tracking-widest", statusConfig[item.status].bg, statusConfig[item.status].color)}>
                         {statusLabel}
@@ -225,49 +236,39 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-3 sm:w-auto shrink-0 border-t border-slate-50 dark:border-slate-700/50 pt-4 sm:pt-0 sm:border-t-0 mt-2 sm:mt-0">
-                    <div className="flex items-center gap-4 mr-2">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 sm:w-auto shrink-0 border-t border-slate-50 dark:border-slate-700/50 pt-3 sm:pt-0 sm:border-t-0 mt-2 sm:mt-0">
+                    <div className="flex items-center gap-3 mr-2 font-black italic">
                       <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
                         <Eye size={12} className="text-blue-500" />
-                        <span className="text-[10px] font-black text-blue-600">{item.views_count || 12}</span>
+                        <span className="text-[10px] font-black text-blue-600">{item.views_count || 0}</span>
                       </div>
                       <div className="flex items-center gap-1.5 text-slate-400" title="Mensagens">
-                        <MessageCircle size={18} className="text-indigo-400" />
-                        <span className="text-sm font-black tracking-tighter">
+                        <MessageCircle size={16} className="text-indigo-400" />
+                        <span className="text-[11px] font-black tracking-tighter">
                           {item.messages || 0}
                         </span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                    
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); setSelectedOccurrence(item); }}
-                        className="p-1.5 bg-slate-50 dark:bg-slate-700 hover:bg-rose-500 hover:text-white rounded-lg text-slate-400 transition-all"
-                        title="Visualizar"
-                      >
-                        <Eye size={14} />
-                      </button>
-
                       {canManage && (
-                        <>
+                        <div className="flex items-center gap-1.5 border-l border-slate-100 dark:border-slate-700 pl-2 ml-1">
                           <button 
                             onClick={(e) => { e.stopPropagation(); handleEdit(item); }}
                             className="p-1.5 bg-slate-50 dark:bg-slate-700 hover:bg-amber-500 hover:text-white rounded-lg text-slate-400 transition-all"
                             title="Editar"
                           >
-                            <Edit2 size={14} />
+                            <Edit2 size={13} />
                           </button>
                           <button 
                             onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
                             className="p-1.5 bg-slate-50 dark:bg-slate-700 hover:bg-red-500 hover:text-white rounded-lg text-slate-400 transition-all"
                             title="Excluir"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={13} />
                           </button>
-                        </>
+                        </div>
                       )}
-                      
                       <ChevronRight size={18} className="text-slate-200 group-hover:text-rose-500 transition-colors transform group-hover:translate-x-1 duration-300" />
                     </div>
                   </div>
@@ -281,12 +282,12 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
       {/* Modal de Detalhes */}
       <AnimatePresence>
         {selectedOccurrence && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-md">
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
+              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-[340px] sm:max-w-md overflow-hidden shadow-2xl"
             >
               <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                 <div>
@@ -302,8 +303,8 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
                   <div className={cn("px-4 py-1.5 rounded-full text-[10px] font-medium uppercase tracking-widest shadow-xl", statusConfig[selectedOccurrence.status].bg, statusConfig[selectedOccurrence.status].color)}>
                     {statusConfig[selectedOccurrence.status].label}
                   </div>
-                  <div className={cn("px-4 py-1.5 rounded-full text-[10px] font-medium uppercase tracking-widest flex items-center gap-1.5 shadow-xl", priorityConfig[selectedOccurrence.priority].bg, priorityConfig[selectedOccurrence.priority].color)}>
-                    {React.createElement(priorityConfig[selectedOccurrence.priority].icon, { size: 12 })}
+                  <div className={cn("px-4 py-1.5 rounded-full text-[10px] font-medium uppercase tracking-widest flex items-center gap-1.5 shadow-xl", priorityConfig[selectedOccurrence.priority || 'low'].bg, priorityConfig[selectedOccurrence.priority || 'low'].color)}>
+                    {React.createElement(priorityConfig[selectedOccurrence.priority || 'low'].icon, { size: 12 })}
                     Prioridade {selectedOccurrence.priority === 'high' ? 'Alta' : selectedOccurrence.priority === 'medium' ? 'Média' : 'Baixa'}
                   </div>
                 </div>
@@ -327,12 +328,12 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
       {/* Modal Nova Ocorrência */}
       <AnimatePresence>
         {isNewModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-md">
             <motion.div
               initial={{ opacity: 0, y: 100 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 100 }}
-              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
+              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-[340px] sm:max-w-md overflow-hidden shadow-2xl"
             >
               <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                 <div>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { FeatureGrid } from '../components/FeatureGrid';
-import { TrendingUp, Users, AlertCircle, Cloud, Sun, CloudRain, CloudLightning, Moon, ArrowRight, Star, Calendar, Package, FileText, Key, UserPlus, ShieldAlert } from 'lucide-react';
+import { TrendingUp, Users, AlertCircle, Cloud, Sun, CloudRain, CloudLightning, Moon, ArrowRight, Star, Calendar, Package, FileText, Key, UserPlus, ShieldAlert, CreditCard, X, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { FEATURES, UserRole, PricingPlan } from '../constants';
 import { UpgradeBanner } from '../components/UpgradeBanner';
@@ -176,7 +176,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
 
   return (
     <div className="p-4 space-y-6">
-      {/* Welcome Section */}
+
+
+
+
       <section className="relative overflow-hidden rounded-[2.5rem] bg-slate-200/70 dark:bg-slate-800/80 p-8 lg:p-12 text-slate-800 dark:text-white shadow-sm border border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 transition-all duration-300 min-h-[240px] flex flex-col justify-center group">
         {/* Decorative Blurs */}
         <div className="absolute inset-0 opacity-30 pointer-events-none">

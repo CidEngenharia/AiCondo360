@@ -51,6 +51,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   async function fetchProfile(userId: string) {
     try {
       console.log("[AuthContext] Fetching profile for:", userId);
+
+      // Use maybeSingle() to avoid throwing when profile row is missing
       const { data: profile, error } = await supabase
         .from('profiles')
         .select(`
@@ -66,9 +68,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           )
         `)
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[AuthContext] Profile query error:', error);
+      }
 
       if (profile) {
         const condo = (profile as any).condominios;
@@ -81,6 +85,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: profile.role as UserRole,
           plan: (condo?.plan || 'basic') as PricingPlan
         });
+      } else {
+        // Fallback: get data from auth metadata so the session is not lost
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (authUser) {
+          const meta = authUser.user_metadata || {};
+          console.warn('[AuthContext] No profile found, using auth metadata fallback for:', authUser.email);
+          setUser({
+            id: authUser.id,
+            name: meta.full_name || authUser.email?.split('@')[0] || 'Usuário',
+            email: authUser.email || '',
+            condo: 'Geral',
+            condoId: meta.condominio_id || '',
+            role: (meta.role as UserRole) || 'syndic',
+            plan: 'basic' as PricingPlan
+          });
+        }
       }
     } catch (error) {
       console.error('[AuthContext] Error fetching profile:', error);

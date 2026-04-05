@@ -35,7 +35,8 @@ import {
   Trash2,
   Info,
   X,
-  Loader2
+  Loader2,
+  Car
 } from 'lucide-react';
 import { FeatureHeader } from '../components/FeatureHeader';
 import { MercadoService, MercadoItem } from '../services/supabaseService';
@@ -47,9 +48,22 @@ const CATEGORIES = [
   { id: 'all', name: 'Todos', icon: Package },
   { id: 'moveis', name: 'Móveis', icon: Sofa },
   { id: 'eletronicos', name: 'Eletrônicos', icon: Laptop },
+  { id: 'automoveis', name: 'Automóveis', icon: Car },
   { id: 'utilidades', name: 'Utilidades', icon: Coffee },
   { id: 'servicos', name: 'Serviços', icon: Hammer },
 ];
+
+/** Formats a raw price value ("30", "1500.5", "30,0") to "R$ 30,00" */
+const formatBRL = (value?: string | number): string => {
+  if (!value) return 'R$ 0,00';
+  const raw = String(value)
+    .replace(/[R$\s]/g, '')
+    .replace(/\./g, '')
+    .replace(',', '.');
+  const num = parseFloat(raw);
+  if (isNaN(num)) return String(value);
+  return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+};
 
 export const Classificados: React.FC = () => {
   const { user } = useAuth();
@@ -62,18 +76,22 @@ export const Classificados: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
+  const [selectedAd, setSelectedAd] = useState<Listing | null>(null);
 
   const [formData, setFormData] = useState<Partial<Listing>>({
+    product_name: '',
     title: '',
     price: '',
     category: 'eletronicos',
     author: user?.name || '',
     unit: user?.unit || '',
-    image_url: '',
+    photo_url: '',
+    photo_url_2: '',
+    photo_url_3: '',
     description: '',
     condition: 'usado',
     whatsapp: '',
-    contact_name: user?.name || '', // NOVO CAMPO
+    contact_name: user?.name || '',
   });
 
   const loadListings = async () => {
@@ -117,7 +135,7 @@ export const Classificados: React.FC = () => {
     (l.title.toLowerCase().includes(searchTerm.toLowerCase()) || l.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, slot: number = 1) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 1024 * 1024) {
@@ -126,7 +144,8 @@ export const Classificados: React.FC = () => {
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, image_url: reader.result as string }));
+        const field = slot === 1 ? 'photo_url' : slot === 2 ? 'photo_url_2' : 'photo_url_3';
+        setFormData(prev => ({ ...prev, [field]: reader.result as string }));
       };
       reader.readAsDataURL(file);
     }
@@ -135,13 +154,17 @@ export const Classificados: React.FC = () => {
   const closeModal = () => {
     setShowForm(false);
     setEditingId(null);
+    setSelectedAd(null);
     setFormData({
+      product_name: '',
       title: '',
       price: '',
       category: 'eletronicos',
       author: user?.name || '',
       unit: user?.unit || '',
-      image_url: '',
+      photo_url: '',
+      photo_url_2: '',
+      photo_url_3: '',
       description: '',
       condition: 'usado',
       whatsapp: '',
@@ -265,79 +288,79 @@ export const Classificados: React.FC = () => {
         ) : filteredListings.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <AnimatePresence mode="popLayout">
-              {filteredListings.map((listing) => (
-                <motion.div
-                  layout
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  key={listing.id}
-                  className="group bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-300"
-                >
-                  <div className="p-3 flex justify-between items-center border-b border-slate-50 dark:border-slate-800/50">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 overflow-hidden shrink-0">
-                        <UserCircle2 size={18} />
-                      </div>
-                      <div>
-                        <p className="text-[11px] font-bold text-slate-800 dark:text-white leading-none mb-0.5">{listing.author}</p>
-                        <p className="text-[9px] font-medium text-slate-400 uppercase tracking-tighter">{listing.unit} • {listing.created_at ? new Date(listing.created_at).toLocaleDateString() : 'Hoje'}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-0.5">
-                      <button onClick={() => handleEdit(listing)} className="p-1.5 text-slate-300 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-lg transition-colors">
-                        <Edit3 size={14} />
+              {filteredListings.map((listing) => {
+                const conditionColor =
+                  listing.condition === 'novo'    ? 'text-emerald-500' :
+                  listing.condition === 'doação'  ? 'text-violet-500'  :
+                                                    'text-amber-500';
+                return (
+                  <motion.div
+                    layout
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    key={listing.id}
+                    className="group relative bg-white dark:bg-slate-900 rounded-[20px] border border-slate-100 dark:border-slate-800/60 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer p-3 flex gap-3 items-start"
+                    onClick={() => setSelectedAd(listing)}
+                  >
+                    {/* Ações */}
+                    <div className="absolute top-2.5 right-2.5 z-10 flex gap-1">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleEdit(listing); }}
+                        className="p-1 text-slate-300 hover:text-amber-500 transition-all"
+                      >
+                        <Edit3 size={12} />
                       </button>
-                      <button onClick={() => handleDelete(listing.id)} className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors">
-                        <Trash2 size={14} />
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDelete(listing.id); }}
+                        className="p-1 text-slate-300 hover:text-rose-500 transition-all"
+                      >
+                        <Trash2 size={12} />
                       </button>
                     </div>
-                  </div>
 
-                  <div className="p-4">
-                    <div className="flex justify-between items-start mb-2 gap-2">
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-amber-500 transition-colors line-clamp-1 uppercase tracking-tight">{listing.title}</h3>
-                      <div className="px-2 py-0.5 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-full text-[10px] font-black whitespace-nowrap">
-                        {listing.price}
-                      </div>
-                    </div>
-                    
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 h-8 italic">
-                      {listing.description}
-                    </p>
-                    
-                    {/* Foto do Produto */}
-                    {listing.image_url && (
-                      <div className="mb-4">
-                        <div 
-                          onClick={() => setExpandedImage(listing.image_url)}
-                          className="aspect-[4/3] w-full rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity border border-slate-50 dark:border-slate-800 shadow-sm"
-                        >
-                          <img src={listing.image_url} alt={listing.title} className="w-full h-full object-cover" />
+                    {/* Foto pequena */}
+                    <div className="w-[72px] h-[72px] rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0 border border-slate-100 dark:border-slate-800">
+                      {listing.photo_url || listing.image_url ? (
+                        <img
+                          src={listing.photo_url || listing.image_url}
+                          alt={listing.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-300">
+                          <ShoppingBag size={22} />
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
 
-                    <div className="pt-3 border-t border-slate-50 dark:border-slate-800/50 flex items-center justify-between">
-                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${
-                        listing.condition === 'novo' ? 'bg-emerald-50 text-emerald-600' : 
-                        listing.condition === 'doação' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'
-                      }`}>
+                    {/* Info */}
+                    <div className="flex-1 min-w-0 pr-10">
+                      <p className="text-[8px] text-slate-400 uppercase tracking-widest mb-0.5">{listing.category}</p>
+                      <h3 className="text-xs font-semibold text-slate-800 dark:text-white uppercase tracking-tight leading-tight truncate">
+                        {listing.title || listing.product_name}
+                      </h3>
+                      <p className="text-sm font-bold text-amber-500 mt-0.5">{formatBRL(listing.price)}</p>
+                      <span className={`text-[9px] font-medium italic ${conditionColor}`}>
                         {listing.condition}
                       </span>
-                      <a 
-                        href={`https://wa.me/${listing.whatsapp}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-all font-bold text-[10px] uppercase tracking-wider"
-                      >
-                        <MessageSquare size={12} />
-                        WhatsApp
-                      </a>
                     </div>
-                  </div>
-                </motion.div>
-              ))}
+
+                    {/* WhatsApp */}
+                    <a
+                      href={`https://wa.me/${listing.whatsapp}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute bottom-3 right-3 w-7 h-7 bg-[#25D366] text-white rounded-full flex items-center justify-center shadow-md hover:scale-105 transition-transform"
+                    >
+                      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
+                        <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.284l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766 0-3.18-2.587-5.768-5.764-5.768zm3.393 8.3c-.15.422-.866.422-1.284.422-1.077 0-2.484-.523-3.415-1.455-.93-.93-1.454-2.338-1.454-3.415 0-.418 0-1.134.422-1.284.15-.054.436-.054.512-.054l.099.001c.148 0 .221.012.3.172.106.216.512 1.25.556 1.336.044.086.044.186-.014.3-.058.114-.145.186-.231.3-.086.114-.145.244-.058.386.416.71.97 1.206 1.706 1.543.142.064.216.035.316-.017.114-.058.458-.516.586-.7.128-.184.286-.156.472-.086l1.396.686c.072.044.156.072.2.142.054.086.028.328-.11.472zM12 2C6.477 2 2 6.477 2 12c0 1.891.526 3.655 1.439 5.166L2 22l4.993-1.312A9.942 9.942 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/>
+                      </svg>
+                    </a>
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
           </div>
         ) : (
@@ -381,112 +404,111 @@ export const Classificados: React.FC = () => {
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
             >
-              <div className="p-5 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 text-amber-500 rounded-xl flex items-center justify-center">
-                    <Tag size={20} />
+              <div className="p-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-amber-50 dark:bg-amber-900/20 text-amber-500 rounded-lg flex items-center justify-center">
+                    <Tag size={16} />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-tight">
-                      {editingId ? 'Editar Anúncio' : 'Novo Anúncio'}
+                    <h2 className="text-sm font-semibold text-slate-800 dark:text-white uppercase tracking-tight">
+                      {editingId ? 'Editar' : 'Novo Anúncio'}
                     </h2>
-                    <p className="text-slate-400 text-[10px] font-medium uppercase tracking-widest leading-none mt-1">Preencha os dados do anúncio</p>
                   </div>
                 </div>
-                <button onClick={closeModal} className="p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-all">
-                  <X size={20} />
+                <button onClick={closeModal} className="p-1.5 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all">
+                  <X size={16} />
                 </button>
               </div>
 
-              <form className="p-6 sm:p-8 space-y-5 max-h-[70vh] overflow-y-auto" onSubmit={(e) => { e.preventDefault(); handleCreateNew(); }}>
+              <form className="p-5 space-y-4 max-h-[75vh] overflow-y-auto scrollbar-hide" onSubmit={(e) => { e.preventDefault(); handleCreateNew(); }}>
                 
-                {/* Imagem (Max 1MB) */}
+                {/* Fotos do Produto */}
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">
-                    Foto do Produto
+                  <label className="block text-[9px] font-semibold text-slate-400 uppercase tracking-widest mb-2 px-0.5">
+                    Fotos do Produto
                   </label>
-                  <div className="flex gap-3 items-center">
-                    {formData.image_url && (
-                      <div className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-slate-100 dark:border-slate-800">
-                        <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" />
-                        <button 
-                          type="button" 
-                          onClick={() => setFormData(p => ({ ...p, image_url: '' }))}
-                          className="absolute top-1 right-1 bg-rose-500 text-white rounded-full p-1"
-                        >
-                          <X size={10} />
-                        </button>
-                      </div>
-                    )}
-                    {!formData.image_url && (
-                      <div className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center relative hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                        <Camera size={24} className="text-slate-300" />
-                        <input 
-                          type="file" 
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          className="absolute inset-0 opacity-0 cursor-pointer"
-                        />
-                      </div>
-                    )}
+                  <div className="flex gap-2">
+                    {[1, 2, 3].map((slot) => {
+                      const field = slot === 1 ? 'photo_url' : slot === 2 ? 'photo_url_2' : 'photo_url_3';
+                      const url = (formData as any)[field];
+                      
+                      return (
+                        <div key={slot} className="relative group/modalimg flex-1 aspect-square">
+                          {url ? (
+                            <div className="w-full h-full rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800 relative">
+                              <img src={url} alt={`Preview ${slot}`} className="w-full h-full object-cover" />
+                              <button 
+                                type="button" 
+                                onClick={() => setFormData(p => ({ ...p, [field]: '' }))}
+                                className="absolute -top-1 -right-1 bg-rose-500 text-white rounded-full p-1 z-10"
+                              >
+                                <X size={8} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="w-full h-full rounded-xl border border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center relative hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
+                              <Camera size={14} className="text-slate-300 mb-0.5" />
+                              <span className="text-[7px] font-medium text-slate-400 uppercase">Foto {slot}</span>
+                              <input 
+                                type="file" 
+                                accept="image/*"
+                                onChange={(e) => handleImageUpload(e, slot)}
+                                className="absolute inset-0 opacity-0 cursor-pointer"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="col-span-full">
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Título</label>
+                      <label className="block text-[9px] font-semibold text-slate-400 uppercase tracking-widest mb-1 px-0.5">Título</label>
                       <input 
                         type="text" 
-                        placeholder="Ex: iPhone 13 Pro 128GB"
+                        placeholder="Ex: iPhone 13 Pro"
                         value={formData.title}
                         onChange={(e) => setFormData({...formData, title: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all font-bold text-xs"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Nome</label>
-                      <input 
-                        type="text" 
-                        placeholder="Seu nome"
-                        value={formData.contact_name}
-                        onChange={(e) => setFormData({...formData, contact_name: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all font-bold text-xs"
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/30 border-none rounded-xl focus:ring-1 focus:ring-amber-500 transition-all font-medium text-[11px]"
                         required
                       />
                     </div>
                     
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">WhatsApp</label>
+                      <label className="block text-[9px] font-semibold text-slate-400 uppercase tracking-widest mb-1 px-0.5">Preço</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-[10px]">R$</span>
+                        <input 
+                          type="text" 
+                          placeholder="0,00"
+                          value={formData.price}
+                          onChange={(e) => setFormData({...formData, price: e.target.value})}
+                          className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-800/30 border-none rounded-xl focus:ring-1 focus:ring-amber-500 transition-all font-medium text-[11px]"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[9px] font-semibold text-slate-400 uppercase tracking-widest mb-1 px-0.5">WhatsApp</label>
                       <input 
                         type="text" 
                         placeholder="719..."
                         value={formData.whatsapp}
                         onChange={(e) => setFormData({...formData, whatsapp: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all font-bold text-xs"
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/30 border-none rounded-xl focus:ring-1 focus:ring-amber-500 transition-all font-medium text-[11px]"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Preço</label>
-                      <input 
-                        type="text" 
-                        placeholder="R$..."
-                        value={formData.price}
-                        onChange={(e) => setFormData({...formData, price: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all font-bold text-xs"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Categoria</label>
+                      <label className="block text-[9px] font-semibold text-slate-400 uppercase tracking-widest mb-1 px-0.5">Categoria</label>
                       <select 
                         value={formData.category}
                         onChange={(e) => setFormData({...formData, category: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all font-bold text-xs"
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/30 border-none rounded-xl focus:ring-1 focus:ring-amber-500 transition-all font-medium text-[11px] appearance-none"
                       >
                         {CATEGORIES.filter(c => c.id !== 'all').map(c => (
                           <option key={c.id} value={c.id}>{c.name}</option>
@@ -495,11 +517,11 @@ export const Classificados: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Condição</label>
+                      <label className="block text-[9px] font-semibold text-slate-400 uppercase tracking-widest mb-1 px-0.5">Condição</label>
                       <select 
                         value={formData.condition}
                         onChange={(e) => setFormData({...formData, condition: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all font-bold text-xs"
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/30 border-none rounded-xl focus:ring-1 focus:ring-amber-500 transition-all font-medium text-[11px] appearance-none"
                       >
                         <option value="novo">Novo</option>
                         <option value="usado">Usado</option>
@@ -508,27 +530,142 @@ export const Classificados: React.FC = () => {
                     </div>
 
                     <div className="col-span-full">
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Descrição</label>
+                      <label className="block text-[9px] font-semibold text-slate-400 uppercase tracking-widest mb-1 px-0.5">Descrição</label>
                       <textarea 
                         rows={2}
-                        placeholder="Descreva o item..."
+                        placeholder="..."
                         value={formData.description}
                         onChange={(e) => setFormData({...formData, description: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500 transition-all text-xs resize-none"
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/30 border-none rounded-xl focus:ring-1 focus:ring-amber-500 transition-all text-[11px] resize-none"
                         required
                       ></textarea>
                     </div>
                   </div>
 
-                <div className="pt-4 flex gap-2">
+                <div className="pt-2 flex gap-2">
                   <button 
                     type="submit"
-                    className="flex-1 px-6 py-3.5 bg-zinc-900 hover:bg-black text-white rounded-xl transition-all font-bold text-[10px] uppercase tracking-widest shadow-xl"
+                    className="flex-1 px-4 py-2.5 bg-zinc-900 hover:bg-black text-white rounded-xl transition-all font-medium text-[10px] uppercase tracking-widest"
                   >
                     {editingId ? 'Salvar' : 'Publicar'}
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Detalhes do Anúncio */}
+      <AnimatePresence>
+        {selectedAd && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedAd(null)}
+              className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-[28px] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden max-h-[85vh] flex flex-col"
+            >
+              <button 
+                onClick={() => setSelectedAd(null)} 
+                className="absolute top-3 right-3 z-20 p-1.5 bg-black/20 backdrop-blur-md text-white rounded-full hover:bg-black/40 transition-all"
+              >
+                <X size={14} />
+              </button>
+
+              {/* Conteúdo com fotos pequenas */}
+              <div className="p-5 overflow-y-auto bg-white dark:bg-slate-900 space-y-3">
+
+                {/* Linha 1: foto pequena + info principal */}
+                <div className="flex gap-3 items-start">
+                  {/* Foto Principal Pequena */}
+                  <div
+                    className="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0 cursor-zoom-in border border-slate-100 dark:border-slate-800"
+                    onClick={() => { const img = selectedAd.photo_url || selectedAd.image_url; if(img) setExpandedImage(img); }}
+                  >
+                    {selectedAd.photo_url || selectedAd.image_url ? (
+                      <img src={selectedAd.photo_url || selectedAd.image_url} alt={selectedAd.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-300">
+                        <ShoppingBag size={24} />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Info principal */}
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[8px] text-amber-600 uppercase tracking-widest">{selectedAd.category}</span>
+                    <h2 className="text-sm font-semibold text-slate-800 dark:text-white uppercase tracking-tight leading-tight truncate">{selectedAd.title || selectedAd.product_name}</h2>
+                    <p className="text-sm font-bold text-amber-500 mt-0.5">{formatBRL(selectedAd.price)}</p>
+                    <span className="text-[9px] text-slate-400 italic">{selectedAd.condition}</span>
+                  </div>
+                </div>
+
+                {/* Fotos adicionais (thumbs) */}
+                {[selectedAd.photo_url_2, selectedAd.photo_url_3].some(Boolean) && (
+                  <div className="flex gap-2">
+                    {[selectedAd.photo_url_2, selectedAd.photo_url_3].filter(Boolean).map((img, i) => (
+                      <div
+                        key={i}
+                        className="w-14 h-14 rounded-lg overflow-hidden cursor-zoom-in border border-slate-100 dark:border-slate-800"
+                        onClick={() => setExpandedImage(img as string)}
+                      >
+                        <img src={img as string} alt={`Foto ${i + 2}`} className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3 py-2 border-y border-slate-50 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                      <UserCircle2 size={14} />
+                    </div>
+                    <div>
+                      <p className="text-[8px] text-slate-400 uppercase tracking-widest">Vendedor</p>
+                      <p className="text-[10px] font-medium text-slate-700 dark:text-slate-300 uppercase">{selectedAd.author}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-[8px] text-slate-400 uppercase tracking-widest">Descrição</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed">{selectedAd.description}</p>
+                </div>
+
+                <div className="pt-1 flex justify-center items-center gap-2">
+                  <a 
+                    href={`https://wa.me/${selectedAd.whatsapp}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-9 h-9 bg-[#25D366] text-white rounded-full flex items-center justify-center shadow-md hover:scale-105 transition-transform"
+                  >
+                    <svg viewBox="0 0 24 24" className="w-4.5 h-4.5 fill-white">
+                      <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.284l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766 0-3.18-2.587-5.768-5.764-5.768zm3.393 8.3c-.15.422-.866.422-1.284.422-1.077 0-2.484-.523-3.415-1.455-.93-.93-1.454-2.338-1.454-3.415 0-.418 0-1.134.422-1.284.15-.054.436-.054.512-.054l.099.001c.148 0 .221.012.3.172.106.216.512 1.25.556 1.336.044.086.044.186-.014.3-.058.114-.145.186-.231.3-.086.114-.145.244-.058.386.416.71.97 1.206 1.706 1.543.142.064.216.035.316-.017.114-.058.458-.516.586-.7.128-.184.286-.156.472-.086l1.396.686c.072.044.156.072.2.142.054.086.028.328-.11.472zM12 2C6.477 2 2 6.477 2 12c0 1.891.526 3.655 1.439 5.166L2 22l4.993-1.312A9.942 9.942 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/>
+                    </svg>
+                  </a>
+                  
+                  <button 
+                    onClick={() => { handleEdit(selectedAd); setSelectedAd(null); }}
+                    className="p-2 text-slate-400 hover:text-amber-500 rounded-lg transition-all"
+                  >
+                    <Edit3 size={15} />
+                  </button>
+                  <button 
+                    onClick={() => { handleDelete(selectedAd.id); setSelectedAd(null); }}
+                    className="p-2 text-slate-400 hover:text-rose-500 rounded-lg transition-all"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </div>
         )}

@@ -120,6 +120,7 @@ export interface Ocorrencia {
   messages?: number;
   message?: string;
   visualized_by?: string;
+  views_count?: number;
   created_at: string;
   updated_at: string;
 }
@@ -169,17 +170,20 @@ export interface Veiculo {
 export interface MercadoItem {
   id: string;
   condominio_id: string;
-  seller_id: string;
-  title: string;
+  seller_id?: string;
+  user_id?: string;
+  product_name: string;
+  title?: string;
   description: string;
   price: string | number;
   category: string;
   condition: string;
-  image_url?: string;
   photo_url?: string;
+  photo_url_2?: string;
+  photo_url_3?: string;
   status: string;
   whatsapp?: string;
-  contact_name?: string; // NOVO CAMPO
+  contact_name?: string;
   author?: string;
   unit?: string;
   created_at: string;
@@ -784,22 +788,32 @@ export const MercadoService = {
   },
 
   async createItem(item: any) {
-    const dbItem = {
+    // Normalize price: "R$ 1.500,00" → "1500.00"
+    const rawPrice = String(item.price || '0')
+      .replace(/[R$\s]/g, '')   // remove R$, spaces
+      .replace(/\./g, '')        // remove thousand-separators (e.g. 1.500)
+      .replace(',', '.');        // replace decimal comma with dot
+
+    const dbItem: any = {
       condominio_id: item.condominio_id,
-      // product_name é a coluna NOT NULL real no banco
       product_name: item.title || item.product_name || 'Sem título',
-      title: item.title || item.product_name,
-      price: item.price,
-      category: item.category,
-      description: item.description,
-      condition: item.condition,
-      whatsapp: item.whatsapp,
+      title:        item.title || item.product_name,
+      price:        rawPrice,
+      category:     item.category,
+      description:  item.description,
+      condition:    item.condition,
+      whatsapp:     item.whatsapp,
       contact_name: item.contact_name || item.author,
-      // seller_id omitido para evitar FK violation com perfil inexistente
-      photo_url: item.image_url || item.photo_url,
-      status: item.status || 'active',
-      created_at: new Date().toISOString()
+      photo_url:    item.photo_url || item.image_url,
+      photo_url_2:  item.photo_url_2 || null,
+      photo_url_3:  item.photo_url_3 || null,
+      status:       item.status || 'active',
+      created_at:   new Date().toISOString()
     };
+
+    // Add author/unit only if present (columns may not exist in older schemas)
+    if (item.author) dbItem.author = item.author;
+    if (item.unit)   dbItem.unit   = item.unit;
 
     const { data, error } = await supabase
       .from('mercado_items')
@@ -811,15 +825,43 @@ export const MercadoService = {
     return data as MercadoItem;
   },
 
-  async updateItem(itemId: string, updates: any) {
+  async updateItem(itemId: string, item: any) {
+    // Normalize price: "R$ 1.500,00" → "1500.00"
+    const rawPrice = String(item.price || '0')
+      .replace(/[R$\s]/g, '')
+      .replace(/\./g, '')
+      .replace(',', '.');
+
+    const dbItem: any = {
+      product_name: item.title || item.product_name,
+      title:        item.title || item.product_name,
+      price:        rawPrice,
+      category:     item.category,
+      description:  item.description,
+      condition:    item.condition,
+      whatsapp:     item.whatsapp,
+      contact_name: item.contact_name || item.author,
+      photo_url:    item.photo_url || item.image_url,
+      photo_url_2:  item.photo_url_2 || null,
+      photo_url_3:  item.photo_url_3 || null,
+      status:       item.status || 'active'
+    };
+
+    // Add author/unit only if present (columns may not exist in older schemas)
+    if (item.author) dbItem.author = item.author;
+    if (item.unit)   dbItem.unit   = item.unit;
+
     const { data, error } = await supabase
       .from('mercado_items')
-      .update(updates)
+      .update(dbItem)
       .eq('id', itemId)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("[MercadoService] Update error:", error.message, error.details);
+      throw error;
+    }
     return data as MercadoItem;
   },
 
@@ -1035,6 +1077,18 @@ export const OcorrenciaService = {
       .eq('id', id);
 
     if (error) throw error;
+  },
+
+  async incrementViews(id: string, currentViews: number = 0) {
+    const { data, error } = await supabase
+      .from('ocorrencias')
+      .update({ views_count: currentViews + 1 })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Ocorrencia;
   }
 };
 
