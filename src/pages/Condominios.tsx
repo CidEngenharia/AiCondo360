@@ -70,11 +70,11 @@ export const Condominios: React.FC = () => {
 
   // Simulated Stripe payment data (replace with real API when available)
   const stripePayments = [
-    { id: 'pi_1', condo: 'Condomínio Verde Vale',    amount: 399,   date: new Date(Date.now() - 1 * 3600000) },
-    { id: 'pi_2', condo: 'Residencial Parque Azul',  amount: 320,   date: new Date(Date.now() - 5 * 3600000) },
-    { id: 'pi_3', condo: 'Ed. Solar dos Ipês',       amount: 250,   date: new Date(Date.now() - 26 * 3600000) },
-    { id: 'pi_4', condo: 'Cond. Bosque Verde',       amount: 399,   date: new Date(Date.now() - 48 * 3600000) },
-    { id: 'pi_5', condo: 'Res. Águas Claras',        amount: 320,   date: new Date(Date.now() - 72 * 3600000) },
+    { id: 'pi_1', condo: 'Condomínio Jardim',    amount: 599,   date: new Date(Date.now() - 1 * 3600000) },
+    { id: 'pi_2', condo: 'Condomínio Paineiras', amount: 399,   date: new Date(Date.now() - 5 * 3600000) },
+    { id: 'pi_3', condo: 'Residencial das Rosas', amount: 299,  date: new Date(Date.now() - 26 * 3600000) },
+    { id: 'pi_4', condo: 'Ed. Vila Real',        amount: 399,   date: new Date(Date.now() - 48 * 3600000) },
+    { id: 'pi_5', condo: 'Portal do Sol',        amount: 299,   date: new Date(Date.now() - 72 * 3600000) },
   ];
   const latestPayment = stripePayments[0];
   const monthTotal = stripePayments.reduce((s, p) => s + p.amount, 0);
@@ -258,7 +258,7 @@ export const Condominios: React.FC = () => {
   };
 
   const totalRevenue = condos.reduce((acc, c) => 
-    acc + (c.plan === 'premium' ? 399 : c.plan === 'professional' ? 320 : 250), 0
+    acc + (c.plan === 'premium' ? 599 : c.plan === 'professional' ? 399 : 299), 0
   );
 
   const formatWhatsAppLink = (phone: string) => {
