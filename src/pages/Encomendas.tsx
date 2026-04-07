@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Package, Search, Calendar, User, CheckCircle2, AlertCircle, Plus, X, Upload, Tag, Maximize2, Trash2, Edit2, FileText, Download, Eye, ArrowLeftRight } from 'lucide-react';
 import { FeatureHeader } from '../components/FeatureHeader';
 import { PackageService, Encomenda as BaseEncomenda } from '../services/supabaseService';
+import { useAuth } from '../hooks/useAuth';
+
 
 interface Encomenda extends BaseEncomenda {
   resident_name?: string;
@@ -16,6 +18,7 @@ interface EncomendasProps {
   userId: string;
   condoId: string;
   userRole?: string;
+  userPlan?: string;
 }
 
 // Helper to compress image
@@ -49,7 +52,9 @@ const compressImage = (base64Str: string, maxWidth = 400, maxHeight = 400): Prom
   });
 };
 
-export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRole }) => {
+export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRole, userPlan }) => {
+  const { user } = useAuth();
+
   const [packages, setPackages] = useState<Encomenda[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'delivered' | 'returned'>('all');
@@ -60,6 +65,7 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRol
   
   // Controle de Permissão
   const canManage = userRole === 'admin' || userRole === 'syndic' || userRole === 'global_admin';
+  const isBasicPlan = userPlan === 'basic';
 
   // Admin Form State
   const [showForm, setShowForm] = useState(false);
@@ -112,6 +118,10 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRol
   });
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isBasicPlan) {
+      alert("Upgrade de plano necessário para adicionar fotos!");
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -126,6 +136,12 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRol
   const handleSavePackage = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+        const finalCondoId = condoId || user?.condoId;
+        if (!finalCondoId || finalCondoId.trim() === '') {
+          alert("⚠️ Sem condomínio selecionado!\n\nSe você for Administrador Global, selecione um condomínio no menu superior antes de registrar uma encomenda.");
+          return;
+        }
+
         if (selectedPackage) {
             // Update existing
             await PackageService.updatePackage(selectedPackage.id, {
@@ -137,7 +153,7 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRol
             await PackageService.createPackage({
                 ...formData,
                 user_id: userId,
-                condominio_id: condoId,
+                condominio_id: finalCondoId,
                 status: formData.status as any,
                 arrival_date: new Date().toISOString(),
                 photo_url: formData.image_url,
@@ -157,7 +173,7 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRol
         });
     } catch (error: any) {
         console.error('Error saving package:', error);
-        alert('Erro ao salvar: ' + (error?.message || 'Erro desconhecido. Verifique se o Condomínio está selecionado no seu perfil.'));
+        alert('Erro ao salvar: ' + (error?.message || 'Erro desconhecido.'));
     }
   };
 
@@ -376,12 +392,17 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRol
               <form onSubmit={handleSavePackage} className="p-6 space-y-6">
                  {/* Upload e Compressão de Foto */}
                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Foto da Encomenda</label>
-                    <div className="relative group h-40 rounded-2xl overflow-hidden bg-slate-50 dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-orange-500 transition-all">
+                    <div className="flex items-center justify-between mb-2 px-1">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Foto da Encomenda</label>
+                      {isBasicPlan && (
+                        <span className="text-[8px] font-bold text-rose-500 uppercase tracking-tight">Indisponível no Plano Essencial</span>
+                      )}
+                    </div>
+                    <div className={`relative group h-40 rounded-2xl overflow-hidden bg-slate-50 dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-orange-500 transition-all ${isBasicPlan ? 'opacity-40 grayscale cursor-not-allowed' : ''}`}>
                         {formData.image_url ? (
                             <>
                                 <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                                <div className={`absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 ${isBasicPlan ? 'hidden' : ''}`}>
                                      <button 
                                         type="button"
                                         onClick={() => document.getElementById('camera-input')?.click()}
@@ -401,14 +422,13 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRol
                         ) : (
                             <button 
                                 type="button"
-                                onClick={() => document.getElementById('camera-input')?.click()}
-                                className="w-full h-full flex flex-col items-center justify-center gap-1"
+                                onClick={() => !isBasicPlan && document.getElementById('camera-input')?.click()}
+                                className={`w-full h-full flex flex-col items-center justify-center gap-1 ${isBasicPlan ? 'cursor-not-allowed' : ''}`}
                             >
                                 <Upload size={24} className="text-orange-400" />
                                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-tight">Foto do Pacote</span>
                             </button>
                         )}
-                        <input id="camera-input" type="file" className="hidden" accept="image/*" capture="environment" onChange={handleImageUpload} />
                     </div>
                 </div>
 
@@ -681,6 +701,15 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRol
               </div>
           )}
       </AnimatePresence>
+
+      {/* Hidden inputs */}
+      <input 
+          id="camera-input"
+          type="file" 
+          accept="image/*" 
+          onChange={handleImageUpload}
+          className="hidden"
+      />
     </div>
   );
 };

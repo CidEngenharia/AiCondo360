@@ -55,6 +55,11 @@ export const Mural: React.FC = () => {
   const handleSubmit = async () => {
     if (!user || !newPostContent.trim() || isSubmitting) return;
 
+    if (!user.condoId || user.condoId.trim() === '') {
+      alert("⚠️ Sem condomínio selecionado!\n\nSe você for Administrador Global, selecione um condomínio no menu superior antes de publicar no mural.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await MuralService.createPost({

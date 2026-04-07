@@ -423,19 +423,29 @@ export const Condominios: React.FC = () => {
               className="bg-white dark:bg-slate-800 rounded-3xl p-5 border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden"
             >
               <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all">
-                 <button 
-                  onClick={() => openEditModal(condo)}
-                  className="p-2 bg-slate-50 dark:bg-slate-700 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg shadow-sm transition-all active:scale-95"
-                 >
-                   <Edit2 size={12} />
-                 </button>
-                 <button 
-                  disabled={isDeleting === condo.id}
-                  onClick={() => handleDelete(condo.id)}
-                  className="p-2 bg-slate-50 dark:bg-slate-700 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg shadow-sm transition-all active:scale-95"
-                 >
-                   <Trash2 size={12} />
-                 </button>
+                  <button 
+                   onClick={() => {
+                     localStorage.setItem('admin_selected_condo', condo.id);
+                     window.location.href = '/';
+                   }}
+                   className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg shadow-sm transition-all active:scale-95"
+                   title="Gerenciar este Condomínio"
+                  >
+                    <Eye size={12} />
+                  </button>
+                  <button 
+                   onClick={() => openEditModal(condo)}
+                   className="p-2 bg-slate-50 dark:bg-slate-700 text-slate-600 hover:bg-slate-600 hover:text-white rounded-lg shadow-sm transition-all active:scale-95"
+                  >
+                    <Edit2 size={12} />
+                  </button>
+                  <button 
+                   disabled={isDeleting === condo.id}
+                   onClick={() => handleDelete(condo.id)}
+                   className="p-2 bg-slate-50 dark:bg-slate-700 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg shadow-sm transition-all active:scale-95"
+                  >
+                    <Trash2 size={12} />
+                  </button>
               </div>
 
               <div className="space-y-4">

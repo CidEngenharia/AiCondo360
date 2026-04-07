@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Car, Search, Plus, X, Edit2, Trash2, Shield, Info, CreditCard, Camera, User, Hash, FileText } from 'lucide-react';
 import { FeatureHeader } from '../components/FeatureHeader';
 import { VehicleService, Veiculo as IVeiculo } from '../services/supabaseService';
+import { useAuth } from '../hooks/useAuth';
+
 
 interface GaragemProps {
   userId: string;
@@ -11,6 +13,8 @@ interface GaragemProps {
 }
 
 export const Garagem: React.FC<GaragemProps> = ({ userId, condoId, userRole }) => {
+  const { user } = useAuth();
+
   const [vehicles, setVehicles] = useState<IVeiculo[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -99,13 +103,22 @@ export const Garagem: React.FC<GaragemProps> = ({ userId, condoId, userRole }) =
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const finalCondoId = condoId || user?.condoId;
+      if (!finalCondoId || finalCondoId.trim() === '') {
+        alert("⚠️ Sem condomínio selecionado!\n\nSe você for Administrador Global, selecione um condomínio no menu superior antes de cadastrar um veículo.");
+        return;
+      }
       if (editingVehicle) {
-        await VehicleService.updateVehicle(editingVehicle.id, formData);
+        await VehicleService.updateVehicle(editingVehicle.id, {
+          ...formData,
+          unit_number: formData.unit_number
+        });
       } else {
         await VehicleService.createVehicle({
           ...formData,
           user_id: userId,
-          condominio_id: condoId
+          condominio_id: finalCondoId,
+          unit_number: formData.unit_number
         });
       }
       setShowModal(false);

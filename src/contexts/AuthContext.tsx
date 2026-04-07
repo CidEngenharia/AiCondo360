@@ -75,15 +75,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (profile) {
+        let adminCondoId = null;
+        let adminCondoName = null;
+        let adminPlan = null;
+        
+        const isGlobalAdminProfile = profile.role === 'global_admin' || profile.role === 'admin_global';
+        if (isGlobalAdminProfile) {
+          const savedCondoId = localStorage.getItem('admin_selected_condo');
+          if (savedCondoId) {
+            const { data: c } = await supabase.from('condominios').select('*').eq('id', savedCondoId).maybeSingle();
+            if (c) {
+              adminCondoId = c.id;
+              adminCondoName = c.name;
+              adminPlan = c.plan;
+            } else {
+              console.warn('[Auth] Selected condo not found, clearing selection:', savedCondoId);
+              localStorage.removeItem('admin_selected_condo');
+            }
+          }
+        }
+
         const condo = (profile as any).condominios;
+
+        // Normalização crítica de Roles para evitar menus apagados
+        let normalizedRole = profile.role;
+        if (normalizedRole === 'proprietario' || normalizedRole === 'morador') normalizedRole = 'resident';
+        if (normalizedRole === 'sindico') normalizedRole = 'syndic';
+        if (normalizedRole === 'administrador') normalizedRole = 'admin';
+        if (normalizedRole === 'admin_global') normalizedRole = 'global_admin';
+
+        console.log('[AuthContext] Session Ready:', { id: profile.id, role: normalizedRole, condoId: adminCondoId || profile.condominio_id });
+
         setUser({
           id: profile.id,
           name: profile.full_name || 'Usuário',
           email: profile.email || '',
-          condo: condo?.name || 'Geral',
-          condoId: profile.condominio_id || condo?.id || '',
-          role: profile.role as UserRole,
-          plan: (condo?.plan || 'basic') as PricingPlan
+          condo: adminCondoName || condo?.name || 'Acesso Global',
+          condoId: adminCondoId || profile.condominio_id || condo?.id || '',
+          role: normalizedRole as UserRole,
+          plan: (adminPlan || condo?.plan || 'basic') as PricingPlan
         });
       } else {
         // Fallback: get data from auth metadata so the session is not lost

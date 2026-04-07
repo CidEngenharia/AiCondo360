@@ -36,7 +36,8 @@ import {
   Info,
   X,
   Loader2,
-  Car
+  Car,
+  Shield
 } from 'lucide-react';
 import { FeatureHeader } from '../components/FeatureHeader';
 import { MercadoService, MercadoItem } from '../services/supabaseService';
@@ -77,6 +78,7 @@ export const Classificados: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [selectedAd, setSelectedAd] = useState<Listing | null>(null);
+  const [showDisclaimerModal, setShowDisclaimerModal] = useState(false);
 
   const [formData, setFormData] = useState<Partial<Listing>>({
     product_name: '',
@@ -135,7 +137,13 @@ export const Classificados: React.FC = () => {
     (l.title.toLowerCase().includes(searchTerm.toLowerCase()) || l.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  const isBasicPlan = user?.plan === 'basic';
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, slot: number = 1) => {
+    if (isBasicPlan) {
+      alert("Upgrade de plano necessário para adicionar fotos aos anúncios!");
+      return;
+    }
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 1024 * 1024) {
@@ -183,11 +191,17 @@ export const Classificados: React.FC = () => {
       return;
     }
     if(!user) return;
+
+    const finalCondoId = user?.condoId;
+    if (!finalCondoId || finalCondoId.trim() === '') {
+      alert("⚠️ Sem condomínio selecionado!\n\nSe você for Administrador Global, selecione um condomínio no menu superior antes de publicar um anúncio.");
+      return;
+    }
     
     try {
       const itemData: any = {
         ...formData,
-        condominio_id: user.condoId,
+        condominio_id: finalCondoId,
         user_id: user.id,
         author: formData.author || user.name || 'Morador',
         unit: formData.unit || user.unit || '-',
@@ -236,7 +250,7 @@ export const Classificados: React.FC = () => {
         color="bg-amber-500"
       />
 
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-4">
         {/* Barra de Ações */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-4 justify-between items-center">
           <div className="relative w-full sm:w-96">
@@ -251,6 +265,13 @@ export const Classificados: React.FC = () => {
           </div>
           
           <div className="flex gap-2 w-full sm:w-auto">
+            <button 
+              onClick={() => setShowDisclaimerModal(true)}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all font-bold text-xs shadow-lg shadow-red-500/20 uppercase tracking-wider"
+            >
+              <Info size={16} />
+              Comunicado
+            </button>
             <button 
               onClick={() => setShowForm(true)}
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-500 text-white rounded-xl hover:bg-amber-600 transition-all font-bold text-xs shadow-lg shadow-amber-500/20 uppercase tracking-wider"
@@ -387,6 +408,62 @@ export const Classificados: React.FC = () => {
         )}
       </div>
 
+      {/* Modal de Comunicado */}
+      <AnimatePresence>
+        {showDisclaimerModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDisclaimerModal(false)}
+              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
+            >
+              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-amber-50 dark:bg-amber-500/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-500 rounded-xl flex items-center justify-center">
+                    <Info size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-amber-800 dark:text-amber-500 tracking-tight">Comunicado Importante</h2>
+                  </div>
+                </div>
+                <button onClick={() => setShowDisclaimerModal(false)} className="p-2 text-amber-600 dark:text-amber-500 hover:bg-amber-100 dark:hover:bg-amber-500/20 rounded-xl transition-all">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="p-6 md:p-8 space-y-4">
+                <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed font-medium">
+                  O Condomínio, o Síndico e a Gestão AiCondo360 <strong>não se responsabilizam</strong> por nenhuma transação realizada por condôminos dentro da plataforma AiCondo360.
+                </p>
+                <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed font-medium">
+                  O intuito do Marketplace interno é apenas restringir a compra, venda e troca internamente (por estranhos externos).
+                </p>
+                <div className="bg-amber-50 dark:bg-amber-500/10 border-l-4 border-amber-500 p-4 rounded-r-xl">
+                  <p className="text-amber-800 dark:text-amber-500 text-xs font-bold uppercase tracking-wide leading-relaxed">
+                    Por isso, toda transação é de inteira responsabilidade do morador que publicou o anúncio.
+                  </p>
+                </div>
+              </div>
+              <div className="p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end">
+                <button 
+                  onClick={() => setShowDisclaimerModal(false)}
+                  className="px-6 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold text-sm hover:scale-105 transition-all shadow-lg"
+                >
+                  Estou Ciente
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Modal de Cadastro/Edição */}
       <AnimatePresence>
         {showForm && (
@@ -424,16 +501,21 @@ export const Classificados: React.FC = () => {
                 
                 {/* Fotos do Produto */}
                 <div>
-                  <label className="block text-[9px] font-semibold text-slate-400 uppercase tracking-widest mb-2 px-0.5">
-                    Fotos do Produto
-                  </label>
-                  <div className="flex gap-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-[9px] font-semibold text-slate-400 uppercase tracking-widest px-0.5">
+                      Fotos do Produto
+                    </label>
+                    {isBasicPlan && (
+                      <span className="text-[8px] font-bold text-rose-500 uppercase tracking-tight">Indisponível no Plano Essencial</span>
+                    )}
+                  </div>
+                  <div className={`flex gap-2 ${isBasicPlan ? 'opacity-40 cursor-not-allowed grayscale' : ''}`}>
                     {[1, 2, 3].map((slot) => {
                       const field = slot === 1 ? 'photo_url' : slot === 2 ? 'photo_url_2' : 'photo_url_3';
                       const url = (formData as any)[field];
                       
                       return (
-                        <div key={slot} className="relative group/modalimg flex-1 aspect-square">
+                        <div key={slot} className={`relative group/modalimg flex-1 aspect-square ${isBasicPlan ? 'pointer-events-none' : ''}`}>
                           {url ? (
                             <div className="w-full h-full rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800 relative">
                               <img src={url} alt={`Preview ${slot}`} className="w-full h-full object-cover" />
@@ -454,6 +536,7 @@ export const Classificados: React.FC = () => {
                                 accept="image/*"
                                 onChange={(e) => handleImageUpload(e, slot)}
                                 className="absolute inset-0 opacity-0 cursor-pointer"
+                                disabled={isBasicPlan}
                               />
                             </div>
                           )}

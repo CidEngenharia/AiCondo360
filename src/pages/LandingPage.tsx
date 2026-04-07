@@ -93,7 +93,7 @@ const PricingCard = ({ title, price, features, highlighted = false, delay = 0, v
       case "plan-light": // Essencial
         return "bg-gradient-to-br from-blue-400 to-indigo-500 border-blue-300 shadow-[0_32px_64px_-16px_rgba(96,165,250,0.3)]";
       case "plan-medium": // Profissional
-        return "bg-gradient-to-br from-blue-600 to-indigo-800 border-indigo-400 shadow-[0_32px_64px_-16px_rgba(59,130,246,0.4)]";
+        return "bg-gradient-to-br from-blue-600 to-indigo-800 border-lime-400 shadow-[0_32px_64px_-16px_rgba(59,130,246,0.4)] scale-105 z-10";
       case "plan-dark": // Premium
         return "bg-gradient-to-br from-indigo-900 to-slate-950 border-white/5 shadow-2xl";
       default:
@@ -121,15 +121,21 @@ const PricingCard = ({ title, price, features, highlighted = false, delay = 0, v
         <span className="text-4xl font-black text-white">R${price}</span>
         <span className="text-blue-50/70">/mês</span>
       </div>
-      <div className="space-y-4 mb-8 flex-grow">
-        {features.map((feature: string, i: number) => (
-          <div key={i} className="flex items-center gap-3">
-            <div className="p-1 rounded-full bg-white/20 text-white">
-              <Check size={12} />
+      <div className="space-y-4 mb-4 flex-grow">
+        {features.map((feature: string, i: number) => {
+          const isDenied = feature.startsWith('no:');
+          const cleanFeature = isDenied ? feature.replace('no:', '') : feature;
+          return (
+            <div key={i} className="flex items-center gap-3">
+              <div className={`p-1 rounded-full ${isDenied ? 'bg-red-500/20 text-red-100' : 'bg-white/20 text-white'}`}>
+                {isDenied ? <X size={10} /> : <Check size={12} />}
+              </div>
+              <span className={`text-sm text-white font-normal ${isDenied ? 'line-through decoration-red-500 decoration-2' : ''}`}>
+                {cleanFeature}
+              </span>
             </div>
-            <span className="text-sm text-white font-medium">{feature}</span>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <button 
         onClick={() => stripeLink && window.open(stripeLink, '_blank')}
@@ -339,30 +345,52 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
             <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">Planos que acompanham seu <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-600 animate-gradient">Crescimento.</span></h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-center lg:px-4">
             <PricingCard
               title="Essencial"
-              price="250,00"
-              features={["Condomínios Pequenos", "Gestão de moradores", "Mural digital", "Suporte email"]}
+              price="299,00"
+              features={[
+                "Condomínios Pequenos", 
+                "Gestão de moradores simples", 
+                "Mural digital", 
+                "Suporte email",
+                "no:Gestão de Encomendas",
+                "no:Gestão de garagem",
+                "no:Dashboard inteligente"
+              ]}
               variant="plan-light"
-              stripeLink="https://buy.stripe.com/28EfZad956Je2rgaCuf3a00"
+              stripeLink="https://buy.stripe.com/00w28kfhd9Vq1nc3a2f3a0f"
               delay={0.1}
             />
             <PricingCard
               title="Profissional"
-              price="300,00"
-              features={["Até 50 unidades", "Boletos automáticos", "Assembleias virtuais", "Suporte 24/7", "Gestão Inteligente"]}
+              price="399,00"
+              features={[
+                "Até 50 unidades", 
+                "Gestão de Boletos", 
+                "Assembleias virtuais", 
+                "Suporte 24/7", 
+                "Gestão Global Inteligente"
+              ]}
               highlighted={true}
               variant="plan-medium"
-              stripeLink="https://buy.stripe.com/00w3co6KHd7C9TI25Yf3a01"
+              stripeLink="https://buy.stripe.com/bJedR20mj6Jec1QaCuf3a0d"
               delay={0.2}
             />
             <PricingCard
               title="Premium"
-              price="399,00"
-              features={["Customização total", "50+ unidades", "Suporte Assistido", "Controle Geral de acessos", "Treinamento presencial"]}
+              price="599,00"
+              features={[
+                "50+ unidades", 
+                "Gestão de Boletos",
+                "Gestão de Garagem",
+                "Gestão de Encomendas Inteligente",
+                "Marketplace Interno",
+                "Assembleias virtuais", 
+                "Suporte 24/7"
+              ]}
               variant="plan-dark"
-              stripeLink="https://buy.stripe.com/28EaEQ3yv5Fa7LAcKCf3a02"
+              stripeLink="https://buy.stripe.com/dRmcMYc514B63vkaCuf3a0e"
               delay={0.3}
             />
           </div>

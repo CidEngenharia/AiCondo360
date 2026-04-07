@@ -124,16 +124,23 @@ export const Moradores: React.FC = () => {
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    const condoId = user?.condoId || '';
+    if (!condoId || condoId.trim() === '' || condoId === 'undefined') {
+      alert("⚠️ Erro crítico: O seu Condomínio não está selecionado ou carregado. Se você for Admin Global, selecione um condomínio no topo da página. Se for Síndico, seu perfil pode estar corrompido.");
+      return;
+    }
+
     const formData = new FormData(e.currentTarget);
     
     const residentData: Partial<Profile> = {
       full_name: formData.get('name') as string,
       building: formData.get('building') as string,
       unit: formData.get('unit') as string,
-      role: formData.get('role') as any, // 'proprietario' maps to resident/proprietario
+      role: formData.get('role') as any,
       phone: formData.get('phone') as string,
       email: formData.get('email') as string,
-      condominio_id: user?.condoId
+      condominio_id: condoId
     };
 
     try {
@@ -141,7 +148,22 @@ export const Moradores: React.FC = () => {
       if (editingResident) {
         await ProfileService.updateProfile(editingResident.id, residentData);
       } else {
+        // Generate a random UUID for the profile (will be linked to auth later via Supabase Dashboard)
+        residentData.id = crypto.randomUUID();
+        
+        console.log("[Moradores] Salvando perfil com condomínio ID:", residentData.condominio_id);
         await ProfileService.createProfile(residentData);
+
+        // Inform admin about next steps for user login setup
+        const tempPassword = `Condo${residentData.unit}@360`;
+        alert(
+          `✅ Morador cadastrado com sucesso!\n\n` +
+          `Para permitir o acesso ao aplicativo, acesse o Painel do Supabase:\n` +
+          `Authentication > Users > Invite user\n\n` +
+          `Email: ${residentData.email}\n` +
+          `Sugestão de senha provisória: ${tempPassword}\n\n` +
+          `(O ID do perfil foi criado. Vincule ao usuário Auth pelo mesmo ID após o invite.)`
+        );
       }
       
       await fetchResidents();
@@ -149,7 +171,11 @@ export const Moradores: React.FC = () => {
       setEditingResident(null);
     } catch (err: any) {
       console.error('Error saving resident:', err);
-      alert(`Erro ao salvar morador: ${err.message || 'Erro desconhecido'}`);
+      let errorMsg = err.message || 'Erro desconhecido';
+      if (err.code === '23503') {
+         errorMsg = `O condomínio ID (${user?.condoId}) não foi encontrado no banco de dados. Se você for Admin Global, selecione um condomínio no topo.`;
+      }
+      alert(`⚠️ Erro ao salvar morador: ${errorMsg}`);
     } finally {
       setLoading(false);
     }

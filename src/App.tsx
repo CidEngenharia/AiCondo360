@@ -122,7 +122,7 @@ export default function App() {
                 userRole={user.role}
                 userPlan={user.plan}
               >
-                <Encomendas userId={user.id} userRole={user.role} condoId={user.condoId} />
+                <Encomendas userId={user.id} userRole={user.role} condoId={user.condoId} userPlan={user.plan} />
               </Layout>
             ) : (
               <Navigate to="/login" />
@@ -349,42 +349,7 @@ export default function App() {
             )
           } 
         />
-        <Route 
-          path="/feature/visitantes" 
-          element={
-            user ? (
-              <Layout 
-                condoName={user.condo} 
-                userName={user.name} 
-                onLogout={logout}
-                userRole={user.role}
-                userPlan={user.plan}
-              >
-                <Visitantes userId={user.id} condoId={user.condoId} userRole={user.role} />
-              </Layout>
-            ) : (
-              <Navigate to="/login" />
-            )
-          } 
-        />
-        <Route 
-          path="/feature/veiculos" 
-          element={
-            user ? (
-              <Layout 
-                condoName={user.condo} 
-                userName={user.name} 
-                onLogout={logout}
-                userRole={user.role}
-                userPlan={user.plan}
-              >
-                <Garagem userId={user.id} condoId={user.condoId} userRole={user.role} />
-              </Layout>
-            ) : (
-              <Navigate to="/login" />
-            )
-          } 
-        />
+
         <Route 
           path="/feature/:id" 
           element={

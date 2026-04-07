@@ -140,6 +140,11 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
 
   const handleBooking = async () => {
     if (!selectedArea || !selectedDate) return;
+
+    if (!condoId || condoId.trim() === '') {
+      alert("⚠️ Sem condomínio selecionado!\n\nSe você for Administrador Global, selecione um condomínio no menu superior antes de realizar uma reserva.");
+      return;
+    }
     
     if (isDayReserved(selectedDate)) {
       setBookingError("já existe agendamentos ativos para essa data");

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Bell, Menu, User, Settings, LogOut, Sun, Moon, MessageCircle, X, ChevronRight, Lock, Sparkles, LayoutDashboard, HelpCircle } from 'lucide-react';
+import { Bell, Menu, User, Settings, LogOut, Sun, Moon, MessageCircle, X, ChevronRight, Lock, Sparkles, LayoutDashboard, HelpCircle, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AIChat } from './AIChat';
 import { FEATURES, UserRole, PricingPlan } from '../constants';
 import { cn } from '../lib/utils';
+import { CondominioService, Condominio } from '../services/supabaseService';
+import { useAuth } from '../hooks/useAuth';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -19,8 +21,16 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [condos, setCondos] = useState<Condominio[]>([]);
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    if (userRole === 'global_admin') {
+      CondominioService.getAllCondominios().then(setCondos);
+    }
+  }, [userRole]);
 
   useEffect(() => {
     setIsSidebarOpen(false);
@@ -229,7 +239,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
                 <Menu size={20} className="text-slate-600 dark:text-slate-300" />
               </button>
               <img src="/favicon.jpg" alt="AiCondo360 Logo" className="w-10 h-10 object-contain rounded-lg shadow-sm" />
-              <div className="flex flex-col">
+              <div className="flex flex-col min-w-0">
                 <h1 className="text-base font-black text-slate-900 dark:text-white leading-none tracking-tighter">AiCondo360</h1>
                 <span className="text-[9px] text-blue-600 dark:text-blue-400 font-black uppercase tracking-wider truncate max-w-[150px]">{condoName}</span>
               </div>

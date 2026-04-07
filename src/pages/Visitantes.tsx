@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { User, Search, Calendar, Clock, CheckCircle2, Shield, Trash2, Plus, X, Edit2, Phone, Briefcase, Truck, MoreHorizontal, FileText, Download } from 'lucide-react';
 import { FeatureHeader } from '../components/FeatureHeader';
 import { VisitorService, Visitante as IVisitante } from '../services/supabaseService';
+import { useAuth } from '../hooks/useAuth';
+
 
 interface VisitantesProps {
   userId: string;
@@ -11,6 +13,8 @@ interface VisitantesProps {
 }
 
 export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRole }) => {
+  const { user } = useAuth();
+
   const [visitors, setVisitors] = useState<IVisitante[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'expected' | 'historic'>('all');
@@ -27,7 +31,8 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
     date: '',
     time: '',
     status: 'autorizado' as 'pendente' | 'autorizado' | 'finalizado',
-    observation: ''
+    observation: '',
+    authorizedBy: ''
   });
 
   useEffect(() => {
@@ -51,13 +56,21 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
   const handleOpenModal = (visitor?: IVisitante) => {
     if (visitor) {
       setEditingVisitor(visitor);
+      let obs = visitor.observation || '';
+      let authBy = '';
+      if (obs.includes(' || Autorizado por: ')) {
+        const parts = obs.split(' || Autorizado por: ');
+        obs = parts[0];
+        authBy = parts[1] || '';
+      }
       setFormData({
         name: visitor.name,
         type: visitor.type,
         date: visitor.date,
         time: visitor.time,
         status: visitor.status,
-        observation: visitor.observation || ''
+        observation: obs,
+        authorizedBy: authBy
       });
     } else {
       setEditingVisitor(null);
@@ -67,7 +80,8 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
         date: new Date().toISOString().split('T')[0],
         time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         status: 'autorizado',
-        observation: ''
+        observation: '',
+        authorizedBy: ''
       });
     }
     setShowModal(true);
@@ -76,20 +90,39 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const finalCondoId = condoId || user?.condoId;
+      if (!finalCondoId || finalCondoId.trim() === '') {
+        alert("⚠️ Sem condomínio selecionado!\n\nSe você for Administrador Global, selecione um condomínio no menu superior antes de registrar um visitante.");
+        return;
+      }
+
+      const finalObservation = formData.authorizedBy 
+        ? `${formData.observation}${formData.observation ? ' || ' : ''}Autorizado por: ${formData.authorizedBy}`
+        : formData.observation;
+
+      const submitData = {
+          name: formData.name,
+          type: formData.type,
+          date: formData.date,
+          time: formData.time,
+          status: formData.status,
+          observation: finalObservation
+      };
+
       if (editingVisitor) {
-        await VisitorService.updateVisitor(editingVisitor.id, formData);
+        await VisitorService.updateVisitor(editingVisitor.id, submitData);
       } else {
         await VisitorService.createVisitor({
-          ...formData,
+          ...submitData,
           user_id: userId,
-          condominio_id: condoId
+          condominio_id: finalCondoId
         });
       }
       setShowModal(false);
       fetchVisitors();
     } catch (error: any) {
       console.error('Error saving visitor:', error);
-      alert('Erro ao salvar: ' + (error?.message || 'Erro desconhecido. Verifique se o Condomínio está selecionado no seu perfil.'));
+      alert('Erro ao salvar: ' + (error?.message || 'Erro desconhecido.'));
     }
   };
 
@@ -275,8 +308,16 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                     {visitor.observation && (
                       <div className="bg-slate-50 dark:bg-slate-900/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/50 mt-1">
                         <p className="italic text-[11px] text-slate-500 leading-relaxed font-normal">
-                          "{visitor.observation}"
+                          "{visitor.observation.split(' || Autorizado por: ')[0]}"
                         </p>
+                      </div>
+                    )}
+                    {visitor.observation?.includes('Autorizado por: ') && (
+                      <div className="flex items-center gap-1.5 mt-3 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-full border border-emerald-100 dark:border-emerald-500/20 w-fit">
+                        <Shield size={10} className="text-emerald-500" />
+                        <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
+                          Autorizado por: <span className="font-bold">{visitor.observation.split(' || Autorizado por: ')[1]}</span>
+                        </span>
                       </div>
                     )}
                   </div>
@@ -425,6 +466,16 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                       onChange={e => setFormData({...formData, time: e.target.value})}
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 px-1">Autorizado por</label>
+                  <input 
+                    placeholder="Nome de quem autorizou..."
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium placeholder:font-normal mb-3"
+                    value={formData.authorizedBy}
+                    onChange={e => setFormData({...formData, authorizedBy: e.target.value})}
+                  />
                 </div>
 
                 <div>

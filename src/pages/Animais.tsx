@@ -86,6 +86,11 @@ export const Animais: React.FC = () => {
 
   const handleCreateNew = async () => {
     if(!name.trim() || !user) return;
+
+    if (!user.condoId || user.condoId.trim() === '') {
+      alert("⚠️ Sem condomínio selecionado!\n\nSe você for Administrador Global, selecione um condomínio no menu superior antes de cadastrar um animal.");
+      return;
+    }
     
     try {
       const petData = {

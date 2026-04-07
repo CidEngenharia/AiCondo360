@@ -70,7 +70,10 @@ export const Comunicados: React.FC<ComunicadosProps> = ({ userId: propUserId }) 
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!condoId || !user) return;
+    if (!condoId || condoId.trim() === '' || !user) {
+      alert("⚠️ Sem condomínio selecionado!\n\nSe você for Administrador Global, selecione um condomínio no menu superior antes de publicar um comunicado.");
+      return;
+    }
 
     try {
       setIsSaving(true);

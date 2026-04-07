@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Building2, ShieldCheck, Globe, ChevronDown, User, Shield, Briefcase, Loader2, AlertCircle } from 'lucide-react';
+import { Building2, ShieldCheck, Globe, ChevronDown, User, Shield, Briefcase, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { UserRole, PricingPlan } from '../constants';
 import { supabase } from '../lib/supabase';
 
@@ -12,6 +12,7 @@ export const Login: React.FC = () => {
   const [role, setRole] = useState<UserRole>('resident');
   const [plan, setPlan] = useState<PricingPlan>('basic');
   const [step, setStep] = useState(1);
+  const [showPassword, setShowPassword] = useState(false);
   const [showCondoDropdown, setShowCondoDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,15 +57,42 @@ export const Login: React.FC = () => {
     setError(null);
 
     try {
+      const cleanEmail = email.trim();
+      const cleanPassword = password.trim();
+
       const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: cleanEmail,
+        password: cleanPassword,
       });
 
       if (authError) throw authError;
 
-      // Se logou com sucesso, o useAuth no App.tsx vai detectar a mudança de estado
-      // Não precisamos fazer nada aqui pois o redirecionamento é automático no App.tsx
+      // Buscar o perfil do usuário recém autenticado
+      const { data: profile } = await supabase
+         .from('profiles')
+         .select('condominio_id, role')
+         .eq('id', data.user.id)
+         .maybeSingle();
+
+      const isGlobalAdminProfile = profile?.role === 'global_admin' || profile?.role === 'admin_global';
+
+      // 1. Bloqueio de isolamento: Se não for admin global, proibir login no lugar errado
+      if (profile && !isGlobalAdminProfile && role !== 'global_admin') {
+         if (profile.condominio_id && condoId && profile.condominio_id !== condoId) {
+            await supabase.auth.signOut();
+            setError('⚠️ Você está tentando acessar o condomínio errado. Por favor, volte e selecione o seu condomínio correto.');
+            setLoading(false);
+            return;
+         }
+      }
+
+      // 2. Opção isolada do Admin: Se for admin global e tiver escolhido um condomínio, salva a escolha
+      if ((isGlobalAdminProfile || role === 'global_admin') && condoId) {
+         localStorage.setItem('admin_selected_condo', condoId);
+      } else {
+         localStorage.removeItem('admin_selected_condo'); // Limpa caso use acesso geral
+      }
+
     } catch (err: any) {
       setError(err.message || 'Erro ao realizar login. Verifique suas credenciais.');
       setLoading(false);
@@ -176,14 +204,23 @@ export const Login: React.FC = () => {
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Senha</label>
-                  <input 
-                    type="password" 
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full p-4 rounded-2xl bg-slate-50 border-transparent focus:bg-white focus:border-blue-500 focus:ring-0 transition-all text-sm outline-none"
-                  />
+                  <div className="relative">
+                    <input 
+                      type={showPassword ? "text" : "password"}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full p-4 pr-12 rounded-2xl bg-slate-50 border-transparent focus:bg-white focus:border-blue-500 focus:ring-0 transition-all text-sm outline-none"
+                    />
+                    <button 
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-500 transition-colors"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </div>
               </div>
 

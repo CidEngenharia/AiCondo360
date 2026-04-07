@@ -159,10 +159,14 @@ const FinanceiroPage: React.FC = () => {
     fetchData();
   }, [user?.condoId]);
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.nome.trim() || !form.valor || !user?.condoId) return;
+    const finalCondoId = user?.condoId;
+    if (!finalCondoId || finalCondoId.trim() === '') {
+      alert("⚠️ Sem condomínio selecionado!\n\nSe você for Administrador Global, selecione um condomínio no menu superior antes de lançar dados financeiros.");
+      return;
+    }
+    if (!form.nome.trim() || !form.valor) return;
 
     setSaving(true);
     try {
@@ -258,13 +262,15 @@ const FinanceiroPage: React.FC = () => {
             <p className="text-xs text-slate-500 font-normal">Gestão inteligente de contas e despesas</p>
           </div>
 
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-5 py-3 rounded-2xl font-medium transition-all shadow-md hover:translate-y-[-1px] active:translate-y-[0px] text-sm"
-          >
-            <Plus size={18} />
-            Lançar Novo
-          </button>
+          {user?.role !== 'resident' && (
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-5 py-3 rounded-2xl font-medium transition-all shadow-md hover:translate-y-[-1px] active:translate-y-[0px] text-sm"
+            >
+              <Plus size={18} />
+              Lançar Novo
+            </button>
+          )}
         </header>
 
         {/* Dashboard Stats */}
@@ -372,10 +378,12 @@ const FinanceiroPage: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-4">
                            <span className="text-sm font-medium text-slate-800 dark:text-white">{fmt(item.valor)}</span>
-                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => handleEdit(item.origem === 'outros' ? 'boleto' : 'despesa', item)} className="p-1.5 text-slate-400 hover:text-indigo-500"><Pencil size={12}/></button>
-                              <button onClick={() => handleDelete(item.origem === 'outros' ? 'boleto' : 'despesa', item.id)} className="p-1.5 text-slate-400 hover:text-rose-500"><Trash2 size={12}/></button>
-                           </div>
+                           {user?.role !== 'resident' && (
+                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => handleEdit(item.origem === 'outros' ? 'boleto' : 'despesa', item)} className="p-1.5 text-slate-400 hover:text-indigo-500"><Pencil size={12}/></button>
+                                <button onClick={() => handleDelete(item.origem === 'outros' ? 'boleto' : 'despesa', item.id)} className="p-1.5 text-slate-400 hover:text-rose-500"><Trash2 size={12}/></button>
+                             </div>
+                           )}
                         </div>
                       </div>
                     ))}
@@ -402,10 +410,12 @@ const FinanceiroPage: React.FC = () => {
                     <p className="text-[10px] text-slate-400">Vencimento: {format(new Date(boleto.vencimento), 'dd/MM/yyyy')}</p>
                     <div className="mt-4 flex items-center justify-between border-t border-slate-50 dark:border-slate-800 pt-3">
                       <span className="text-md font-medium text-slate-800 dark:text-white">{fmt(boleto.valor)}</span>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                         <button onClick={() => handleEdit('boleto', boleto)} className="p-1.5 text-slate-400 hover:text-indigo-500"><Pencil size={14}/></button>
-                         <button onClick={() => handleDelete('boleto', boleto.id)} className="p-1.5 text-slate-400 hover:text-rose-500"><Trash2 size={14}/></button>
-                      </div>
+                      {user?.role !== 'resident' && (
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                           <button onClick={() => handleEdit('boleto', boleto)} className="p-1.5 text-slate-400 hover:text-indigo-500"><Pencil size={14}/></button>
+                           <button onClick={() => handleDelete('boleto', boleto.id)} className="p-1.5 text-slate-400 hover:text-rose-500"><Trash2 size={14}/></button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

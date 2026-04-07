@@ -68,6 +68,11 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
 
   const handleCreateNew = async () => {
     if(!newTitle.trim() || !newDesc.trim()) return;
+
+    if (!condoId || condoId.trim() === '') {
+      alert("⚠️ Sem condomínio selecionado!\n\nSe você for Administrador Global, selecione um condomínio no menu superior antes de registrar uma ocorrência.");
+      return;
+    }
     
     try {
         if (editingId) {

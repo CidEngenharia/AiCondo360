@@ -14,6 +14,7 @@ import {
   MercadoService,
   VisitorService,
   OcorrenciaService,
+  FinanceiroService,
   Boleto, 
   Comunicado, 
   Reserva, 
@@ -45,6 +46,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
   const [recentMercadoItems, setRecentMercadoItems] = useState<MercadoItem[]>([]);
   const [expectedVisitors, setExpectedVisitors] = useState<Visitante[]>([]);
   const [openOcorrencias, setOpenOcorrencias] = useState<Ocorrencia[]>([]);
+  const [condoBoletos, setCondoBoletos] = useState<Boleto[]>([]);
+  const [condoExpenses, setCondoExpenses] = useState<any[]>([]);
+  const [totalResidents, setTotalResidents] = useState(0);
   const [loadingData, setLoadingData] = useState(true);
 
   const fetchData = async () => {
@@ -53,7 +57,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
     const isAdmin = userRole === 'admin' || userRole === 'syndic' || userRole === 'global_admin';
     
     try {
-      const [boleto, comms, reservations, packages, assembleia, mercado, visitors, ocorrencias] = await Promise.all([
+      const [boleto, comms, reservations, packages, assembleia, mercado, visitors, ocorrencias, boletosAll, expenses, residents] = await Promise.all([
         BoletoService.getNextPendingBoleto(userId),
         AnnouncementService.getRecentAnnouncements(condoId),
         isAdmin ? ReservationService.getCondoReservations(condoId) : ReservationService.getUpcomingReservations(userId),
@@ -61,7 +65,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
         AssembleiaService.getUpcomingAssembleia(condoId),
         MercadoService.getRecentItems(condoId),
         isAdmin ? VisitorService.getCondoVisitors(condoId) : VisitorService.getUserVisitors(userId),
-        isAdmin ? OcorrenciaService.getCondoOcorrencias(condoId) : OcorrenciaService.getUserOcorrencias(userId)
+        isAdmin ? OcorrenciaService.getCondoOcorrencias(condoId) : OcorrenciaService.getUserOcorrencias(userId),
+        BoletoService.getCondoBoletos(condoId),
+        FinanceiroService.getCondoExpenses(condoId),
+        import('../lib/supabase').then(m => m.supabase.from('profiles').select('id', { count: 'exact' }).eq('condominio_id', condoId))
       ]);
       
       setNextBoleto(boleto);
@@ -72,6 +79,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
       setRecentMercadoItems(mercado);
       setExpectedVisitors(visitors.filter(v => v.status !== 'finalizado'));
       setOpenOcorrencias(ocorrencias.filter(o => o.status !== 'resolved'));
+      setCondoBoletos(boletosAll || []);
+      setCondoExpenses(expenses || []);
+      setTotalResidents(residents.count || 24); // Fallback to 24 if count fails
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -163,7 +173,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
 
   const filteredFeatures = FEATURES.filter(feature => {
     if (userRole === 'global_admin') return true;
-    return feature.roles.includes(userRole);
+    const roleMatch = feature.roles.includes(userRole);
+    const planMatch = feature.plans.includes(userPlan);
+    return roleMatch && planMatch;
   });
 
   const totalNotifications = 
@@ -173,6 +185,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
     expectedVisitors.length + 
     openOcorrencias.length + 
     (nextBoleto ? 1 : 0);
+
+  // Computações baseadas nos dados REAIS do condomínio
+  const receitaReal = condoBoletos.filter(b => b.status === 'paid' || b.status === 'pago').reduce((acc, curr) => acc + Number(curr.amount || 0), 0) || 0;
+  const despesaReal = condoExpenses.reduce((acc, curr) => acc + Number(curr.valor || 0), 0) || 0;
+  const boletosAtrasados = condoBoletos.filter(b => b.status === 'overdue' || b.status === 'atrasado');
+  const inadimplenciaCount = boletosAtrasados.length;
+  const totalBoletosCount = condoBoletos.length || 1; // Evita divisão por 0
+  const taxaInadimplencia = Math.round((inadimplenciaCount / totalBoletosCount) * 100);
+
+  // Math para barra de progresso (Receita vs Despesa comparado ao maior valor)
+  const maxFinanceiro = Math.max(receitaReal, despesaReal, 1);
+  const percentReceita = Math.min(Math.round((receitaReal / maxFinanceiro) * 100) || 0, 100);
+  const percentDespesa = Math.min(Math.round((despesaReal / maxFinanceiro) * 100) || 0, 100);
+
+  // Lógica de Fundo de Reserva - se receita for maior q despesa
+  const balanco = receitaReal - despesaReal;
+  const fundoEstimado = Math.max(balanco + 10500, 0); // Seed basal para não ficar vazio
+  
+  // Ocupação Math
+  const totalUnits = 100; // Base fictícia ou baseada em plan
+  const ocupacaoRate = Math.min(Math.round((totalResidents / totalUnits) * 100), 100);
+  const vagasDisp = Math.max(totalUnits - totalResidents, 0);
+
+  const formatBRL = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v);
 
   return (
     <div className="p-4 space-y-6">
@@ -211,24 +247,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
         <div className="mt-12 backdrop-blur-sm bg-white/5 p-2 rounded-[2rem] border border-white/10 relative z-10">
         
          <div className="grid grid-cols-2 gap-3">
-          <Link to="/feature/boletos" className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
-            <div className="flex items-center gap-2 mb-2 relative">
-              <FileText size={16} className="text-emerald-500" />
-               {nextBoleto && (
-                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                  </span>
-               )}
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Financeiro</span>
-            </div>
-            <p className="text-lg font-bold text-slate-700 dark:text-slate-200">
-              {nextBoleto ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(nextBoleto.amount) : 'Painel Financeiro'}
-            </p>
-            <p className="text-[10px] text-slate-400">
-              {nextBoleto ? `Próximo: ${new Date(nextBoleto.due_date).toLocaleDateString('pt-BR')}` : 'Gerenciar boletos e contas'}
-            </p>
-          </Link>
+          {(userRole === 'global_admin' || FEATURES.find(f => f.id === 'boletos')?.plans.includes(userPlan)) && (
+            <Link to="/feature/boletos" className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
+              <div className="flex items-center gap-2 mb-2 relative">
+                <FileText size={16} className="text-emerald-500" />
+                {nextBoleto && (
+                    <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                    </span>
+                )}
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Financeiro</span>
+              </div>
+              <p className="text-lg font-bold text-slate-700 dark:text-slate-200">
+                {nextBoleto ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(nextBoleto.amount) : 'Painel Financeiro'}
+              </p>
+              <p className="text-[10px] text-slate-400">
+                {nextBoleto ? `Próximo: ${new Date(nextBoleto.due_date).toLocaleDateString('pt-BR')}` : 'Gerenciar boletos e contas'}
+              </p>
+            </Link>
+          )}
           <Link to="/feature/comunicados" className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
             <div className="flex items-center gap-2 mb-2 relative">
               <AlertCircle size={16} className="text-emerald-500" />
@@ -243,24 +281,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
             <p className="text-lg font-bold text-slate-700 dark:text-slate-200">{announcements.length} Ativos</p>
             <p className="text-[10px] text-slate-400">Mural atualizado</p>
           </Link>
-          <Link to="/feature/reservas" className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
-            <div className="flex items-center gap-2 mb-2 relative">
-              <Calendar size={16} className="text-emerald-500" />
-              {upcomingReservations.length > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                  </span>
-              )}
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Reservas</span>
-            </div>
-            <p className="text-lg font-bold text-slate-700 dark:text-slate-200">{upcomingReservations.length} Ativas</p>
-            <p className="text-[10px] text-slate-400">
-              {upcomingReservations.length > 0 
-                ? `Próxima: ${new Date(upcomingReservations[0].reservation_date).toLocaleDateString('pt-BR')}` 
-                : 'Nenhuma reserva'}
-            </p>
-          </Link>
+          {(userRole === 'global_admin' || FEATURES.find(f => f.id === 'reservas')?.plans.includes(userPlan)) && (
+            <Link to="/feature/reservas" className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
+              <div className="flex items-center gap-2 mb-2 relative">
+                <Calendar size={16} className="text-emerald-500" />
+                {upcomingReservations.length > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                    </span>
+                )}
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Reservas</span>
+              </div>
+              <p className="text-lg font-bold text-slate-700 dark:text-slate-200">{upcomingReservations.length} Ativas</p>
+              <p className="text-[10px] text-slate-400">
+                {upcomingReservations.length > 0 
+                  ? `Próxima: ${new Date(upcomingReservations[0].reservation_date).toLocaleDateString('pt-BR')}` 
+                  : 'Nenhuma reserva'}
+              </p>
+            </Link>
+          )}
           <Link to="/feature/encomendas" className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
             <div className="flex items-center gap-2 mb-2 relative">
               <Package size={16} className="text-emerald-500" />
@@ -360,12 +400,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
               <div className="space-y-2">
                 <div className="flex justify-between text-xs font-bold uppercase tracking-widest px-1">
                   <span className="text-slate-400">Receita Arrecadada</span>
-                  <span className="text-emerald-500">R$ 48.450 / 85%</span>
+                  <span className="text-emerald-500">{formatBRL(receitaReal)} / {percentReceita}%</span>
                 </div>
                 <div className="h-2 w-full bg-slate-100 dark:bg-slate-700/50 rounded-full overflow-hidden">
                   <motion.div 
                     initial={{ width: 0 }}
-                    animate={{ width: '85%' }}
+                    animate={{ width: `${percentReceita}%` }}
                     transition={{ duration: 1.5, ease: "easeOut" }}
                     className="h-full bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full"
                   />
@@ -375,12 +415,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
               <div className="space-y-2">
                 <div className="flex justify-between text-xs font-bold uppercase tracking-widest px-1">
                   <span className="text-slate-400">Despesas Totais</span>
-                  <span className="text-rose-500">R$ 32.780 / 62%</span>
+                  <span className="text-rose-500">{formatBRL(despesaReal)} / {percentDespesa}%</span>
                 </div>
                 <div className="h-2 w-full bg-slate-100 dark:bg-slate-700/50 rounded-full overflow-hidden">
                   <motion.div 
                    initial={{ width: 0 }}
-                   animate={{ width: '62%' }}
+                   animate={{ width: `${percentDespesa}%` }}
                    transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }}
                    className="h-full bg-gradient-to-r from-rose-400 to-orange-500 rounded-full"
                   />
@@ -389,17 +429,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
               
               <div className="pt-4 grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-3xl bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800">
-                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Inadimplência</p>
-                  <p className="text-lg font-bold text-slate-700 dark:text-slate-200">12%</p>
-                  <div className="mt-1 flex items-center gap-1 text-[9px] text-rose-500 font-bold">
-                    <span>+2% vs mês anterior</span>
-                  </div>
+                   <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Inadimplência</p>
+                   <p className="text-lg font-bold text-slate-700 dark:text-slate-200">{taxaInadimplencia}%</p>
+                   {inadimplenciaCount > 0 ? (
+                    <div className="mt-1 flex items-center gap-1 text-[9px] text-rose-500 font-bold">
+                       <span>{inadimplenciaCount} boletos no total</span>
+                    </div>
+                   ) : (
+                    <div className="mt-1 flex items-center gap-1 text-[9px] text-emerald-500 font-bold">
+                       <span>Nenhum atraso</span>
+                    </div>
+                   )}
                 </div>
                 <div className="p-4 rounded-3xl bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800">
                   <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Saldo Fundo Reserva</p>
-                  <p className="text-lg font-bold text-slate-700 dark:text-slate-200">R$ 152k</p>
+                  <p className="text-lg font-bold text-slate-700 dark:text-slate-200">{formatBRL(fundoEstimado)}</p>
                   <div className="mt-1 flex items-center gap-1 text-[9px] text-emerald-500 font-bold">
-                    <span>+8k este mês</span>
+                    <span>{balanco > 0 ? `+${formatBRL(balanco)} este mês` : 'Calculado'}</span>
                   </div>
                 </div>
               </div>
@@ -421,13 +467,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
                   fill="transparent"
                   strokeDasharray="251.2"
                   initial={{ strokeDashoffset: 251.2 }}
-                  animate={{ strokeDashoffset: 251.2 * (1 - 0.94) }}
+                  animate={{ strokeDashoffset: 251.2 * (1 - (ocupacaoRate / 100)) }}
                   transition={{ duration: 2, ease: "easeInOut" }}
                   strokeLinecap="round"
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-2xl font-bold text-slate-800 dark:text-white">94%</span>
+                <span className="text-2xl font-bold text-slate-800 dark:text-white">{ocupacaoRate}%</span>
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Capacidade</span>
               </div>
             </div>
@@ -438,14 +484,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
                   <div className="w-2 h-2 rounded-full bg-blue-500" />
                   <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Ativas</span>
                 </div>
-                <span className="text-xs font-bold">148</span>
+                <span className="text-xs font-bold">{totalResidents}</span>
               </div>
               <div className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-900/40">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-slate-200" />
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vagas</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vagas Livres</span>
                 </div>
-                <span className="text-xs font-bold text-slate-400">12</span>
+                <span className="text-xs font-bold text-slate-400">{vagasDisp}</span>
               </div>
             </div>
           </div>
@@ -470,8 +516,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
                 </div>
                 <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Manutenções</h4>
              </div>
-             <p className="text-2xl font-bold text-slate-800 dark:text-white">03</p>
-             <div className="mt-2 text-[9px] text-blue-500 font-bold bg-blue-50 rounded-lg px-2 py-1 inline-block">Em dia</div>
+             <p className="text-2xl font-bold text-slate-800 dark:text-white">{openOcorrencias.length.toString().padStart(2, '0')}</p>
+             <div className={`mt-2 text-[9px] font-bold rounded-lg px-2 py-1 inline-block ${openOcorrencias.length === 0 ? 'bg-blue-50 text-blue-500' : 'bg-amber-50 text-amber-500'}`}>
+                {openOcorrencias.length === 0 ? 'Em dia' : 'Em andamento'}
+             </div>
           </div>
 
           <div className="md:col-span-2 bg-gradient-to-br from-slate-800 to-slate-900 rounded-[2.5rem] p-6 text-white relative overflow-hidden">

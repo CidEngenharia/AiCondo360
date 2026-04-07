@@ -16,7 +16,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isAdminOnly = false, setUs
   const [condo, setCondo] = useState('');
   const [condoId, setCondoId] = useState('');
   const [role, setRole] = useState<UserRole>('resident');
-  const [step, setStep] = useState(isAdminOnly ? 2 : 1);
+  const [step, setStep] = useState(1);
   const [showCondoDropdown, setShowCondoDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,9 +24,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isAdminOnly = false, setUs
 
   useEffect(() => {
     if (isAdminOnly) {
-      setCondo('Administração Exclusiva');
       setRole('global_admin');
-      return;
     }
 
     async function fetchCondos() {
@@ -68,6 +66,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isAdminOnly = false, setUs
     setLoading(true);
     setError(null);
 
+    // Salvar escolha do condomínio no localStorage
+    if (condoId) {
+      localStorage.setItem('admin_selected_condo', condoId);
+    }
+
     // Bypass para Demonstrativo/Admin
     if (email === 'admin@aicondo360.com' && password === 'admin123') {
       if (setUser) {
@@ -75,8 +78,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isAdminOnly = false, setUs
           id: '00000000-0000-0000-0000-00000000000A',
           name: 'Administrador Demo',
           email: 'admin@aicondo360.com',
-          condo: 'Administração Exclusiva',
-          condoId: '00000000-0000-0000-0000-000000000001',
+          condo: condo || 'Acesso Global',
+          condoId: condoId || '00000000-0000-0000-0000-000000000001',
           role: 'global_admin',
           plan: 'premium'
         });

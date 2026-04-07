@@ -80,6 +80,10 @@ export const Documentos: React.FC = () => {
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user?.condoId) {
+      alert("Erro: Condomínio não identificado. Por favor, selecione um condomínio ou refaça o login.");
+      return;
+    }
     if (!newDoc.title || !user) return;
     if (!selectedFile) {
       alert("Por favor, selecione um arquivo.");
@@ -171,14 +175,16 @@ export const Documentos: React.FC = () => {
               Acesse atas, regimentos, balancetes e comunicados oficiais do condomínio com um clique.
             </p>
           </div>
-          
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center gap-2 px-8 py-4 bg-indigo-500 text-white rounded-2xl hover:bg-indigo-600 transition-all font-bold shadow-lg shadow-indigo-500/25 active:scale-95 translate-y-0 hover:-translate-y-1"
-          >
-            <Plus size={22} />
-            Novo Documento
-          </button>
+
+          {user?.role !== 'resident' && (
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center justify-center gap-2 px-8 py-4 bg-indigo-500 text-white rounded-2xl hover:bg-indigo-600 transition-all font-bold shadow-lg shadow-indigo-500/25 active:scale-95 translate-y-0 hover:-translate-y-1"
+            >
+              <Plus size={22} />
+              Novo Documento
+            </button>
+          )}
         </div>
       </div>
 
@@ -260,12 +266,14 @@ export const Documentos: React.FC = () => {
                   </div>
 
                   <div className="absolute top-4 right-4 sm:top-5 sm:right-5 flex gap-1">
-                    <button 
-                      onClick={() => handleDelete(doc.id, doc.file_url)}
-                      className="p-3 text-slate-300 dark:text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    {user?.role !== 'resident' && (
+                      <button 
+                        onClick={() => handleDelete(doc.id, doc.file_url)}
+                        className="p-3 text-slate-300 dark:text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    )}
                     <a 
                       href={doc.file_url}
                       target="_blank"
