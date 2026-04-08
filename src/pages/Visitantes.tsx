@@ -267,18 +267,18 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                 className="bg-white dark:bg-slate-800 p-6 rounded-[32px] border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-xl hover:shadow-sky-500/10 transition-all group relative overflow-hidden"
               >
                 <div className="flex justify-between items-start mb-4">
-                  <div className={`p-4 rounded-3xl ${
-                    visitor.status === 'autorizado' ? 'bg-emerald-100 text-emerald-600' :
-                    visitor.status === 'pendente' ? 'bg-amber-100 text-amber-600' :
-                    'bg-slate-100 text-slate-400 dark:bg-slate-700 dark:text-slate-500'
+                  <div className={`p-4 rounded-3xl shadow-sm ${
+                    visitor.status === 'autorizado' ? 'bg-emerald-500 text-white' :
+                    visitor.status === 'pendente' ? 'bg-amber-500 text-white' :
+                    'bg-blue-600 text-white'
                   }`}>
                     {getTypeIcon(visitor.type)}
                   </div>
                   
                   <div className="flex items-center gap-2">
                     <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                      visitor.status === 'autorizado' ? 'bg-emerald-100 text-emerald-600' :
-                      visitor.status === 'pendente' ? 'bg-amber-100 text-amber-600' :
+                      visitor.status === 'autorizado' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' :
+                      visitor.status === 'pendente' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' :
                       'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
                     }`}>
                       {visitor.status}
@@ -403,7 +403,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white dark:bg-slate-800 rounded-[24px] w-full max-w-[320px] overflow-hidden shadow-2xl flex flex-col border border-white/10"
+              className="bg-white dark:bg-slate-800 rounded-[24px] w-full max-w-[300px] overflow-hidden shadow-2xl flex flex-col border border-white/10"
             >
               <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-white dark:bg-slate-800 z-10">
                 <div>
@@ -560,13 +560,14 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                                             <td className="py-4 px-2 text-xs font-bold text-slate-900 dark:text-white uppercase">{v.name}</td>
                                             <td className="py-4 px-2 text-xs font-semibold text-slate-500">{v.type}</td>
                                             <td className="py-4 px-2">
-                                                <span className={`text-[9px] font-bold uppercase px-2 py-1 rounded-full ${
-                                                    v.status === 'autorizado' ? 'bg-emerald-100 text-emerald-600' : 
-                                                    v.status === 'pendente' ? 'bg-amber-100 text-amber-600' : 
-                                                    'bg-slate-100 text-slate-400'
+                                                <span className={`text-[9px] font-bold uppercase px-3 py-1 rounded-full ${
+                                                    v.status === 'autorizado' ? 'bg-emerald-500 text-white' : 
+                                                    v.status === 'pendente' ? 'bg-amber-500 text-white' : 
+                                                    'bg-blue-600 text-white'
                                                 }`}>
                                                     {v.status}
                                                 </span>
+ Broadway: 
                                             </td>
                                         </tr>
                                     ))}
