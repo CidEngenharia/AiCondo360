@@ -146,6 +146,7 @@ export interface Visitante {
   time: string;
   status: 'pendente' | 'autorizado' | 'finalizado';
   observation?: string;
+  exit_time?: string;
   document?: string;
   created_at?: string;
 }

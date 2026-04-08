@@ -140,7 +140,11 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
 
   const updateStatus = async (id: string, status: 'pendente' | 'autorizado' | 'finalizado') => {
     try {
-      await VisitorService.updateVisitor(id, { status });
+      const updates: Partial<IVisitante> = { status };
+      if (status === 'finalizado') {
+        updates.exit_time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      }
+      await VisitorService.updateVisitor(id, updates);
       fetchVisitors();
     } catch (error: any) {
       console.error('Error updating status:', error);
@@ -272,10 +276,10 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <div className={`px-4 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-widest ${
+                    <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
                       visitor.status === 'autorizado' ? 'bg-emerald-100 text-emerald-600' :
                       visitor.status === 'pendente' ? 'bg-amber-100 text-amber-600' :
-                      'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
+                      'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
                     }`}>
                       {visitor.status}
                     </div>
@@ -325,20 +329,22 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
 
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-700/50">
-                    <div className="flex items-center gap-2 text-slate-400 mb-1">
-                      <Calendar size={12} />
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Data</span>
+                    <div className="flex items-center mb-2">
+                      <span className="bg-sky-600 text-white text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded flex items-center gap-1">
+                        <Calendar size={8} /> Data
+                      </span>
                     </div>
                     <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
                       {visitor.date === 'Hoje' ? new Date().toLocaleDateString('pt-BR') : visitor.date}
                     </p>
                   </div>
                   <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-700/50">
-                    <div className="flex items-center gap-2 text-slate-400 mb-1">
-                      <Clock size={12} />
-                      <span className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">Horário</span>
+                    <div className="flex items-center mb-2">
+                      <span className="bg-sky-600 text-white text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded flex items-center gap-1">
+                        <Clock size={8} /> Horário
+                      </span>
                     </div>
-                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{visitor.time}</p>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{visitor.time}</p>
                   </div>
                 </div>
 
@@ -359,12 +365,19 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                        <Shield size={14} /> Liberar Entrada
                      </button>
                    )}
-                   {visitor.status === 'finalizado' && (
-                     <div className="flex items-center gap-2 text-slate-400 text-xs font-black uppercase tracking-widest mx-auto py-2">
-                       <CheckCircle2 size={16} className="text-emerald-500" />
-                       Visita Concluída
-                     </div>
-                   )}
+                    {visitor.status === 'finalizado' && (
+                      <div className="flex flex-col items-center gap-1 mx-auto py-2">
+                        <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-widest">
+                          <CheckCircle2 size={14} className="text-emerald-500" />
+                          Visita Concluída
+                        </div>
+                        {visitor.exit_time && (
+                          <span className="text-[9px] font-bold text-slate-400 opacity-70">
+                            Finalizado às {visitor.exit_time}
+                          </span>
+                        )}
+                      </div>
+                    )}
                 </div>
               </motion.div>
             ))}
@@ -387,31 +400,31 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
         {showModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm">
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-white dark:bg-slate-800 rounded-[32px] w-full max-w-[360px] overflow-hidden shadow-2xl flex flex-col"
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white dark:bg-slate-800 rounded-[24px] w-full max-w-[320px] overflow-hidden shadow-2xl flex flex-col border border-white/10"
             >
-              <div className="p-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-white dark:bg-slate-800 z-10">
+              <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-white dark:bg-slate-800 z-10">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
                     {editingVisitor ? 'Editar Liberação' : 'Nova Liberação'}
                   </h3>
-                  <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest mt-0.5">Dados do convidado</p>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 opacity-70">Dados do convidado</p>
                 </div>
                 <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all">
                   <X size={18} className="text-slate-400" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-5 space-y-4 max-h-[75vh] overflow-y-auto custom-scrollbar">
+              <form onSubmit={handleSubmit} className="px-5 py-5 space-y-3.5 max-h-[70vh] overflow-y-auto custom-scrollbar">
                 <div>
                   <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 px-1">Nome Completo</label>
                   <input 
                     required
                     maxLength={50}
                     placeholder="Nome do visitante..."
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium placeholder:font-normal"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-lg px-3.5 py-2 text-[11px] text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium placeholder:font-normal"
                     value={formData.name}
                     onChange={e => setFormData({...formData, name: e.target.value})}
                   />
@@ -421,7 +434,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                   <div>
                     <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 px-1">Tipo</label>
                     <select
-                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium appearance-none cursor-pointer"
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-lg px-3.5 py-2 text-[11px] text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium appearance-none cursor-pointer"
                       value={formData.type}
                       onChange={e => setFormData({...formData, type: e.target.value})}
                     >
@@ -434,7 +447,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                   <div>
                     <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 px-1">Status</label>
                     <select
-                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium appearance-none cursor-pointer"
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-lg px-3.5 py-2 text-[11px] text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium appearance-none cursor-pointer"
                       value={formData.status}
                       onChange={e => setFormData({...formData, status: e.target.value as any})}
                     >
@@ -451,7 +464,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                     <input 
                       required
                       type="date"
-                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium"
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-lg px-3.5 py-2 text-[11px] text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium"
                       value={formData.date}
                       onChange={e => setFormData({...formData, date: e.target.value})}
                     />
@@ -461,7 +474,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                     <input 
                       required
                       type="time"
-                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium"
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-lg px-3.5 py-2 text-[11px] text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium"
                       value={formData.time}
                       onChange={e => setFormData({...formData, time: e.target.value})}
                     />
@@ -472,7 +485,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                   <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 px-1">Autorizado por</label>
                   <input 
                     placeholder="Nome de quem autorizou..."
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium placeholder:font-normal mb-3"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-lg px-3.5 py-1.5 text-[11px] text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium placeholder:font-normal mb-3"
                     value={formData.authorizedBy}
                     onChange={e => setFormData({...formData, authorizedBy: e.target.value})}
                   />
@@ -483,7 +496,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                   <textarea 
                     rows={2}
                     placeholder="Motivo da visita..."
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-normal placeholder:font-normal resize-none"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-lg px-3.5 py-2 text-[11px] text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-normal placeholder:font-normal resize-none"
                     value={formData.observation}
                     onChange={e => setFormData({...formData, observation: e.target.value})}
                   />
@@ -493,13 +506,13 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="flex-1 px-4 py-3.5 rounded-xl border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-semibold uppercase text-[10px] tracking-widest hover:bg-slate-50 dark:hover:bg-slate-900 transition-all"
+                    className="flex-1 px-4 py-3 rounded-lg border border-slate-100 dark:border-slate-700 text-slate-400 dark:text-slate-500 font-black uppercase text-[9px] tracking-widest hover:bg-slate-50 dark:hover:bg-slate-900 transition-all"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-3.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-semibold uppercase text-[10px] tracking-widest shadow-lg shadow-sky-500/20 transition-all active:scale-95"
+                    className="flex-1 px-4 py-3 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-black uppercase text-[9px] tracking-widest shadow-lg shadow-sky-500/20 transition-all active:scale-95"
                   >
                     {editingVisitor ? 'Salvar' : 'Confirmar'}
                   </button>
