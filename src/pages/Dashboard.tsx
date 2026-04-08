@@ -238,7 +238,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
 
           <h2 className="text-3xl lg:text-4xl font-semibold tracking-tight text-slate-900 dark:text-white max-w-2xl leading-tight">
             {greeting}, {userName}! <br className="hidden md:block" />
-            <span className="text-rose-600 dark:text-rose-400 text-xl block mt-4 font-black brightness-110 uppercase tracking-tight">
+            <span className="text-rose-800 dark:text-rose-400 text-xl block mt-4 font-black uppercase tracking-tight">
               Você possui {totalNotifications} notificações no seu Dashboard
             </span>
           </h2>
