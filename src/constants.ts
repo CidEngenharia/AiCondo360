@@ -49,6 +49,7 @@ export const FEATURES: Feature[] = [
   { id: 'garagem', label: 'Garagem', icon: Car, color: 'bg-zinc-700', category: 'social', roles: ['resident', 'admin', 'syndic', 'global_admin'], plans: ['professional', 'premium'] },
   { id: 'telefones', label: 'Telefones', icon: Phone, color: 'bg-cyan-600', category: 'communication', roles: ['resident', 'admin', 'syndic', 'global_admin'], plans: ['basic', 'professional', 'premium'] },
   { id: 'assembleias', label: 'Assembleias', icon: Vote, color: 'bg-teal-500', category: 'social', roles: ['resident', 'admin', 'syndic', 'global_admin'], plans: ['basic', 'professional', 'premium'] },
+  { id: 'manutencao', label: 'Manutenção', icon: Wrench, color: 'bg-amber-600', category: 'operations', roles: ['resident', 'admin', 'syndic', 'global_admin'], plans: ['basic', 'professional', 'premium'] },
   { id: 'condominios', label: 'Condomínios', icon: Building2, color: 'bg-blue-700', category: 'operations', roles: ['global_admin'], plans: ['basic', 'professional', 'premium'] },
 ];
 
