@@ -567,7 +567,6 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                                                 }`}>
                                                     {v.status}
                                                 </span>
- Broadway: 
                                             </td>
                                         </tr>
                                     ))}
