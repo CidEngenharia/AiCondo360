@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { FeatureGrid } from '../components/FeatureGrid';
-import { TrendingUp, Users, AlertCircle, Cloud, Sun, CloudRain, CloudLightning, Moon, ArrowRight, Star, Calendar, Package, FileText, Key, UserPlus, ShieldAlert, CreditCard, X, ChevronRight } from 'lucide-react';
+import { TrendingUp, Users, AlertCircle, Cloud, Sun, CloudRain, CloudLightning, Moon, ArrowRight, Star, Calendar, Package, FileText, Key, UserPlus, ShieldAlert, CreditCard, X, ChevronRight, Wrench } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { FEATURES, UserRole, PricingPlan } from '../constants';
 import { UpgradeBanner } from '../components/UpgradeBanner';
@@ -45,6 +45,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
   const [upcomingAssembleia, setUpcomingAssembleia] = useState<Assembleia | null>(null);
   const [recentMercadoItems, setRecentMercadoItems] = useState<MercadoItem[]>([]);
   const [expectedVisitors, setExpectedVisitors] = useState<Visitante[]>([]);
+  const [expectedManutencoes, setExpectedManutencoes] = useState<Visitante[]>([]);
   const [openOcorrencias, setOpenOcorrencias] = useState<Ocorrencia[]>([]);
   const [condoBoletos, setCondoBoletos] = useState<Boleto[]>([]);
   const [condoExpenses, setCondoExpenses] = useState<any[]>([]);
@@ -77,7 +78,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
       setPendingPackages(packages);
       setUpcomingAssembleia(assembleia);
       setRecentMercadoItems(mercado);
-      setExpectedVisitors(visitors.filter(v => v.status !== 'finalizado'));
+      setExpectedVisitors(visitors.filter(v => v.status !== 'finalizado' && v.type !== 'Prestador de Serviço'));
+      setExpectedManutencoes(visitors.filter(v => v.status !== 'finalizado' && v.type === 'Prestador de Serviço'));
       setOpenOcorrencias(ocorrencias.filter(o => o.status !== 'resolved'));
       setCondoBoletos(boletosAll || []);
       setCondoExpenses(expenses || []);
@@ -183,6 +185,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
     upcomingReservations.length + 
     pendingPackages.length + 
     expectedVisitors.length + 
+    expectedManutencoes.length + 
     openOcorrencias.length + 
     (nextBoleto ? 1 : 0);
 
@@ -246,7 +249,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
 
         <div className="mt-12 backdrop-blur-sm bg-white/5 p-2 rounded-[2rem] border border-white/10 relative z-10">
         
-         <div className="grid grid-cols-2 gap-3">
+         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {(userRole === 'global_admin' || FEATURES.find(f => f.id === 'boletos')?.plans.includes(userPlan)) && (
             <Link to="/feature/boletos" className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
               <div className="flex items-center gap-2 mb-2 relative">
@@ -348,6 +351,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
             </div>
             <p className="text-lg font-bold text-slate-700 dark:text-slate-200">{openOcorrencias.length} Abertas</p>
             <p className="text-[10px] text-slate-400">Acompanhamento</p>
+          </Link>
+          <Link to="/feature/manutencao" className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
+            <div className="flex items-center gap-2 mb-2 relative">
+              <Wrench size={16} className="text-emerald-500" />
+              {expectedManutencoes.length > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                  </span>
+              )}
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Manutenções</span>
+            </div>
+            <p className="text-lg font-bold text-slate-700 dark:text-slate-200">{expectedManutencoes.length} Abertas</p>
+            <p className="text-[10px] text-slate-400">Serviços agendados</p>
           </Link>
         </div>
         
@@ -509,18 +526,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
              <div className="mt-2 text-[9px] text-emerald-500 font-bold bg-emerald-50 rounded-lg px-2 py-1 inline-block">Ótimo</div>
           </div>
           
-          <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-6 border border-slate-100 dark:border-slate-700 shadow-sm">
+          <Link to="/feature/manutencao" className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-6 border border-slate-100 dark:border-slate-700 shadow-sm hover:border-amber-200 transition-colors group">
              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2.5 rounded-2xl bg-blue-50 text-blue-500 dark:bg-blue-900/20">
-                  <ShieldAlert size={18} />
+                <div className="p-2.5 rounded-2xl bg-amber-50 text-amber-500 dark:bg-amber-900/20 group-hover:scale-110 transition-transform">
+                  <Wrench size={18} />
                 </div>
-                <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Manutenções</h4>
+                <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest group-hover:text-amber-500">Manutenções</h4>
              </div>
-             <p className="text-2xl font-bold text-slate-800 dark:text-white">{openOcorrencias.length.toString().padStart(2, '0')}</p>
-             <div className={`mt-2 text-[9px] font-bold rounded-lg px-2 py-1 inline-block ${openOcorrencias.length === 0 ? 'bg-blue-50 text-blue-500' : 'bg-amber-50 text-amber-500'}`}>
-                {openOcorrencias.length === 0 ? 'Em dia' : 'Em andamento'}
+             <p className="text-2xl font-bold text-slate-800 dark:text-white">{expectedManutencoes.length.toString().padStart(2, '0')}</p>
+             <div className={`mt-2 text-[9px] font-bold rounded-lg px-2 py-1 inline-block ${expectedManutencoes.length === 0 ? 'bg-emerald-50 text-emerald-500' : 'bg-amber-50 text-amber-500'}`}>
+                {expectedManutencoes.length === 0 ? 'Em dia' : 'Pendentes'}
              </div>
-          </div>
+          </Link>
 
           <div className="md:col-span-2 bg-gradient-to-br from-slate-800 to-slate-900 rounded-[2.5rem] p-6 text-white relative overflow-hidden">
              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />

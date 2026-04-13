@@ -21,7 +21,8 @@ import {
   Instagram,
   Linkedin,
   ChevronUp,
-  X
+  X,
+  GraduationCap
 } from 'lucide-react';
 import { LoginForm } from '../components/LoginForm';
 
@@ -93,7 +94,7 @@ const PricingCard = ({ title, price, features, highlighted = false, delay = 0, v
       case "plan-light": // Essencial
         return "bg-gradient-to-br from-blue-400 to-indigo-500 border-blue-300 shadow-[0_32px_64px_-16px_rgba(96,165,250,0.3)]";
       case "plan-medium": // Profissional
-        return "bg-gradient-to-br from-blue-600 to-indigo-800 border-lime-400 shadow-[0_32px_64px_-16px_rgba(59,130,246,0.4)] scale-105 z-10";
+        return "bg-gradient-to-br from-blue-600 to-indigo-800 border-transparent shadow-[0_32px_64px_-16px_rgba(59,130,246,0.4)] scale-105 z-10 google-border-effect";
       case "plan-dark": // Premium
         return "bg-gradient-to-br from-indigo-900 to-slate-950 border-white/5 shadow-2xl";
       default:
@@ -112,7 +113,7 @@ const PricingCard = ({ title, price, features, highlighted = false, delay = 0, v
       className={`p-10 rounded-[2.5rem] border ${getVariantStyles()} relative flex flex-col h-full`}
     >
       {highlighted && (
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 font-black uppercase tracking-widest rounded-full text-[10px] bg-white text-blue-600">
+        <div className="absolute -top-5 left-1/2 -translate-x-1/2 px-4 py-1 font-black uppercase tracking-widest rounded-full text-[10px] bg-white text-blue-600 z-20 shadow-sm">
           Mais Popular
         </div>
       )}
@@ -285,7 +286,7 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
       </section>
 
       {/* Features Grid */}
-      <section className="py-32 relative overflow-hidden">
+      <section id="funcionalidades" className="py-32 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-24 space-y-4">
             <motion.span
@@ -502,17 +503,17 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
             <div>
               <h4 className="text-white font-bold mb-8">Plataforma</h4>
               <ul className="space-y-4">
-                <li><a href="#" className="text-slate-500 text-sm hover:text-white transition-colors">Funcionalidades</a></li>
-                <li><a href="#" className="text-slate-500 text-sm hover:text-white transition-colors">Segurança</a></li>
-                <li><a href="#" className="text-slate-500 text-sm hover:text-white transition-colors">Planos</a></li>
-                <li><a href="#" className="text-slate-500 text-sm hover:text-white transition-colors">Suporte</a></li>
+                <li><button onClick={() => navigate('/funcionalidades')} className="text-slate-500 text-sm hover:text-white transition-colors text-left">Funcionalidades</button></li>
+                <li><a href="#funcionalidades" className="text-slate-500 text-sm hover:text-white transition-colors">Segurança</a></li>
+                <li><a href="#pricing" className="text-slate-500 text-sm hover:text-white transition-colors">Planos</a></li>
+                <li><a href="https://wa.me/5571984184782" target="_blank" rel="noopener noreferrer" className="text-slate-500 text-sm hover:text-white transition-colors">Suporte</a></li>
               </ul>
             </div>
 
             <div>
               <h4 className="text-white font-bold mb-8">Empresa</h4>
               <ul className="space-y-4">
-                <li><a href="#" className="text-slate-500 text-sm hover:text-white transition-colors">Sobre Nós</a></li>
+                <li><a href="https://www.linkedin.com/in/sidneysales/" target="_blank" rel="noopener noreferrer" className="text-slate-500 text-sm hover:text-white transition-colors">Sobre Nós</a></li>
                 <li><a href="#" className="text-slate-500 text-sm hover:text-white transition-colors">Blog</a></li>
                 <li><a href="#" className="text-slate-500 text-sm hover:text-white transition-colors">Carreiras</a></li>
                 <li><a href="#" className="text-slate-500 text-sm hover:text-white transition-colors">Termos de Uso</a></li>
@@ -531,6 +532,10 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
                 </button>
               </h4>
               <ul className="space-y-6">
+                <li className="flex items-start gap-3">
+                  <GraduationCap size={18} className="text-blue-500 shrink-0 mt-0.5" />
+                  <a href="https://www.linkedin.com/in/sidneysales/" target="_blank" rel="noopener noreferrer" className="text-slate-500 text-sm hover:text-white transition-colors">Developer - Sidney Sales</a>
+                </li>
                 <li className="flex items-start gap-3">
                   <Mail size={18} className="text-blue-500 shrink-0 mt-0.5" />
                   <a href="mailto:cidengenharia@gmail.com" className="text-slate-500 text-sm hover:text-white transition-colors">cidengenharia@gmail.com</a>

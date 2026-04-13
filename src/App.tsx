@@ -9,6 +9,7 @@ import Financeiro from './pages/Financeiro';
 import { Reservas } from './pages/Reservas';
 import { Comunicados } from './pages/Comunicados';
 import { FeatureDetail } from './pages/FeatureDetail';
+import { FuncionalidadesPage } from './pages/FuncionalidadesPage';
 import { Encomendas } from './pages/Encomendas';
 import { Assembleias } from './pages/Assembleias';
 import { Ocorrencias } from './pages/Ocorrencias';
@@ -45,6 +46,7 @@ export default function App() {
 
   return (
     <Routes>
+        <Route path="/funcionalidades" element={<FuncionalidadesPage />} />
         <Route 
           path="/login" 
           element={user ? <Navigate to="/" /> : <LandingPage setUser={setUser} />} 

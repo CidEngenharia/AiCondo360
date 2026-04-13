@@ -39,3 +39,43 @@
 .animate-float {
   animation: float 6s ease-in-out infinite;
 }
+
+@property --border-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes spin-border {
+  to {
+    --border-angle: 360deg;
+  }
+}
+
+.google-border-effect {
+  position: relative;
+}
+
+.google-border-effect::after {
+  content: "";
+  position: absolute;
+  inset: -1px; /* Extend outward by 1px */
+  border-radius: calc(2.5rem + 1px); 
+  padding: 1px; /* Border thickness */
+  background: conic-gradient(
+    from var(--border-angle),
+    #4285F4 0%, 
+    #9B72CB 25%, 
+    #D96570 50%, 
+    #F49C38 75%, 
+    #4285F4 100%
+  );
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  z-index: 10;
+  pointer-events: none;
+  animation: spin-border 3s linear infinite;
+}

@@ -95,7 +95,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
 
-        const condo = (profile as any).condominios;
+        let condo = (profile as any).condominios;
+        if (Array.isArray(condo)) {
+          condo = condo[0];
+        }
+
+        let finalPlan = adminPlan || condo?.plan;
+
+        // Fallback: se RLS (Row Level Security) bloqueou a visualização da tabela condominios
+        // para o usuário autenticado, buscamos usando um fetch anônimo direto na API REST.
+        if (profile.condominio_id && !finalPlan && !isGlobalAdminProfile) {
+          try {
+            const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/condominios?id=eq.${profile.condominio_id}&select=id,name,plan`;
+            const response = await fetch(url, {
+              headers: {
+                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                // Explicitly tells PostgREST we are an anonymous user querying this
+                'Content-Type': 'application/json'
+              }
+            });
+            const data = await response.json();
+            if (data && data.length > 0) {
+              condo = data[0];
+              finalPlan = data[0].plan;
+            }
+          } catch (e) {
+            console.error('[AuthContext] Error fetching fallback condo plan:', e);
+          }
+        }
 
         // Normalização crítica de Roles para evitar menus apagados
         let normalizedRole = profile.role;
@@ -104,7 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (normalizedRole === 'administrador') normalizedRole = 'admin';
         if (normalizedRole === 'admin_global') normalizedRole = 'global_admin';
 
-        console.log('[AuthContext] Session Ready:', { id: profile.id, role: normalizedRole, condoId: adminCondoId || profile.condominio_id });
+        console.log('[AuthContext] Session Ready:', { id: profile.id, role: normalizedRole, condoId: adminCondoId || profile.condominio_id, fetchedPlan: condo?.plan });
 
         setUser({
           id: profile.id,
@@ -113,7 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           condo: adminCondoName || condo?.name || 'Acesso Global',
           condoId: adminCondoId || profile.condominio_id || condo?.id || '',
           role: normalizedRole as UserRole,
-          plan: (adminPlan || condo?.plan || 'basic') as PricingPlan
+          plan: (finalPlan || 'basic').toLowerCase() as PricingPlan
         });
       } else {
         // Fallback: get data from auth metadata so the session is not lost

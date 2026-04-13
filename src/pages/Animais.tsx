@@ -51,6 +51,7 @@ export const Animais: React.FC = () => {
   
   const [viewingPet, setViewingPet] = useState<Pet | null>(null);
   const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
   const loadPets = async () => {
     if (!user?.condoId) return;
@@ -326,14 +327,23 @@ export const Animais: React.FC = () => {
                   <div className="flex items-center gap-4">
                     {/* Foto Pequena em formato de balão */}
                     <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden shadow-md border-2 border-white dark:border-slate-800 shrink-0">
-                      <img 
-                        src={pet.photo_url || pet.photo || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400&h=400&fit=crop'} 
-                        alt={pet.name} 
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                           e.currentTarget.src = 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400&h=400&fit=crop';
-                        }}
-                      />
+                      <button 
+                        onClick={() => setZoomedImage(pet.photo_url || pet.photo || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400&h=400&fit=crop')}
+                        className="w-full h-full block group relative cursor-pointer"
+                        title="Ampliar Foto"
+                      >
+                        <img 
+                          src={pet.photo_url || pet.photo || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400&h=400&fit=crop'} 
+                          alt={pet.name} 
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          onError={(e) => {
+                             e.currentTarget.src = 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400&h=400&fit=crop';
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                           <ExternalLink size={14} className="text-white" />
+                        </div>
+                      </button>
                     </div>
                     <div className="min-w-0">
                       <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight leading-tight truncate">{pet.name}</h3>
@@ -443,8 +453,15 @@ export const Animais: React.FC = () => {
               </div>
               <form className="p-5 space-y-4" onSubmit={(e) => { e.preventDefault(); handleCreateNew(); }}>
                 <div className="flex gap-4 items-center mb-2">
-                  <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden shrink-0 border-2 border-slate-100 dark:border-slate-700 shadow-inner">
-                    {photo ? <img src={photo} alt="Preview" className="w-full h-full object-cover" /> : <Camera size={22} className="text-slate-400" />}
+                  <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden shrink-0 border-2 border-slate-100 dark:border-slate-700 shadow-inner relative group cursor-pointer" onClick={() => photo && setZoomedImage(photo)}>
+                    {photo ? (
+                      <>
+                        <img src={photo} alt="Preview" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                           <ExternalLink size={16} className="text-white" />
+                        </div>
+                      </>
+                    ) : <Camera size={22} className="text-slate-400" />}
                   </div>
                   <div className="flex-1">
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 px-1">Foto do Pet</label>
@@ -548,45 +565,68 @@ export const Animais: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
+              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl max-h-[90vh] flex flex-col"
             >
-              <div className="h-48 relative bg-slate-100 dark:bg-slate-700">
-                <img src={viewingPet.photo_url || viewingPet.photo} alt={viewingPet.name} className="w-full h-full object-cover" />
-                <button onClick={() => setViewingPet(null)} className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 rounded-full transition-colors text-white">
-                  <X size={20} />
-                </button>
+              <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10 shrink-0">
+                  <h3 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-2">
+                    Visualizar Pet
+                  </h3>
+                  <button onClick={() => setViewingPet(null)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-300">
+                    <X size={16} />
+                  </button>
               </div>
-              <div className="p-6 relative">
-                <div className="absolute -top-8 right-6 bg-white dark:bg-slate-800 p-2 rounded-2xl shadow-lg border border-slate-100 dark:border-slate-700">
-                  {getSpeciesIcon(viewingPet.species)}
+
+              <div className="p-5 overflow-y-auto custom-scrollbar">
+                <div className="flex flex-col items-center mb-6">
+                  <button 
+                    onClick={() => setZoomedImage(viewingPet.photo_url || viewingPet.photo || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400&h=400&fit=crop')} 
+                    title="Visualizar Foto"
+                    className="w-24 h-24 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden shrink-0 border-4 border-slate-50 dark:border-slate-800 shadow-md group relative cursor-pointer"
+                  >
+                    <img 
+                      src={viewingPet.photo_url || viewingPet.photo || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400&h=400&fit=crop'} 
+                      alt={viewingPet.name} 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" 
+                      onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400&h=400&fit=crop'; }}
+                    />
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                       <ExternalLink size={20} className="text-white" />
+                    </div>
+                  </button>
+                  
+                  <div className="flex items-center gap-2 mt-3">
+                    <h3 className="text-2xl font-black text-slate-800 dark:text-white leading-tight">{viewingPet.name}</h3>
+                    <div className="bg-slate-50 dark:bg-slate-800 p-1.5 rounded-xl border border-slate-100 dark:border-slate-700">
+                      {getSpeciesIcon(viewingPet.species)}
+                    </div>
+                  </div>
+                  <p className="text-slate-500 dark:text-slate-400 font-medium text-sm mt-1">{viewingPet.breed}</p>
                 </div>
-                <h3 className="text-3xl font-black text-slate-800 dark:text-white mb-1">{viewingPet.name}</h3>
-                <p className="text-slate-500 dark:text-slate-400 font-medium mb-6">{viewingPet.breed}</p>
 
                 <div className="bg-slate-50 dark:bg-slate-800/80 rounded-2xl p-4 border border-slate-100 dark:border-slate-700/50 space-y-4">
                   <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-slate-700">
-                    <span className="text-sm font-bold text-slate-500 dark:text-slate-400">Status Vacinas</span>
+                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Status Vacinas</span>
                     {viewingPet.is_vaccinated ? (
-                      <span className="flex items-center gap-1 text-emerald-600 font-bold bg-emerald-100 px-2 py-0.5 rounded text-sm"><CheckCircle2 size={16}/> Em dia</span>
+                      <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-100 dark:bg-emerald-900/30 px-2.5 py-1 rounded text-[11px] uppercase tracking-wider"><CheckCircle2 size={14}/> Em dia</span>
                     ) : (
-                      <span className="flex items-center gap-1 text-rose-600 font-bold bg-rose-100 px-2 py-0.5 rounded text-sm"><AlertTriangle size={16}/> Pendente</span>
+                      <span className="flex items-center gap-1.5 text-rose-700 dark:text-rose-400 font-bold bg-rose-100 dark:bg-rose-900/30 px-2.5 py-1 rounded text-[11px] uppercase tracking-wider"><AlertTriangle size={14}/> Pendente</span>
                     )}
                   </div>
                   <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-slate-700">
-                    <span className="text-sm font-bold text-slate-500 dark:text-slate-400">Tutor</span>
-                    <span className="text-sm font-bold text-teal-600 dark:text-teal-400">{viewingPet.owner_name || 'Não informado'}</span>
+                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Tutor</span>
+                    <span className="text-xs font-bold text-teal-600 dark:text-teal-400">{viewingPet.owner_name || 'NI'}</span>
                   </div>
                   <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-slate-700">
-                    <span className="text-sm font-bold text-slate-500 dark:text-slate-400">Endereço / Unidade</span>
-                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{viewingPet.address || 'Não cadastrado'}</span>
+                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Endereço/Und</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{viewingPet.address || 'NC'}</span>
                   </div>
                   <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-slate-700">
-                    <span className="text-sm font-bold text-slate-500 dark:text-slate-400">Peso</span>
-                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{viewingPet.weight || '-'}</span>
+                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Peso</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{viewingPet.weight || '-'}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-bold text-slate-500 dark:text-slate-400">Cor</span>
-                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{viewingPet.color || '-'}</span>
+                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Cor</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{viewingPet.color || '-'}</span>
                   </div>
                 </div>
               </div>
@@ -637,6 +677,32 @@ export const Animais: React.FC = () => {
                   Baseado no guia "Animais de Estimação em Condomínio" sobre a lei sobre animais. O foco principal deve sempre ser o bom senso e o respeito à boa vivência entre vizinhos.
                 </p>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* Modal - Zoom da Foto */}
+      <AnimatePresence>
+        {zoomedImage && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-sm" onClick={() => setZoomedImage(null)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="relative max-w-4xl w-full flex items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button 
+                onClick={() => setZoomedImage(null)} 
+                className="absolute -top-12 right-0 md:-right-12 p-2 text-white hover:text-slate-300 transition-colors"
+              >
+                <X size={32} />
+              </button>
+              <img 
+                src={zoomedImage} 
+                alt="Pet Ampliado" 
+                className="max-h-[85vh] max-w-full rounded-2xl shadow-2xl object-contain border border-white/10" 
+              />
             </motion.div>
           </div>
         )}
