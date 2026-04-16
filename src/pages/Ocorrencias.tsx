@@ -4,6 +4,7 @@ import { Plus, AlertTriangle, AlertCircle, Info, ChevronRight, MessageCircle, Ed
 import { cn } from '../lib/utils';
 import { FeatureHeader } from '../components/FeatureHeader';
 import { useAuth } from '../hooks/useAuth';
+import { useTenant } from '../contexts/TenantContext';
 
 type Priority = 'low' | 'medium' | 'high';
 type Status = 'open' | 'in_progress' | 'resolved';
@@ -30,6 +31,7 @@ const statusConfig = {
 };
 
 export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userRole }) => {
+  const { tenant } = useTenant();
   const [filter, setFilter] = useState<Status | 'all'>('all');
   const [selectedOccurrence, setSelectedOccurrence] = useState<IOcorrencia | null>(null);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
@@ -86,6 +88,7 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
             await OcorrenciaService.createOcorrencia({
                 user_id: userId,
                 condominio_id: condoId,
+                tenant_id: tenant?.id,
                 title: newTitle,
                 category: newCat,
                 description: newDesc,

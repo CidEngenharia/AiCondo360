@@ -1,5 +1,6 @@
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, Outlet } from 'react-router-dom';
 import { Layout } from './components/Layout';
+import { TenantGuard } from './components/TenantGuard';
 import { Dashboard } from './pages/Dashboard';
 import { LandingPage } from './pages/LandingPage';
 import { AdminExclusivoPage } from './pages/AdminExclusivoPage';
@@ -46,17 +47,20 @@ export default function App() {
 
   return (
     <Routes>
-        <Route path="/funcionalidades" element={<FuncionalidadesPage />} />
+      <Route path="/funcionalidades" element={<FuncionalidadesPage />} />
+      <Route 
+        path="/login" 
+        element={user ? <Navigate to="/" /> : <LandingPage setUser={setUser} />} 
+      />
+      <Route 
+        path="/admin-exclusivo" 
+        element={user ? <Navigate to="/" /> : <AdminExclusivoPage setUser={setUser} />} 
+      />
+
+      {/* Main Tenant Scoped Routes (with or without slug) */}
+      <Route path="/:tenantSlug?" element={<TenantGuard><Outlet /></TenantGuard>}>
         <Route 
-          path="/login" 
-          element={user ? <Navigate to="/" /> : <LandingPage setUser={setUser} />} 
-        />
-        <Route 
-          path="/admin-exclusivo" 
-          element={user ? <Navigate to="/" /> : <AdminExclusivoPage setUser={setUser} />} 
-        />
-        <Route 
-          path="/settings" 
+          path="settings" 
           element={
             user ? (
               <Layout 
@@ -79,7 +83,7 @@ export default function App() {
         />
 
         <Route 
-          path="/feature/boletos" 
+          path="feature/boletos" 
           element={
             user ? (
               <Layout 
@@ -97,7 +101,7 @@ export default function App() {
           } 
         />
         <Route 
-          path="/feature/reservas" 
+          path="feature/reservas" 
           element={
             user ? (
               <Layout 
@@ -115,7 +119,7 @@ export default function App() {
           } 
         />
         <Route 
-          path="/feature/encomendas" 
+          path="feature/encomendas" 
           element={
             user ? (
               <Layout 
@@ -133,7 +137,7 @@ export default function App() {
           } 
         />
         <Route 
-          path="/feature/comunicados" 
+          path="feature/comunicados" 
           element={
             user ? (
               <Layout 
@@ -151,7 +155,7 @@ export default function App() {
           } 
         />
         <Route 
-          path="/feature/assembleias" 
+          path="feature/assembleias" 
           element={
             user ? (
               <Layout 
@@ -169,7 +173,7 @@ export default function App() {
           } 
         />
         <Route 
-          path="/feature/ocorrencias" 
+          path="feature/ocorrencias" 
           element={
             user ? (
               <Layout 
@@ -187,7 +191,7 @@ export default function App() {
           } 
         />
         <Route 
-          path="/feature/visitantes" 
+          path="feature/visitantes" 
           element={
             user ? (
               <Layout 
@@ -205,7 +209,7 @@ export default function App() {
           } 
         />
         <Route 
-          path="/feature/documentos" 
+          path="feature/documentos" 
           element={
             user ? (
               <Layout 
@@ -223,7 +227,7 @@ export default function App() {
           } 
         />
         <Route 
-          path="/feature/garagem" 
+          path="feature/garagem" 
           element={
             user ? (
               <Layout 
@@ -241,7 +245,7 @@ export default function App() {
           } 
         />
         <Route 
-          path="/feature/telefones" 
+          path="feature/telefones" 
           element={
             user ? (
               <Layout 
@@ -259,7 +263,7 @@ export default function App() {
           } 
         />
         <Route 
-          path="/feature/agendamentos" 
+          path="feature/agendamentos" 
           element={
             user ? (
               <Layout 
@@ -277,7 +281,7 @@ export default function App() {
           } 
         />
         <Route 
-          path="/feature/moradores" 
+          path="feature/moradores" 
           element={
             user ? (
               <Layout 
@@ -295,7 +299,7 @@ export default function App() {
           } 
         />
         <Route 
-          path="/feature/manutencao" 
+          path="feature/manutencao" 
           element={
             user ? (
               <Layout 
@@ -313,7 +317,7 @@ export default function App() {
           } 
         />
         <Route 
-          path="/feature/condominios" 
+          path="feature/condominios" 
           element={
             user ? (
               <Layout 
@@ -331,7 +335,7 @@ export default function App() {
           } 
         />
         <Route 
-          path="/feature/classificados" 
+          path="feature/classificados" 
           element={
             user ? (
               <Layout 
@@ -349,11 +353,11 @@ export default function App() {
           } 
         />
         <Route 
-          path="/feature/mercado" 
-          element={<Navigate to="/feature/classificados" />} 
+          path="feature/mercado" 
+          element={<Navigate to="feature/classificados" />} 
         />
         <Route 
-          path="/feature/pets" 
+          path="feature/pets" 
           element={
             user ? (
               <Layout 
@@ -372,7 +376,7 @@ export default function App() {
         />
 
         <Route 
-          path="/feature/:id" 
+          path="feature/:id" 
           element={
             user ? (
               <Layout 
@@ -389,8 +393,9 @@ export default function App() {
             )
           } 
         />
+        
         <Route 
-          path="/" 
+          index 
           element={
             user ? (
               <Layout 
@@ -406,7 +411,7 @@ export default function App() {
                   userRole={user.role}
                   userPlan={user.plan}
                   condoId={user.condoId}
-                  onNavigate={(page) => navigate(`/feature/${page}`)}
+                  onNavigate={(page) => navigate(`feature/${page}`)}
                 />
               </Layout>
             ) : (
@@ -414,8 +419,10 @@ export default function App() {
             )
           } 
         />
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
+      </Route>
+
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
   );
 }

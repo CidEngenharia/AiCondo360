@@ -181,6 +181,29 @@ export const Moradores: React.FC = () => {
     }
   };
 
+  const sendWhatsAppCredentials = (resident: Resident) => {
+    const phoneNumber = resident.phone.replace(/\D/g, '');
+    if (!phoneNumber || phoneNumber.length < 10) {
+      alert('Por favor, cadastre um telefone válido com DDD para enviar as credenciais.');
+      return;
+    }
+
+    const tempPassword = `Condo${resident.unit.replace(/\D/g, '') || '360'}@360`;
+    
+    const message = encodeURIComponent(
+      `*Acesso AiCondo360* 🛡️\n\n` +
+      `Olá ${resident.name},\n\n` +
+      `Suas credenciais de acesso ao sistema do condomínio foram geradas:\n\n` +
+      `📧 *Login:* ${resident.email}\n` +
+      `🔑 *Senha Provisória:* ${tempPassword}\n\n` +
+      `Acesse em: ${window.location.origin}\n\n` +
+      `_Por segurança, altere sua senha no primeiro acesso._`
+    );
+
+    const fullNumber = phoneNumber.startsWith('55') ? phoneNumber : `55${phoneNumber}`;
+    window.open(`https://wa.me/${fullNumber}?text=${message}`, '_blank');
+  };
+
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
       <FeatureHeader 
@@ -430,13 +453,25 @@ export const Moradores: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold uppercase text-slate-400 tracking-tight">Telefone/Zap</label>
-                    <input 
-                      name="phone"
-                      defaultValue={editingResident?.phone}
-                      placeholder="(00) 00000-0000"
-                      required 
-                      className="w-full bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2.5 text-xs font-normal border border-transparent focus:border-indigo-400 outline-none transition-all dark:text-white" 
-                    />
+                    <div className="relative">
+                      <input 
+                        name="phone"
+                        defaultValue={editingResident?.phone}
+                        placeholder="(00) 00000-0000"
+                        required 
+                        className="w-full bg-slate-50 dark:bg-slate-800 rounded-xl pl-4 pr-10 py-2.5 text-xs font-normal border border-transparent focus:border-indigo-400 outline-none transition-all dark:text-white" 
+                      />
+                      {editingResident && (
+                        <button
+                          type="button"
+                          onClick={() => sendWhatsAppCredentials(editingResident)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors"
+                          title="Enviar credenciais via WhatsApp"
+                        >
+                          <MessageSquare size={16} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold uppercase text-slate-400 tracking-tight">E-mail</label>

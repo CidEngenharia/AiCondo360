@@ -4,11 +4,13 @@ import { Megaphone, MessageCircle, Heart, Share2, Plus, Image as ImageIcon, MapP
 import { FeatureHeader } from '../components/FeatureHeader';
 import { MuralService, MuralPost, MuralComment } from '../services/supabaseService';
 import { useAuth } from '../hooks/useAuth';
+import { useTenant } from '../contexts/TenantContext';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export const Mural: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
+  const { tenant } = useTenant();
   const [posts, setPosts] = useState<MuralPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [newPostContent, setNewPostContent] = useState('');
@@ -64,6 +66,7 @@ export const Mural: React.FC = () => {
     try {
       await MuralService.createPost({
         condominio_id: user.condoId,
+        tenant_id: tenant?.id,
         author_id: user.id,
         author_name: user.name,
         author_role: selectedRole || user.role || 'Morador',
@@ -150,6 +153,7 @@ export const Mural: React.FC = () => {
     try {
       const comment = await MuralService.createComment({
         post_id: postId,
+        tenant_id: tenant?.id,
         author_id: user.id,
         author_name: user.name,
         author_role: user.role,

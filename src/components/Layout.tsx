@@ -7,6 +7,7 @@ import { FEATURES, UserRole, PricingPlan } from '../constants';
 import { cn } from '../lib/utils';
 import { CondominioService, Condominio } from '../services/supabaseService';
 import { useAuth } from '../hooks/useAuth';
+import { useTenant } from '../contexts/TenantContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -23,6 +24,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [condos, setCondos] = useState<Condominio[]>([]);
   const { user } = useAuth();
+  const { tenant, userTenants, isGlobalAdmin, switchTenant } = useTenant();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -241,7 +243,26 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
               <img src="/favicon.jpg" alt="AiCondo360 Logo" className="w-10 h-10 object-contain rounded-lg shadow-sm" />
               <div className="flex flex-col min-w-0">
                 <h1 className="text-base font-black text-slate-900 dark:text-white leading-none tracking-tighter">AiCondo360</h1>
-                <span className="text-[9px] text-blue-600 dark:text-blue-400 font-black uppercase tracking-wider truncate max-w-[150px]">{condoName}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-[10px] text-blue-600 dark:text-blue-400 font-black uppercase tracking-widest truncate max-w-[180px]">
+                    {tenant?.name || condoName}
+                  </span>
+                  {isGlobalAdmin && userTenants.length > 1 && (
+                    <select 
+                      onChange={(e) => switchTenant(e.target.value)}
+                      value={tenant?.slug || ''}
+                      className="ml-2 bg-transparent text-[8px] border-none font-bold text-slate-400 focus:ring-0 cursor-pointer"
+                    >
+                      {userTenants.map(t => (
+                        <option key={t.id} value={t.slug}>{t.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
               </div>
             </div>
 

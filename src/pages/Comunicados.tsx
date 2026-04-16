@@ -4,6 +4,7 @@ import { MessageSquare, Bell, Search, Filter, Mail, MailOpen, Trash2, Star, Plus
 import { FeatureHeader } from '../components/FeatureHeader';
 import { AnnouncementService, Comunicado } from '../services/supabaseService';
 import { useAuth } from '../hooks/useAuth';
+import { useTenant } from '../contexts/TenantContext';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -25,6 +26,7 @@ interface ComunicadosProps {
 
 export const Comunicados: React.FC<ComunicadosProps> = ({ userId: propUserId }) => {
   const { user } = useAuth();
+  const { tenant } = useTenant();
   const condoId = user?.condoId;
   const currentUserId = propUserId || user?.id;
   const isAdmin = user?.role === 'syndic' || user?.role === 'global_admin' || user?.role === 'admin';
@@ -86,6 +88,7 @@ export const Comunicados: React.FC<ComunicadosProps> = ({ userId: propUserId }) 
       } else {
         await AnnouncementService.createAnnouncement({
           condominio_id: condoId,
+          tenant_id: tenant?.id,
           user_id: user.id,
           author_id: user.id,
           title,

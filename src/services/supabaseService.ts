@@ -7,6 +7,7 @@ export interface Profile {
   email: string;
   full_name: string;
   condominio_id: string;
+  tenant_id?: string;
   role: 'resident' | 'admin' | 'syndic' | 'global_admin' | 'morador' | 'sindico' | 'administrador' | 'admin_global';
   unit: string;
   building?: string;
@@ -16,6 +17,7 @@ export interface Profile {
 
 export interface Condominio {
   id: string;
+  tenant_id?: string;
   name: string;
   address?: string;
   cnpj?: string;
@@ -32,6 +34,7 @@ export interface Boleto {
   id: string;
   user_id: string;
   condominio_id: string;
+  tenant_id?: string;
   month: string;
   amount: number;
   due_date: string;
@@ -43,6 +46,7 @@ export interface Boleto {
 export interface Comunicado {
   id: string;
   condominio_id: string;
+  tenant_id?: string;
   author_id?: string;
   user_id?: string;
   title: string;
@@ -55,6 +59,7 @@ export interface Comunicado {
 export interface MuralPost {
   id: string;
   condominio_id: string;
+  tenant_id?: string;
   author_id: string;
   author_name: string;
   author_role?: string;
@@ -71,6 +76,7 @@ export interface MuralPost {
 export interface MuralComment {
   id: string;
   post_id: string;
+  tenant_id?: string;
   author_id: string;
   author_name: string;
   author_role: string;
@@ -82,6 +88,7 @@ export interface MuralComment {
 export interface Reserva {
   id: string;
   condominio_id: string;
+  tenant_id?: string;
   user_id: string;
   area_name: string;
   reservation_date: string;
@@ -94,6 +101,7 @@ export interface Reserva {
 export interface Encomenda {
   id: string;
   condominio_id: string;
+  tenant_id?: string;
   user_id: string;
   description: string;
   status: 'pending' | 'delivered' | 'returned' | 'entregue' | 'pendente' | 'devolvida';
@@ -111,6 +119,7 @@ export interface Encomenda {
 export interface Ocorrencia {
   id: string;
   condominio_id: string;
+  tenant_id?: string;
   user_id: string;
   title: string;
   description: string;
@@ -128,6 +137,7 @@ export interface Ocorrencia {
 export interface Assembleia {
   id: string;
   condominio_id: string;
+  tenant_id?: string;
   title: string;
   description: string;
   status: 'active' | 'closed';
@@ -139,6 +149,7 @@ export interface Assembleia {
 export interface Visitante {
   id: string;
   condominio_id: string;
+  tenant_id?: string;
   user_id: string;
   name: string;
   type: string;
@@ -154,6 +165,7 @@ export interface Visitante {
 export interface Veiculo {
   id: string;
   condominio_id: string;
+  tenant_id?: string;
   user_id: string;
   brand: string;
   model: string;

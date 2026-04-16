@@ -26,6 +26,7 @@ import {
   Star
 } from 'lucide-react';
 import { FeatureHeader } from '../components/FeatureHeader';
+import { useTenant } from '../contexts/TenantContext';
 import { ReservationService, Reserva as IReserva } from '../services/supabaseService';
 
 interface ReservasProps {
@@ -81,6 +82,7 @@ const AREAS: Area[] = [
 const DAYS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
 
 export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
+  const { tenant } = useTenant();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedArea, setSelectedArea] = useState<Area | null>(null);
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
@@ -159,6 +161,7 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
         const dateStr = `${year}-${month}-${selectedDate.toString().padStart(2, '0')}`;
         await ReservationService.createReserva({
             condominio_id: condoId,
+            tenant_id: tenant?.id,
             user_id: userId,
             area_name: selectedArea.name,
             reservation_date: dateStr,

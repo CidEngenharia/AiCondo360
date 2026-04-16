@@ -33,6 +33,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { FinanceiroService, BoletoService } from '../services/supabaseService';
 import { useAuth } from '../contexts/AuthContext';
+import { useTenant } from '../contexts/TenantContext';
 
 // --- Types ---
 type FinanceiroTab = 'geral' | 'boletos' | 'relatorios';
@@ -71,6 +72,7 @@ const fmt = (v: number) =>
 // --- Component ---
 const FinanceiroPage: React.FC = () => {
   const { user } = useAuth();
+  const { tenant } = useTenant();
   const [activeTab, setActiveTab] = useState<FinanceiroTab>('geral');
   const [boletos, setBoletos] = useState<BoletoItem[]>([]);
   const [despesas, setDespesas] = useState<DespesaItem[]>([]);
@@ -193,6 +195,7 @@ const FinanceiroPage: React.FC = () => {
         if (form.activeTab === 'despesa') {
           await FinanceiroService.createExpense({
             condominio_id: user.condoId,
+            tenant_id: tenant?.id,
             nome: form.nome.trim(),
             valor: parseFloat(String(form.valor).replace(',', '.')),
             origem: form.origem,
@@ -201,6 +204,7 @@ const FinanceiroPage: React.FC = () => {
         } else {
           await BoletoService.createBoleto({
             condominio_id: user.condoId,
+            tenant_id: tenant?.id,
             user_id: null as any, 
             amount: parseFloat(String(form.valor).replace(',', '.')),
             due_date: form.vencimento,

@@ -4,6 +4,7 @@ import { User, Search, Calendar, Clock, CheckCircle2, Shield, Trash2, Plus, X, E
 import { FeatureHeader } from '../components/FeatureHeader';
 import { VisitorService, Visitante as IVisitante } from '../services/supabaseService';
 import { useAuth } from '../hooks/useAuth';
+import { useTenant } from '../contexts/TenantContext';
 
 
 interface VisitantesProps {
@@ -14,6 +15,7 @@ interface VisitantesProps {
 
 export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRole }) => {
   const { user } = useAuth();
+  const { tenant } = useTenant();
 
   const [visitors, setVisitors] = useState<IVisitante[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,7 +117,8 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
         await VisitorService.createVisitor({
           ...submitData,
           user_id: userId,
-          condominio_id: finalCondoId
+          condominio_id: finalCondoId,
+          tenant_id: tenant?.id
         });
       }
       setShowModal(false);

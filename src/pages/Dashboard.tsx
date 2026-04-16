@@ -24,6 +24,7 @@ import {
   Visitante,
   Ocorrencia
 } from '../services/supabaseService';
+import { useTenant } from '../contexts/TenantContext';
 
 interface DashboardProps {
   userId: string;
@@ -51,25 +52,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
   const [condoExpenses, setCondoExpenses] = useState<any[]>([]);
   const [totalResidents, setTotalResidents] = useState(0);
   const [loadingData, setLoadingData] = useState(true);
+  const { tenant } = useTenant();
 
   const fetchData = async () => {
-    if (!userId || !condoId) return;
+    const effectiveCondoId = tenant?.id || condoId;
+    if (!userId || !effectiveCondoId) return;
     
     const isAdmin = userRole === 'admin' || userRole === 'syndic' || userRole === 'global_admin';
     
     try {
       const [boleto, comms, reservations, packages, assembleia, mercado, visitors, ocorrencias, boletosAll, expenses, residents] = await Promise.all([
         BoletoService.getNextPendingBoleto(userId),
-        AnnouncementService.getRecentAnnouncements(condoId),
-        isAdmin ? ReservationService.getCondoReservations(condoId) : ReservationService.getUpcomingReservations(userId),
-        isAdmin ? PackageService.getCondoPackages(condoId) : PackageService.getPendingPackages(userId),
-        AssembleiaService.getUpcomingAssembleia(condoId),
-        MercadoService.getRecentItems(condoId),
-        isAdmin ? VisitorService.getCondoVisitors(condoId) : VisitorService.getUserVisitors(userId),
-        isAdmin ? OcorrenciaService.getCondoOcorrencias(condoId) : OcorrenciaService.getUserOcorrencias(userId),
-        BoletoService.getCondoBoletos(condoId),
-        FinanceiroService.getCondoExpenses(condoId),
-        import('../lib/supabase').then(m => m.supabase.from('profiles').select('id', { count: 'exact' }).eq('condominio_id', condoId))
+        AnnouncementService.getRecentAnnouncements(effectiveCondoId),
+        isAdmin ? ReservationService.getCondoReservations(effectiveCondoId) : ReservationService.getUpcomingReservations(userId),
+        isAdmin ? PackageService.getCondoPackages(effectiveCondoId) : PackageService.getPendingPackages(userId),
+        AssembleiaService.getUpcomingAssembleia(effectiveCondoId),
+        MercadoService.getRecentItems(effectiveCondoId),
+        isAdmin ? VisitorService.getCondoVisitors(effectiveCondoId) : VisitorService.getUserVisitors(userId),
+        isAdmin ? OcorrenciaService.getCondoOcorrencias(effectiveCondoId) : OcorrenciaService.getUserOcorrencias(userId),
+        BoletoService.getCondoBoletos(effectiveCondoId),
+        FinanceiroService.getCondoExpenses(effectiveCondoId),
+        import('../lib/supabase').then(m => m.supabase.from('profiles').select('id', { count: 'exact' }).eq('tenant_id', effectiveCondoId))
       ]);
       
       setNextBoleto(boleto);
@@ -171,7 +174,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
     }
     
     return () => clearInterval(interval);
-  }, [userId, condoId]);
+  }, [userId, condoId, tenant?.id]);
 
   const filteredFeatures = FEATURES.filter(feature => {
     if (userRole === 'global_admin') return true;

@@ -4,6 +4,7 @@ import { Package, Search, Calendar, User, CheckCircle2, AlertCircle, Plus, X, Up
 import { FeatureHeader } from '../components/FeatureHeader';
 import { PackageService, Encomenda as BaseEncomenda } from '../services/supabaseService';
 import { useAuth } from '../hooks/useAuth';
+import { useTenant } from '../contexts/TenantContext';
 
 
 interface Encomenda extends BaseEncomenda {
@@ -54,6 +55,7 @@ const compressImage = (base64Str: string, maxWidth = 400, maxHeight = 400): Prom
 
 export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRole, userPlan }) => {
   const { user } = useAuth();
+  const { tenant } = useTenant();
 
   const [packages, setPackages] = useState<Encomenda[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,6 +156,7 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRol
                 ...formData,
                 user_id: userId,
                 condominio_id: finalCondoId,
+                tenant_id: tenant?.id,
                 status: formData.status as any,
                 arrival_date: new Date().toISOString(),
                 photo_url: formData.image_url,
