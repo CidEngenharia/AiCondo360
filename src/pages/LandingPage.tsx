@@ -92,13 +92,13 @@ const PricingCard = ({ title, price, features, highlighted = false, delay = 0, v
   const getVariantStyles = () => {
     switch (variant) {
       case "plan-light": // Essencial
-        return "bg-gradient-to-br from-blue-400 to-indigo-500 border-blue-300 shadow-[0_32px_64px_-16px_rgba(96,165,250,0.3)]";
+        return "bg-gradient-to-br from-blue-400 to-indigo-500 shadow-[0_32px_64px_-16px_rgba(96,165,250,0.3)]";
       case "plan-medium": // Profissional
-        return "bg-gradient-to-br from-blue-600 to-indigo-800 border-transparent shadow-[0_32px_64px_-16px_rgba(59,130,246,0.4)] scale-105 z-10 google-border-effect";
+        return "bg-gradient-to-br from-blue-600 to-indigo-800 shadow-[0_32px_64px_-16px_rgba(59,130,246,0.4)] scale-105 z-10";
       case "plan-dark": // Premium
-        return "bg-gradient-to-br from-indigo-900 to-slate-950 border-white/5 shadow-2xl";
+        return "bg-gradient-to-br from-indigo-900 to-slate-950 shadow-2xl";
       default:
-        return "bg-slate-900/50 border-white/5 backdrop-blur-sm shadow-xl";
+        return "bg-slate-900/50 backdrop-blur-sm shadow-xl";
     }
   };
 
@@ -110,10 +110,10 @@ const PricingCard = ({ title, price, features, highlighted = false, delay = 0, v
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay }}
-      className={`p-10 rounded-[2.5rem] border ${getVariantStyles()} relative flex flex-col h-full`}
+      className={`p-10 rounded-2xl ${getVariantStyles()} relative flex flex-col h-full`}
     >
       {highlighted && (
-        <div className="absolute -top-5 left-1/2 -translate-x-1/2 px-4 py-1 font-black uppercase tracking-widest rounded-full text-[10px] bg-white text-blue-600 z-20 shadow-sm">
+        <div className="absolute -top-5 left-1/2 -translate-x-1/2 px-4 py-1 font-black uppercase tracking-widest rounded-full text-[10px] bg-yellow-400 text-slate-900 z-20 shadow-[0_4px_20px_rgba(250,204,21,0.4)]">
           Mais Popular
         </div>
       )}
@@ -128,7 +128,7 @@ const PricingCard = ({ title, price, features, highlighted = false, delay = 0, v
           const cleanFeature = isDenied ? feature.replace('no:', '') : feature;
           return (
             <div key={i} className="flex items-center gap-3">
-              <div className={`p-1 rounded-full ${isDenied ? 'bg-red-500/20 text-red-100' : 'bg-white/20 text-white'}`}>
+              <div className={`p-1 rounded-full ${isDenied ? 'bg-red-500/20 text-red-100' : 'bg-green-500/20 text-green-400'}`}>
                 {isDenied ? <X size={10} /> : <Check size={12} />}
               </div>
               <span className={`text-sm text-white font-normal ${isDenied ? 'line-through decoration-red-500 decoration-2' : ''}`}>
@@ -154,6 +154,7 @@ const PricingCard = ({ title, price, features, highlighted = false, delay = 0, v
 export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUser }) => {
   const navigate = useNavigate();
   const [isDemoModalOpen, setIsDemoModalOpen] = React.useState(false);
+  const [loginPrefill, setLoginPrefill] = React.useState<any>(null);
 
   const mainFeatures = [
     { icon: Building2, title: "Gestão Unificada", description: "Controle total de unidades, moradores e veículos em uma única interface intuitiva." },
@@ -257,8 +258,8 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
             transition={{ duration: 0.8, ease: "circOut" }}
             className="lg:justify-self-end w-full max-w-[440px]"
           >
-            <div className="bg-white dark:bg-slate-900 border border-white/20 dark:border-slate-800 rounded-[3rem] p-10 shadow-[0_64px_96px_-16px_rgba(0,0,0,0.6)] backdrop-blur-2xl">
-              <LoginForm setUser={setUser} />
+            <div className="bg-white dark:bg-slate-900 border border-white/20 dark:border-slate-800 rounded-2xl p-10 shadow-[0_64px_96px_-16px_rgba(0,0,0,0.6)] backdrop-blur-2xl">
+              <LoginForm setUser={setUser} prefillData={loginPrefill} />
               <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800 text-center space-y-4">
                 <p className="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Acesso Síndico & Administrador</p>
                 <button
@@ -341,9 +342,32 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
       {/* Pricing */}
       <section className="pt-20 pb-32" id="pricing">
         <div className="max-w-5xl mx-auto px-6">
-          <div className="text-center mb-16 space-y-2">
+          <div className="text-center mb-16 space-y-4">
             <span className="text-blue-500 font-black text-xs uppercase tracking-[0.3em]">Investimento</span>
-            <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">Planos que acompanham seu <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-600 animate-gradient">Crescimento.</span></h2>
+            <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-8">Planos que acompanham seu <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-600 animate-gradient">Crescimento.</span></h2>
+            
+            <div className="max-w-3xl mx-auto mt-10 mb-12 bg-slate-900/50 backdrop-blur-md border border-blue-500/30 rounded-2xl p-8 shadow-2xl relative overflow-hidden text-center">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                <h3 className="text-2xl font-black text-yellow-400 mb-3 relative z-10">Teste a plataforma completa por 7 dias grátis!</h3>
+                <p className="text-slate-300 text-base mb-8 relative z-10">
+                  Descubra na prática como a nossa tecnologia pode revolucionar o seu condomínio.
+                </p>
+                <div className="flex justify-center relative z-10">
+                  <button 
+                    onClick={() => {
+                      setLoginPrefill({
+                        email: 'teste.sindico@aicondo360.com',
+                        password: 'senha-test2026',
+                        condoName: 'Condomínio Teste',
+                        condoId: 'demo-test-id'
+                      });
+                      scrollToTop();
+                    }} 
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-black py-4 px-10 rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-[0_10px_30px_rgba(37,99,235,0.3)] flex items-center gap-2">
+                    Testar agora
+                  </button>
+                </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-center lg:px-4">
@@ -537,6 +561,10 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
                   <a href="https://www.linkedin.com/in/sidneysales/" target="_blank" rel="noopener noreferrer" className="text-slate-500 text-sm hover:text-white transition-colors">Developer - Sidney Sales</a>
                 </li>
                 <li className="flex items-start gap-3">
+                  <Globe size={18} className="text-blue-500 shrink-0 mt-0.5" />
+                  <span className="text-slate-500 text-sm">CidEngenharia</span>
+                </li>
+                <li className="flex items-start gap-3">
                   <Mail size={18} className="text-blue-500 shrink-0 mt-0.5" />
                   <a href="mailto:cidengenharia@gmail.com" className="text-slate-500 text-sm hover:text-white transition-colors">cidengenharia@gmail.com</a>
                 </li>
@@ -553,7 +581,22 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
           </div>
 
           <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
-            <p className="text-slate-600 text-xs">© 2024 AiCondo360 - Cid Engenharia. Todos os direitos reservados.</p>
+            <p className="text-slate-600 text-xs flex items-center gap-1.5 flex-wrap justify-center md:justify-start">
+              © 2024 AiCondo360 - 
+              <img 
+                src="/favico.fw.png" 
+                alt="Cid Engenharia Icon" 
+                className="h-4 w-auto object-contain transition-all duration-500 hover:scale-125 hover:rotate-[360deg] cursor-pointer" 
+              />
+              <a 
+                href="https://cidengenharia.vercel.app/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="hover:text-white transition-colors"
+              >
+                Cid Engenharia
+              </a>. Todos os direitos reservados.
+            </p>
             <div className="flex gap-8">
               <a href="#" className="text-slate-600 text-xs hover:text-white transition-colors">Privacidade</a>
               <a href="#" className="text-slate-600 text-xs hover:text-white transition-colors">Cookies</a>

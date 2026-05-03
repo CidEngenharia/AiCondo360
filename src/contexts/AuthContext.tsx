@@ -10,6 +10,7 @@ export interface UserData {
   role: UserRole;
   plan: PricingPlan;
   email: string;
+  createdAt?: string;
 }
 
 interface AuthContextType {
@@ -60,6 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           full_name,
           email,
           role,
+          created_at,
           condominio_id,
           condominios (
             id,
@@ -141,7 +143,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           condo: adminCondoName || condo?.name || 'Acesso Global',
           condoId: adminCondoId || profile.condominio_id || condo?.id || '',
           role: normalizedRole as UserRole,
-          plan: (finalPlan || 'basic').toLowerCase() as PricingPlan
+          plan: (finalPlan || 'basic').toLowerCase() as PricingPlan,
+          createdAt: profile.created_at || new Date().toISOString()
         });
       } else {
         // Fallback: get data from auth metadata so the session is not lost

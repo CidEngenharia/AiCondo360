@@ -8,9 +8,10 @@ interface LoginFormProps {
   onLoginSuccess?: () => void;
   isAdminOnly?: boolean;
   setUser?: (user: any) => void;
+  prefillData?: { email: string; password?: string; condoName: string; condoId: string } | null;
 }
 
-export const LoginForm: React.FC<LoginFormProps> = ({ isAdminOnly = false, setUser }) => {
+export const LoginForm: React.FC<LoginFormProps> = ({ isAdminOnly = false, setUser, prefillData }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [condo, setCondo] = useState('');
@@ -21,6 +22,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isAdminOnly = false, setUs
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [condos, setCondos] = useState<{ id: string; name: string; plan: PricingPlan; location?: string }[]>([]);
+
+  // Handle prefill data
+  useEffect(() => {
+    if (prefillData) {
+      setEmail(prefillData.email);
+      if (prefillData.password) setPassword(prefillData.password);
+      setCondo(prefillData.condoName);
+      setCondoId(prefillData.condoId);
+      setStep(2);
+    }
+  }, [prefillData]);
 
   useEffect(() => {
     if (isAdminOnly) {
@@ -48,6 +60,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isAdminOnly = false, setUs
           { id: '00000000-0000-0000-0000-000000000003', name: 'Condomínio Paineiras', plan: 'basic', location: 'São Paulo' },
           { id: '00000000-0000-0000-0000-000000000004', name: 'Condomínio Jardim', plan: 'enterprise', location: 'Rio de Janeiro' },
           { id: '00000000-0000-0000-0000-000000000005', name: 'Condomínio Miami', plan: 'premium', location: 'Maceió' },
+          { id: 'demo-test-id', name: 'Condomínio Teste', plan: 'premium', location: 'Salvador' },
         ]);
       }
     }
@@ -102,16 +115,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isAdminOnly = false, setUs
       return;
     }
 
-    if (email === 'sindico@condominio.com' && password === 'sindico123') {
+    if ((email === 'sindico@condominio.com' && password === 'sindico123') || 
+        (email === 'teste.sindico@aicondo360.com' && password === 'senha-test2026')) {
       if (setUser) {
         setUser({
           id: '00000000-0000-0000-0000-00000000000C',
           name: 'Síndico Demonstrativo',
-          email: 'sindico@condominio.com',
-          condo: 'Condomínio Jardim',
-          condoId: '00000000-0000-0000-0000-000000000004',
+          email: email,
+          condo: condo || 'Condomínio Teste',
+          condoId: condoId || 'demo-test-id',
           role: 'syndic',
-          plan: 'enterprise'
+          plan: 'premium'
         });
       }
       return;

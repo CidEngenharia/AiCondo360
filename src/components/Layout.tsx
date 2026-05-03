@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Bell, Menu, User, Settings, LogOut, Sun, Moon, MessageCircle, X, ChevronRight, Lock, Sparkles, LayoutDashboard, HelpCircle, Building2 } from 'lucide-react';
+import { Bell, Menu, User, Settings, LogOut, Sun, Moon, MessageCircle, X, ChevronRight, Lock, Sparkles, LayoutDashboard, HelpCircle, Building2, Clock, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AIChat } from './AIChat';
 import { FEATURES, UserRole, PricingPlan } from '../constants';
@@ -65,8 +65,43 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
     }
   };
 
+  const isTrialUser = user?.email === 'teste.sindico@aicondo360.com';
+  const trialStartDate = new Date(user?.createdAt || new Date());
+  const trialEndDate = new Date(trialStartDate);
+  trialEndDate.setDate(trialEndDate.getDate() + 7);
+  const now = new Date();
+  const timeRemaining = trialEndDate.getTime() - now.getTime();
+  const daysLeft = Math.max(0, Math.ceil(timeRemaining / (1000 * 60 * 60 * 24)));
+  const trialExpired = isTrialUser && timeRemaining <= 0;
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex transition-colors duration-300">
+      {isTrialUser && trialExpired && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+          <div className="bg-slate-900 border border-white/10 rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl text-center flex flex-col items-center relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-rose-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            <div className="w-20 h-20 bg-rose-500/10 flex items-center justify-center rounded-2xl mb-6 relative z-10 border border-rose-500/20">
+               <Lock size={32} className="text-rose-500" />
+            </div>
+            <h2 className="text-3xl font-black text-white mb-4 relative z-10">Teste Expirado</h2>
+            <p className="text-slate-400 mb-8 leading-relaxed text-sm relative z-10">
+              O seu período de teste grátis de 7 dias chegou ao fim. Esperamos que você tenha aproveitado a experiência do <b className="text-white">AiCondo360</b>! <br/><br/>
+              Acesse a plataforma completa efetuando o upgrade do seu plano.
+            </p>
+            <button 
+              onClick={() => window.open('https://buy.stripe.com/dRmcMYc514B63vkaCuf3a0e', '_blank')} 
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all shadow-[0_10px_30px_rgba(37,99,235,0.3)] hover:scale-[1.02] active:scale-95 mb-6 text-sm relative z-10 flex items-center justify-center gap-2"
+            >
+              Fazer Upgrade Agora
+              <ChevronRight size={18} />
+            </button>
+            <button onClick={onLogout} className="text-slate-500 hover:text-white transition-colors text-xs font-bold flex items-center gap-2 relative z-10 uppercase tracking-widest">
+              <LogOut size={14} /> Sair da conta
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar Overlay (Mobile) */}
       <AnimatePresence>
         {isSidebarOpen && (
@@ -266,21 +301,26 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              {isTrialUser && !trialExpired && (
+                <div className="hidden sm:flex bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-600 dark:text-amber-400 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap items-center gap-2 border border-amber-500/30 shadow-lg shadow-amber-500/10">
+                  <Clock size={14} className="animate-pulse" />
+                  Teste: {daysLeft} {daysLeft === 1 ? 'dia restante' : 'dias restantes'}
+                </div>
+              )}
               <button 
                 onClick={toggleDarkMode}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full text-slate-600 dark:text-slate-300 transition-colors"
+                className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-xl text-slate-600 dark:text-slate-300 transition-colors"
                 title={isDarkMode ? "Modo Dia" : "Modo Noite"}
               >
-                {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+                {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
               </button>
               
-              
-              <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full relative">
-                <Bell size={20} className="text-slate-600 dark:text-slate-300" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-500 rounded-full border-2 border-white dark:border-slate-800"></span>
+              <button className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-xl relative transition-colors">
+                <Bell size={18} className="text-slate-600 dark:text-slate-300" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border border-white dark:border-slate-800"></span>
               </button>
-              <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
+              <div className="h-6 w-px bg-slate-200 dark:bg-slate-700/50 mx-1"></div>
               <button 
                 onClick={() => navigate('/settings')}
                 className="flex items-center gap-2 pl-1 hover:opacity-80 transition-opacity"
