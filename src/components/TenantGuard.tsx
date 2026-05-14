@@ -9,6 +9,9 @@ interface TenantGuardProps {
 export const TenantGuard: React.FC<TenantGuardProps> = ({ children }) => {
   const { tenant, loading, isGlobalAdmin, userTenants } = useTenant();
   const { tenantSlug } = useParams();
+  
+  const ignoredPrefixes = ['feature', 'settings', 'login', 'admin-exclusivo', 'funcionalidades', 'dashboard'];
+  const isIgnored = tenantSlug && ignoredPrefixes.includes(tenantSlug);
 
   if (loading) {
     return (
@@ -18,8 +21,12 @@ export const TenantGuard: React.FC<TenantGuardProps> = ({ children }) => {
     );
   }
 
+  // If it's a reserved prefix, just let it through to the router
+  if (isIgnored) return <>{children}</>;
+
   // If no slug is provided, and we are logged in, redirect to the preferred slug
-  if (!tenantSlug && tenant) {
+  // ONLY if we are at the root path, to avoid breaking /feature/... links
+  if (!tenantSlug && tenant && window.location.pathname === '/') {
     return <Navigate to={`/${tenant.slug}`} replace />;
   }
 

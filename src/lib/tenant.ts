@@ -14,9 +14,9 @@ export const getTenantSlugFromUrl = (): string | null => {
   const path = window.location.pathname;
   const parts = path.split('/').filter(Boolean);
   
-  // Basic heuristic: check if first part is a potential tenant slug
-  // In a robust implementation, this would match against a known list or pattern
-  if (parts.length > 0 && parts[0] !== 'dashboard' && parts[0] !== 'login') {
+  const ignoredPrefixes = ['dashboard', 'login', 'feature', 'settings', 'admin-exclusivo', 'funcionalidades'];
+  
+  if (parts.length > 0 && !ignoredPrefixes.includes(parts[0])) {
     return parts[0];
   }
   

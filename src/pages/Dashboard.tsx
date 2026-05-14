@@ -72,7 +72,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
         isAdmin ? OcorrenciaService.getCondoOcorrencias(effectiveCondoId) : OcorrenciaService.getUserOcorrencias(userId),
         BoletoService.getCondoBoletos(effectiveCondoId),
         FinanceiroService.getCondoExpenses(effectiveCondoId),
-        import('../lib/supabase').then(m => m.supabase.from('profiles').select('id', { count: 'exact' }).eq('tenant_id', effectiveCondoId))
+        import('../lib/supabase').then(m => m.supabase.from('profiles').select('id', { count: 'exact' }).eq('condominio_id', effectiveCondoId))
       ]);
       
       setNextBoleto(boleto);
@@ -148,18 +148,48 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
     fetchData();
 
     // Realtime Subscriptions
-    if (userId && condoId) {
+    const effectiveCondoId = tenant?.id || condoId;
+    if (userId && effectiveCondoId) {
       let channelPromise: Promise<any> | null = null;
       
       import('../lib/supabase').then(({ supabase }) => {
-        const channel = supabase.channel('dashboard-realtime')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'visitantes' }, () => fetchData())
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'reservas' }, () => fetchData())
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'encomendas' }, () => fetchData())
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'comunicados' }, () => fetchData())
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'mercado_items' }, () => fetchData())
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'boletos' }, () => fetchData())
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'ocorrencias' }, () => fetchData())
+        const channel = supabase.channel(`dashboard-realtime-${effectiveCondoId}`)
+          .on('postgres_changes', { 
+            event: '*', 
+            schema: 'public', 
+            table: 'visitantes',
+            filter: `condominio_id=eq.${effectiveCondoId}`
+          }, () => fetchData())
+          .on('postgres_changes', { 
+            event: '*', 
+            schema: 'public', 
+            table: 'reservas',
+            filter: `condominio_id=eq.${effectiveCondoId}`
+          }, () => fetchData())
+          .on('postgres_changes', { 
+            event: '*', 
+            schema: 'public', 
+            table: 'encomendas',
+            filter: `condominio_id=eq.${effectiveCondoId}`
+          }, () => fetchData())
+          .on('postgres_changes', { 
+            event: '*', 
+            schema: 'public', 
+            table: 'comunicados',
+            filter: `condominio_id=eq.${effectiveCondoId}`
+          }, () => fetchData())
+          .on('postgres_changes', { 
+            event: '*', 
+            schema: 'public', 
+            table: 'boletos',
+            filter: `condominio_id=eq.${effectiveCondoId}`
+          }, () => fetchData())
+          .on('postgres_changes', { 
+            event: '*', 
+            schema: 'public', 
+            table: 'ocorrencias',
+            filter: `condominio_id=eq.${effectiveCondoId}`
+          }, () => fetchData())
           .subscribe();
         
         channelPromise = Promise.resolve(channel);
@@ -254,7 +284,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
         
          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {(userRole === 'global_admin' || FEATURES.find(f => f.id === 'boletos')?.plans.includes(userPlan)) && (
-            <Link to="/feature/boletos" className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
+            <Link to={tenant?.slug ? `/${tenant.slug}/feature/boletos` : '/feature/boletos'} className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
               <div className="flex items-center gap-2 mb-2 relative">
                 <FileText size={16} className="text-emerald-500" />
                 {nextBoleto && (
@@ -273,7 +303,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
               </p>
             </Link>
           )}
-          <Link to="/feature/comunicados" className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
+          <Link to={tenant?.slug ? `/${tenant.slug}/feature/comunicados` : '/feature/comunicados'} className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
             <div className="flex items-center gap-2 mb-2 relative">
               <AlertCircle size={16} className="text-emerald-500" />
                {announcements.length > 0 && (
@@ -288,7 +318,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
             <p className="text-[10px] text-slate-400">Mural atualizado</p>
           </Link>
           {(userRole === 'global_admin' || FEATURES.find(f => f.id === 'reservas')?.plans.includes(userPlan)) && (
-            <Link to="/feature/reservas" className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
+            <Link to={tenant?.slug ? `/${tenant.slug}/feature/reservas` : '/feature/reservas'} className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
               <div className="flex items-center gap-2 mb-2 relative">
                 <Calendar size={16} className="text-emerald-500" />
                 {upcomingReservations.length > 0 && (
@@ -307,7 +337,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
               </p>
             </Link>
           )}
-          <Link to="/feature/encomendas" className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
+          <Link to={tenant?.slug ? `/${tenant.slug}/feature/encomendas` : '/feature/encomendas'} className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
             <div className="flex items-center gap-2 mb-2 relative">
               <Package size={16} className="text-emerald-500" />
               {pendingPackages.length > 0 && (
@@ -327,7 +357,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
                 : (pendingPackages.length > 0 ? 'Retire na portaria' : 'Nenhuma pendência')}
             </p>
           </Link>
-          <Link to="/feature/visitantes" className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
+          <Link to={tenant?.slug ? `/${tenant.slug}/feature/visitantes` : '/feature/visitantes'} className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
             <div className="flex items-center gap-2 mb-2 relative">
               <UserPlus size={16} className="text-emerald-500" />
               {expectedVisitors.length > 0 && (
@@ -341,7 +371,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
             <p className="text-lg font-bold text-slate-700 dark:text-slate-200">{expectedVisitors.length} Esperados</p>
             <p className="text-[10px] text-slate-400">Liberações ativas</p>
           </Link>
-          <Link to="/feature/ocorrencias" className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
+          <Link to={tenant?.slug ? `/${tenant.slug}/feature/ocorrencias` : '/feature/ocorrencias'} className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
             <div className="flex items-center gap-2 mb-2 relative">
               <ShieldAlert size={16} className="text-emerald-500" />
               {openOcorrencias.length > 0 && (
@@ -355,7 +385,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
             <p className="text-lg font-bold text-slate-700 dark:text-slate-200">{openOcorrencias.length} Abertas</p>
             <p className="text-[10px] text-slate-400">Acompanhamento</p>
           </Link>
-          <Link to="/feature/manutencao" className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
+          <Link to={tenant?.slug ? `/${tenant.slug}/feature/manutencao` : '/feature/manutencao'} className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
             <div className="flex items-center gap-2 mb-2 relative">
               <Wrench size={16} className="text-emerald-500" />
               {expectedManutencoes.length > 0 && (
@@ -386,7 +416,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
                 <h4 className="text-sm font-medium">{upcomingAssembleia.title}</h4>
                 <p className="text-xs opacity-80">{new Date(upcomingAssembleia.start_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })}</p>
               </div>
-              <Link to="/feature/assembleias" className="bg-white text-amber-700 px-3 py-1.5 rounded-lg text-[10px] font-medium">Ver</Link>
+              <Link to={tenant?.slug ? `/${tenant.slug}/feature/assembleias` : '/feature/assembleias'} className="bg-white text-amber-700 px-3 py-1.5 rounded-lg text-[10px] font-medium">Ver</Link>
             </div>
           </motion.div>
         )}
@@ -400,7 +430,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
         <section>
            <div className="flex items-center justify-between mb-4 px-2">
             <h3 className="font-medium text-slate-800 dark:text-white uppercase text-[10px] font-bold tracking-widest text-slate-400">Acesso Rápido</h3>
-            <Link to="/features" className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline uppercase tracking-widest">Ver todos</Link>
+            <Link to={tenant?.slug ? `/${tenant.slug}/features` : "/features"} className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline uppercase tracking-widest">Ver todos</Link>
           </div>
           <FeatureGrid features={filteredFeatures} userPlan={userPlan} userRole={userRole} />
         </section>
@@ -529,7 +559,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
              <div className="mt-2 text-[9px] text-emerald-500 font-bold bg-emerald-50 rounded-lg px-2 py-1 inline-block">Ótimo</div>
           </div>
           
-          <Link to="/feature/manutencao" className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-6 border border-slate-100 dark:border-slate-700 shadow-sm hover:border-amber-200 transition-colors group">
+          <Link to={tenant?.slug ? `/${tenant.slug}/feature/manutencao` : "/feature/manutencao"} className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-6 border border-slate-100 dark:border-slate-700 shadow-sm hover:border-amber-200 transition-colors group">
              <div className="flex items-center gap-3 mb-4">
                 <div className="p-2.5 rounded-2xl bg-amber-50 text-amber-500 dark:bg-amber-900/20 group-hover:scale-110 transition-transform">
                   <Wrench size={18} />

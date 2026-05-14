@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { FeatureHeader } from '../components/FeatureHeader';
 import { useAuth } from '../contexts/AuthContext';
+import { useTenant } from '../contexts/TenantContext';
 import { ProfileService, Profile } from '../services/supabaseService';
 import { useEffect } from 'react';
 
@@ -59,6 +60,7 @@ const RoleBadge = ({ role }: { role: Resident['role'] }) => {
 
 export const Moradores: React.FC = () => {
   const { user } = useAuth();
+  const { tenant } = useTenant();
   const [residentsList, setResidentsList] = useState<Resident[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -140,7 +142,8 @@ export const Moradores: React.FC = () => {
       role: formData.get('role') as any,
       phone: formData.get('phone') as string,
       email: formData.get('email') as string,
-      condominio_id: condoId
+      condominio_id: condoId,
+      tenant_id: tenant?.id
     };
 
     try {
@@ -148,21 +151,16 @@ export const Moradores: React.FC = () => {
       if (editingResident) {
         await ProfileService.updateProfile(editingResident.id, residentData);
       } else {
-        // Generate a random UUID for the profile (will be linked to auth later via Supabase Dashboard)
-        residentData.id = crypto.randomUUID();
-        
-        console.log("[Moradores] Salvando perfil com condomínio ID:", residentData.condominio_id);
-        await ProfileService.createProfile(residentData);
+        const result = await ProfileService.createProfile(residentData) as any;
+        const tempPassword = result._tempPassword || `Condo${residentData.unit}@360`;
 
-        // Inform admin about next steps for user login setup
-        const tempPassword = `Condo${residentData.unit}@360`;
         alert(
           `✅ Morador cadastrado com sucesso!\n\n` +
-          `Para permitir o acesso ao aplicativo, acesse o Painel do Supabase:\n` +
-          `Authentication > Users > Invite user\n\n` +
-          `Email: ${residentData.email}\n` +
-          `Sugestão de senha provisória: ${tempPassword}\n\n` +
-          `(O ID do perfil foi criado. Vincule ao usuário Auth pelo mesmo ID após o invite.)`
+          `As credenciais de acesso foram geradas automaticamente:\n\n` +
+          `📧 Login: ${residentData.email}\n` +
+          `🔑 Senha provisória: ${tempPassword}\n\n` +
+          `Envie essas informações ao morador para o primeiro acesso.\n` +
+          `_(O morador deverá alterar a senha no primeiro login.)_`
         );
       }
       

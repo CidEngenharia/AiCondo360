@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { getTenantSlugFromUrl, getTenantBySlug, Tenant } from '../lib/tenant';
 import { useAuth } from './AuthContext';
@@ -15,6 +16,8 @@ const TenantContext = createContext<TenantContextType | undefined>(undefined);
 
 export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [userTenants, setUserTenants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,13 +29,13 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       
       // 1. Detect from URL
       const slug = getTenantSlugFromUrl();
+      let detectedTenant = null;
       
       if (slug) {
         const tenantData = await getTenantBySlug(slug);
         if (tenantData) {
+          detectedTenant = tenantData;
           setTenant(tenantData);
-          setLoading(false);
-          return;
         }
       }
 
@@ -47,7 +50,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           if (allTenants) {
             setUserTenants(allTenants);
             // Default to first one or stay on current if already set via slug
-            if (!slug && allTenants.length > 0) {
+            if (!detectedTenant && allTenants.length > 0) {
               setTenant(allTenants[0]);
             }
           }
@@ -62,16 +65,30 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             const tenants = memberships.map(m => m.tenants).filter(Boolean);
             setUserTenants(tenants);
             
-            // If no slug in URL, use first membership
-            if (!slug) {
+            // If no slug in URL or invalid slug, use first membership
+            if (!detectedTenant) {
               setTenant(tenants[0]);
+            }
+          } else if (user.condoId) {
+            // Fallback to user's condoId from profile if memberships table is empty
+            const { data: tenantData } = await supabase
+              .from('tenants')
+              .select('*')
+              .eq('id', user.condoId)
+              .maybeSingle();
+              
+            if (tenantData) {
+              setUserTenants([tenantData]);
+              if (!detectedTenant) {
+                setTenant(tenantData);
+              }
             }
           }
         }
       } else {
         // 3. Fallback to default tenant for anonymous/public access or legacy support
         // But only if no slug is provided in URL
-        if (!slug) {
+        if (!detectedTenant) {
           const defaultTenant = await getTenantBySlug('default');
           setTenant(defaultTenant);
         }
@@ -81,12 +98,10 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     initializeTenant();
-  }, [user]);
+  }, [user, location.pathname]);
 
   const switchTenant = (slug: string) => {
-    // Navigate to /[slug]/dashboard or similar
-    // This will trigger a re-mount and re-initialization via URL detection
-    window.location.href = `/${slug}/dashboard`;
+    navigate(`/${slug}`);
   };
 
   return (

@@ -142,17 +142,17 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
 
             {/* Home/Dashboard Link */}
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate(tenant?.slug ? `/${tenant.slug}` : '/')}
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group relative",
-                location.pathname === '/' 
+                (location.pathname === '/' || location.pathname === `/${tenant?.slug}`)
                   ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" 
                   : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50"
               )}
             >
               <div className={cn(
                 "p-2 rounded-lg transition-colors",
-                location.pathname === '/' ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400"
+                (location.pathname === '/' || location.pathname === `/${tenant?.slug}`) ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400"
               )}>
                 <LayoutDashboard size={18} />
               </div>
@@ -163,17 +163,17 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
 
             {/* Settings Link */}
             <button
-              onClick={() => navigate('/settings')}
+              onClick={() => navigate(tenant?.slug ? `/${tenant.slug}/settings` : '/settings')}
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group relative",
-                location.pathname === '/settings' 
+                location.pathname.endsWith('/settings') 
                   ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" 
                   : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50"
               )}
             >
               <div className={cn(
                 "p-2 rounded-lg transition-colors",
-                location.pathname === '/settings' ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400"
+                location.pathname.endsWith('/settings') ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400"
               )}>
                 <Settings size={18} />
               </div>
@@ -188,13 +188,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
 
             {filteredFeatures.map((feature) => {
               const hasAccess = userRole === 'global_admin' || feature.plans.includes(userPlan);
-              const isActive = location.pathname === `/feature/${feature.id}`;
+              const featurePath = `/feature/${feature.id}`;
+              const isActive = location.pathname.endsWith(featurePath);
               
               return (
                 <button
                   key={feature.id}
                   disabled={!hasAccess}
-                  onClick={() => navigate(`/feature/${feature.id}`)}
+                  onClick={() => navigate(tenant?.slug ? `/${tenant.slug}${featurePath}` : featurePath)}
                   className={cn(
                     "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group relative",
                     isActive
@@ -322,7 +323,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
               </button>
               <div className="h-6 w-px bg-slate-200 dark:bg-slate-700/50 mx-1"></div>
               <button 
-                onClick={() => navigate('/settings')}
+                onClick={() => navigate(tenant?.slug ? `/${tenant.slug}/settings` : '/settings')}
                 className="flex items-center gap-2 pl-1 hover:opacity-80 transition-opacity"
               >
                 <div className="hidden sm:flex flex-col items-end">

@@ -247,22 +247,80 @@ export const ProfileService = {
   },
 
   async createProfile(profile: Partial<Profile>) {
-    const insertData = { ...profile };
-    if (!insertData.id) {
-      insertData.id = crypto.randomUUID();
+    const insertData: Record<string, any> = { ...profile };
+
+    // Profiles has a FK to auth.users(id).
+    // We must create the auth user first (via signUp with a temp password),
+    // then the profile will be auto-created by the handle_new_user trigger.
+    // If the trigger is not set up, we upsert manually after signUp.
+
+    const tempPassword = `Condo${(insertData.unit || '00').replace(/\D/g, '') || '360'}@${Math.floor(Math.random() * 9000) + 1000}`;
+    const email = insertData.email as string;
+
+    if (!email) {
+      throw new Error('E-mail é obrigatório para criar o usuário no sistema de autenticação.');
     }
-    
+
+    // Step 1: Create the auth user with a temp password
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password: tempPassword,
+      options: {
+        data: {
+          full_name: insertData.full_name,
+          role: insertData.role || 'morador',
+          condominio_id: insertData.condominio_id,
+          tenant_id: insertData.tenant_id,
+        },
+      },
+    });
+
+    if (authError) {
+      // If user already exists in auth, try to just upsert the profile row
+      if (authError.message?.includes('already registered') || authError.status === 422) {
+        console.warn('[ProfileService] Auth user already exists, attempting profile upsert...');
+        // We cannot know the UUID of an existing auth user from client side.
+        // Inform caller to use the Supabase dashboard.
+        throw new Error(
+          `Este e-mail já está cadastrado no sistema. Para vincular um perfil existente, ` +
+          `acesse o Painel do Supabase > Authentication > Users e copie o UUID do usuário.`
+        );
+      }
+      console.error('[ProfileService] Auth signUp error:', authError.message);
+      throw authError;
+    }
+
+    const authUserId = authData.user?.id;
+    if (!authUserId) {
+      throw new Error('Falha ao obter ID do usuário autenticado após cadastro.');
+    }
+
+    // Step 2: Upsert the profile row with the real auth user UUID
+    const profileRow: Record<string, any> = {
+      id: authUserId,
+      full_name: insertData.full_name,
+      email,
+      role: insertData.role || 'morador',
+      unit: insertData.unit,
+      building: insertData.building,
+      phone: insertData.phone,
+      condominio_id: insertData.condominio_id,
+      tenant_id: insertData.tenant_id,
+    };
+
     const { data, error } = await supabase
       .from('profiles')
-      .insert([insertData])
+      .upsert([profileRow], { onConflict: 'id' })
       .select()
       .single();
 
     if (error) {
-      console.error("[ProfileService] Create error:", error.message, error.details);
+      console.error('[ProfileService] Profile upsert error:', error.message, error.details);
       throw error;
     }
-    return data as Profile;
+
+    // Return profile + temp password so caller can show it to admin
+    return { ...(data as Profile), _tempPassword: tempPassword };
   },
 
   async deleteProfile(userId: string) {
@@ -750,7 +808,7 @@ export const PackageService = {
 export const AssembleiaService = {
   async getUpcomingAssembleia(condoId: string): Promise<Assembleia | null> {
     const { data, error } = await supabase
-      .from('assembleias')
+      .from('assembleia')
       .select('*')
       .eq('condominio_id', condoId)
       .eq('status', 'active')
@@ -1240,11 +1298,15 @@ export const DocumentoService = {
 export interface FinanceiroRecord {
   id: string;
   condominio_id: string;
+  tenant_id?: string;
   nome: string;
   valor: number;
   origem: string;
+  tipo?: 'receita' | 'despesa';
+  categoria?: string;
   observacao?: string;
   created_at: string;
+  updated_at?: string;
 }
 
 // --- Services ---

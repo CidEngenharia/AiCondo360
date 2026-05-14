@@ -4,6 +4,7 @@ import { cn } from '../lib/utils';
 import { UserRole, PricingPlan } from '../constants';
 import { Lock } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTenant } from '../contexts/TenantContext';
 
 interface FeatureGridProps {
   features: any[];
@@ -12,6 +13,7 @@ interface FeatureGridProps {
 }
 
 export const FeatureGrid: React.FC<FeatureGridProps> = ({ features, userPlan, userRole }) => {
+  const { tenant } = useTenant();
   return (
     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 p-4">
       {features.map((feature, index) => {
@@ -69,7 +71,7 @@ export const FeatureGrid: React.FC<FeatureGridProps> = ({ features, userPlan, us
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <Link to={`/feature/${feature.id}`} className={commonClasses}>
+            <Link to={tenant?.slug ? `/${tenant.slug}/feature/${feature.id}` : `/feature/${feature.id}`} className={commonClasses}>
               {Content}
             </Link>
           </motion.div>

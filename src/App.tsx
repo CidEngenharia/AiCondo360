@@ -57,8 +57,81 @@ export default function App() {
         element={user ? <Navigate to="/" /> : <AdminExclusivoPage setUser={setUser} />} 
       />
 
-      {/* Main Tenant Scoped Routes (with or without slug) */}
-      <Route path="/:tenantSlug?" element={<TenantGuard><Outlet /></TenantGuard>}>
+      {/* 1. Global Features (Direct Access or Default Tenant) */}
+      <Route element={<TenantGuard><Outlet /></TenantGuard>}>
+        <Route 
+          path="settings" 
+          element={
+            user ? (
+              <Layout 
+                condoName={user.condo} 
+                userName={user.name} 
+                onLogout={logout}
+                userRole={user.role}
+                userPlan={user.plan}
+              >
+                <Configuracoes 
+                  userPlan={user.plan}
+                  userName={user.name}
+                  onPlanChange={handlePlanChange}
+                />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        
+        {/* Helper to group features without slug repetition */}
+        <Route path="feature">
+          <Route path="boletos" element={user ? <Layout condoName={user.condo} userName={user.name} onLogout={logout} userRole={user.role} userPlan={user.plan}><Financeiro /></Layout> : <Navigate to="/login" />} />
+          <Route path="reservas" element={user ? <Layout condoName={user.condo} userName={user.name} onLogout={logout} userRole={user.role} userPlan={user.plan}><Reservas userId={user.id} condoId={user.condoId} /></Layout> : <Navigate to="/login" />} />
+          <Route path="encomendas" element={user ? <Layout condoName={user.condo} userName={user.name} onLogout={logout} userRole={user.role} userPlan={user.plan}><Encomendas userId={user.id} userRole={user.role} condoId={user.condoId} userPlan={user.plan} /></Layout> : <Navigate to="/login" />} />
+          <Route path="comunicados" element={user ? <Layout condoName={user.condo} userName={user.name} onLogout={logout} userRole={user.role} userPlan={user.plan}><Comunicados userId={user.id} /></Layout> : <Navigate to="/login" />} />
+          <Route path="assembleias" element={user ? <Layout condoName={user.condo} userName={user.name} onLogout={logout} userRole={user.role} userPlan={user.plan}><Assembleias userId={user.id} condoId={user.condoId} /></Layout> : <Navigate to="/login" />} />
+          <Route path="ocorrencias" element={user ? <Layout condoName={user.condo} userName={user.name} onLogout={logout} userRole={user.role} userPlan={user.plan}><Ocorrencias userId={user.id} condoId={user.condoId} userRole={user.role} /></Layout> : <Navigate to="/login" />} />
+          <Route path="visitantes" element={user ? <Layout condoName={user.condo} userName={user.name} onLogout={logout} userRole={user.role} userPlan={user.plan}><Visitantes userId={user.id} condoId={user.condoId} userRole={user.role} /></Layout> : <Navigate to="/login" />} />
+          <Route path="documentos" element={user ? <Layout condoName={user.condo} userName={user.name} onLogout={logout} userRole={user.role} userPlan={user.plan}><Documentos /></Layout> : <Navigate to="/login" />} />
+          <Route path="garagem" element={user ? <Layout condoName={user.condo} userName={user.name} onLogout={logout} userRole={user.role} userPlan={user.plan}><Garagem userId={user.id} condoId={user.condoId} userRole={user.role} /></Layout> : <Navigate to="/login" />} />
+          <Route path="telefones" element={user ? <Layout condoName={user.condo} userName={user.name} onLogout={logout} userRole={user.role} userPlan={user.plan}><Telefones /></Layout> : <Navigate to="/login" />} />
+          <Route path="agendamentos" element={user ? <Layout condoName={user.condo} userName={user.name} onLogout={logout} userRole={user.role} userPlan={user.plan}><Agendamentos /></Layout> : <Navigate to="/login" />} />
+          <Route path="moradores" element={user ? <Layout condoName={user.condo} userName={user.name} onLogout={logout} userRole={user.role} userPlan={user.plan}><Moradores /></Layout> : <Navigate to="/login" />} />
+          <Route path="manutencao" element={user ? <Layout condoName={user.condo} userName={user.name} onLogout={logout} userRole={user.role} userPlan={user.plan}><Manutencao userId={user.id} condoId={user.condoId} userRole={user.role} /></Layout> : <Navigate to="/login" />} />
+          <Route path="condominios" element={user ? <Layout condoName={user.condo} userName={user.name} onLogout={logout} userRole={user.role} userPlan={user.plan}><Condominios /></Layout> : <Navigate to="/login" />} />
+          <Route path="classificados" element={user ? <Layout condoName={user.condo} userName={user.name} onLogout={logout} userRole={user.role} userPlan={user.plan}><Classificados /></Layout> : <Navigate to="/login" />} />
+          <Route path="pets" element={user ? <Layout condoName={user.condo} userName={user.name} onLogout={logout} userRole={user.role} userPlan={user.plan}><Animais /></Layout> : <Navigate to="/login" />} />
+          <Route path=":id" element={user ? <Layout condoName={user.condo} userName={user.name} onLogout={logout} userRole={user.role} userPlan={user.plan}><FeatureDetail /></Layout> : <Navigate to="/login" />} />
+        </Route>
+
+        <Route 
+          index 
+          element={
+            user ? (
+              <Layout 
+                condoName={user.condo} 
+                userName={user.name} 
+                onLogout={logout}
+                userRole={user.role}
+                userPlan={user.plan}
+              >
+                <Dashboard 
+                  userId={user.id}
+                  userName={user.name} 
+                  userRole={user.role}
+                  userPlan={user.plan}
+                  condoId={user.condoId}
+                  onNavigate={(page) => navigate(`feature/${page}`)}
+                />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+      </Route>
+
+      {/* 2. Tenant Scoped Routes (with slug) */}
+      <Route path="/:tenantSlug" element={<TenantGuard><Outlet /></TenantGuard>}>
         <Route 
           path="settings" 
           element={
@@ -376,25 +449,6 @@ export default function App() {
         />
 
         <Route 
-          path="feature/:id" 
-          element={
-            user ? (
-              <Layout 
-                condoName={user.condo} 
-                userName={user.name} 
-                onLogout={logout}
-                userRole={user.role}
-                userPlan={user.plan}
-              >
-                <FeatureDetail />
-              </Layout>
-            ) : (
-              <Navigate to="/login" />
-            )
-          } 
-        />
-        
-        <Route 
           index 
           element={
             user ? (
@@ -411,7 +465,7 @@ export default function App() {
                   userRole={user.role}
                   userPlan={user.plan}
                   condoId={user.condoId}
-                  onNavigate={(page) => navigate(`feature/${page}`)}
+                  onNavigate={(page) => navigate(`/${tenant?.slug || ''}/feature/${page}`)} 
                 />
               </Layout>
             ) : (
