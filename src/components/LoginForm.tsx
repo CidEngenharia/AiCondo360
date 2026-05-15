@@ -132,12 +132,49 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isAdminOnly = false, setUs
     }
 
     try {
-      const { error: authError } = await supabase.auth.signInWithPassword({
+      // 1. Tentar login
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (authError) throw authError;
+
+      if (authData.user) {
+        // 2. Buscar perfil para validar condomínio
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('condominio_id, role')
+          .eq('id', authData.user.id)
+          .single();
+
+        if (profileError) {
+          console.error('[Login] Erro ao buscar perfil:', profileError);
+          await supabase.auth.signOut();
+          throw new Error('Erro ao validar seu perfil. Entre em contato com o suporte.');
+        }
+
+        const isGlobalAdmin = profile.role === 'global_admin' || profile.role === 'admin_global';
+
+        // 3. Validar acesso ao condomínio
+        // Se for admin global, ele pode entrar em qualquer um ou sem nenhum selecionado
+        if (isGlobalAdmin) {
+          // Já salvamos o condoId no localStorage acima
+          return;
+        }
+
+        // Se o usuário comum tentar entrar em um condomínio diferente do dele
+        if (condoId && profile.condominio_id !== condoId) {
+          await supabase.auth.signOut();
+          const selectedCondoName = condo || 'selecionado';
+          throw new Error(`Você não está cadastrado no condomínio ${selectedCondoName}. Por favor, selecione o condomínio correto.`);
+        }
+        
+        // Se o usuário comum NÃO selecionou condomínio mas tem um vinculado (acesso direto)
+        if (!condoId && profile.condominio_id) {
+          localStorage.setItem('admin_selected_condo', profile.condominio_id);
+        }
+      }
     } catch (err: any) {
       setError(err.message || 'Erro ao realizar login. Verifique suas credenciais.');
       setLoading(false);

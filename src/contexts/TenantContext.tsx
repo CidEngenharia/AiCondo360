@@ -42,15 +42,23 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // 2. Detect from User's primary membership (if logged in)
       if (user) {
         if (isGlobalAdmin) {
-          // Global Admins can see ALL tenants
+          // Global Admins can see ALL condos
           const { data: allTenants } = await supabase
-            .from('tenants')
+            .from('condominios')
             .select('*');
           
           if (allTenants) {
             setUserTenants(allTenants);
-            // Default to first one or stay on current if already set via slug
-            if (!detectedTenant && allTenants.length > 0) {
+            
+            // Check for saved selection if not in URL
+            const savedCondoId = localStorage.getItem('admin_selected_condo');
+            const savedTenant = allTenants.find(t => t.id === savedCondoId);
+
+            if (detectedTenant) {
+              setTenant(detectedTenant);
+            } else if (savedTenant) {
+              setTenant(savedTenant);
+            } else if (allTenants.length > 0) {
               setTenant(allTenants[0]);
             }
           }
@@ -87,7 +95,6 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       } else {
         // 3. Fallback to default tenant for anonymous/public access or legacy support
-        // But only if no slug is provided in URL
         if (!detectedTenant) {
           const defaultTenant = await getTenantBySlug('default');
           setTenant(defaultTenant);
@@ -100,8 +107,14 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     initializeTenant();
   }, [user, location.pathname]);
 
-  const switchTenant = (slug: string) => {
-    navigate(`/${slug}`);
+  const switchTenant = (condoId: string) => {
+    // Persist selection for next load
+    localStorage.setItem('admin_selected_condo', condoId);
+    // Update active tenant in state immediately
+    const found = userTenants.find(t => t.id === condoId || t.slug === condoId);
+    if (found) {
+      setTenant(found);
+    }
   };
 
   return (

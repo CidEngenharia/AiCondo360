@@ -55,8 +55,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
   const { tenant } = useTenant();
 
   const fetchData = async () => {
-    const effectiveCondoId = tenant?.id || condoId;
-    if (!userId || !effectiveCondoId) return;
+    const effectiveCondoId = (userRole === 'global_admin' && condoId) ? condoId : (tenant?.id || condoId);
+    
+    console.log('[Dashboard] Context Debug:', { 
+      propCondoId: condoId, 
+      tenantId: tenant?.id, 
+      tenantName: tenant?.name,
+      finalEffectiveId: effectiveCondoId 
+    });
+
+    if (!userId || !effectiveCondoId) {
+      console.warn('[Dashboard] Missing userId or effectiveCondoId, skipping fetch', { userId, effectiveCondoId });
+      setLoadingData(false);
+      return;
+    }
     
     const isAdmin = userRole === 'admin' || userRole === 'syndic' || userRole === 'global_admin';
     
@@ -72,8 +84,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
         isAdmin ? OcorrenciaService.getCondoOcorrencias(effectiveCondoId) : OcorrenciaService.getUserOcorrencias(userId),
         BoletoService.getCondoBoletos(effectiveCondoId),
         FinanceiroService.getCondoExpenses(effectiveCondoId),
-        import('../lib/supabase').then(m => m.supabase.from('profiles').select('id', { count: 'exact' }).eq('condominio_id', effectiveCondoId))
+        import('../lib/supabase').then(async m => {
+          const res = await m.supabase.from('profiles').select('id', { count: 'exact' }).eq('condominio_id', effectiveCondoId);
+          if (res.error) console.error('[Dashboard] Error fetching residents count:', res.error);
+          return res;
+        })
       ]);
+
+      console.log('[Dashboard] Data response raw check:', { 
+        boletos: !!boletosAll, 
+        expenses: !!expenses, 
+        residents: !!residents 
+      });
+
+      console.log('[Dashboard] Data received:', { 
+        boletosCount: boletosAll?.length, 
+        expensesCount: expenses?.length, 
+        residentsCount: residents.count,
+        announcementsCount: comms.length,
+        reservationsCount: reservations.length
+      });
       
       setNextBoleto(boleto);
       setAnnouncements(comms);
@@ -86,7 +116,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
       setOpenOcorrencias(ocorrencias.filter(o => o.status !== 'resolved'));
       setCondoBoletos(boletosAll || []);
       setCondoExpenses(expenses || []);
-      setTotalResidents(residents.count || 24); // Fallback to 24 if count fails
+      setTotalResidents(residents?.count || 0);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -213,6 +243,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
     return roleMatch && planMatch;
   });
 
+  const overdueBoletos = condoBoletos.filter(b => b.status === 'overdue' || b.status === 'atrasado');
+
   const totalNotifications = 
     announcements.length + 
     upcomingReservations.length + 
@@ -220,6 +252,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
     expectedVisitors.length + 
     expectedManutencoes.length + 
     openOcorrencias.length + 
+    overdueBoletos.length +
     (nextBoleto ? 1 : 0);
 
   // Computações baseadas nos dados REAIS do condomínio

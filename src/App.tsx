@@ -25,10 +25,12 @@ import { Moradores } from './pages/Moradores';
 import { Condominios } from './pages/Condominios';
 import { Manutencao } from './pages/Manutencao';
 import { useAuth } from './hooks/useAuth';
+import { useTenant } from './contexts/TenantContext';
 import { PricingPlan } from './constants';
 
 export default function App() {
-  const { user, loading, logout, setUser } = useAuth();
+  const { user, loading: authLoading, logout, setUser } = useAuth();
+  const { tenant, loading: tenantLoading } = useTenant();
 
   const handlePlanChange = (plan: PricingPlan) => {
     if (user) {
@@ -36,6 +38,7 @@ export default function App() {
     }
   };
   const navigate = useNavigate();
+  const loading = authLoading || tenantLoading;
 
   if (loading) {
     return (
