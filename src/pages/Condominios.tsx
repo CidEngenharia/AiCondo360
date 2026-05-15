@@ -20,7 +20,10 @@ import {
   Eye,
   EyeOff,
   Key as KeyIcon,
-  ChevronRight
+  ChevronRight,
+  FileDown,
+  Download,
+  Share2
 } from 'lucide-react';
 
 import { useAuth } from '../hooks/useAuth';
@@ -70,12 +73,13 @@ export const Condominios: React.FC = () => {
 
   // Simulated Stripe payment data (replace with real API when available)
   const stripePayments = [
-    { id: 'pi_1', condo: 'Condomínio Verde Vale',    amount: 599,   date: new Date(Date.now() - 1 * 3600000) },
-    { id: 'pi_2', condo: 'Condomínio Jardim',        amount: 299,   date: new Date(Date.now() - 5 * 3600000) },
-    { id: 'pi_3', condo: 'Condomínio Paineiras',     amount: 299,   date: new Date(Date.now() - 26 * 3600000) },
+    { id: 'pi_1', condo: 'Condomínio Verde Vale',    amount: 599,   date: new Date(Date.now() - 1 * 3600000), status: 'paid', phone: '71981234567' },
+    { id: 'pi_2', condo: 'Condomínio Jardim',        amount: 299,   date: new Date(Date.now() - 5 * 3600000), status: 'paid', phone: '71982345678' },
+    { id: 'pi_3', condo: 'Condomínio Paineiras',     amount: 299,   date: new Date(Date.now() - 48 * 3600000), status: 'overdue', phone: '71983456789' },
+    { id: 'pi_4', condo: 'Edifício Horizonte',       amount: 399,   date: new Date(Date.now() - 72 * 3600000), status: 'overdue', phone: '71984567890' },
   ];
   const latestPayment = stripePayments[0];
-  const monthTotal = stripePayments.reduce((s, p) => s + p.amount, 0);
+  const monthTotal = stripePayments.reduce((s, p) => s + (p.status === 'paid' ? p.amount : 0), 0);
 
   const [formData, setFormData] = useState<Omit<Condominio, 'id' | 'created_at'> & { syndic_email?: string }>({
     name: '',
@@ -85,7 +89,8 @@ export const Condominios: React.FC = () => {
     status: 'active',
     syndic_name: '',
     syndic_phone: '',
-    syndic_email: ''
+    syndic_email: '',
+    late_fee_per_hour: 50
   });
 
   const loadCondos = async () => {
@@ -113,7 +118,8 @@ export const Condominios: React.FC = () => {
       status: 'active',
       syndic_name: '',
       syndic_phone: '',
-      syndic_email: ''
+      syndic_email: '',
+      late_fee_per_hour: 50
     });
     setShowModalPassword(false);
     setIsModalOpen(true);
@@ -130,7 +136,8 @@ export const Condominios: React.FC = () => {
       status: condo.status,
       syndic_name: condo.syndic_name || '',
       syndic_phone: condo.syndic_phone || '',
-      syndic_email: email
+      syndic_email: email,
+      late_fee_per_hour: condo.late_fee_per_hour || 50
     });
     setShowModalPassword(false);
     setIsModalOpen(true);
@@ -319,30 +326,81 @@ export const Condominios: React.FC = () => {
                     Pagamentos — {new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
                   </h3>
                 </div>
-                <button onClick={() => setShowPaymentReport(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all">
-                  <X size={16} className="text-slate-400" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button 
+                    title="Baixar Relatório PDF"
+                    className="p-2 bg-slate-50 dark:bg-slate-800 text-slate-600 hover:text-blue-600 rounded-xl transition-all"
+                  >
+                    <FileDown size={16} />
+                  </button>
+                  <a 
+                    href={`https://wa.me/5571984184782?text=Olá, segue o relatório de pagamentos do Stripe para ${new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Compartilhar no WhatsApp"
+                    className="p-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-xl transition-all"
+                  >
+                    <Share2 size={16} />
+                  </a>
+                  <button onClick={() => setShowPaymentReport(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all">
+                    <X size={16} className="text-slate-400" />
+                  </button>
+                </div>
               </div>
 
-              <div className="space-y-2 max-h-64 overflow-y-auto">
+              <div className="space-y-2 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
                 {stripePayments.map((p) => (
-                  <div key={p.id} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
-                      <CreditCard size={13} className="text-emerald-600" />
+                  <div 
+                    key={p.id} 
+                    className={`flex items-center gap-3 p-3 rounded-xl border ${
+                      p.status === 'paid' 
+                        ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800/40' 
+                        : 'bg-rose-50/50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-800/40'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                      p.status === 'paid' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-rose-100 dark:bg-rose-900/30'
+                    }`}>
+                      <CreditCard size={13} className={p.status === 'paid' ? 'text-emerald-600' : 'text-rose-600'} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-semibold text-slate-800 dark:text-white truncate">{p.condo}</p>
+                      <div className="flex items-center gap-1">
+                        <p className={`text-[11px] font-semibold truncate ${p.status === 'paid' ? 'text-slate-800 dark:text-white' : 'text-rose-700 dark:text-rose-400'}`}>
+                          {p.condo}
+                        </p>
+                        {p.status === 'overdue' && (
+                          <AlertCircle size={10} className="text-rose-500 shrink-0" />
+                        )}
+                      </div>
                       <p className="text-[9px] text-slate-400">{p.date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
-                    <span className="text-[11px] font-bold text-emerald-600 shrink-0">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.amount)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[11px] font-bold shrink-0 ${p.status === 'paid' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.amount)}
+                      </span>
+                      <a 
+                        href={`https://wa.me/55${p.phone.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`p-1.5 rounded-lg transition-all ${
+                          p.status === 'paid' 
+                            ? 'bg-white dark:bg-slate-800 text-emerald-500 hover:bg-emerald-500 hover:text-white' 
+                            : 'bg-rose-500 text-white hover:bg-rose-600 shadow-sm shadow-rose-500/20'
+                        }`}
+                        title="Falar com Síndico"
+                      >
+                        <MessageCircle size={12} fill="currentColor" fillOpacity={0.2} />
+                      </a>
+                    </div>
                   </div>
                 ))}
               </div>
 
               <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total do mês</span>
+                <div>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Recebido no mês</span>
+                  <span className="text-xs text-slate-400 font-medium">Excluindo pendentes</span>
+                </div>
                 <span className="text-base font-bold text-emerald-600">
                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthTotal)}
                 </span>
@@ -489,6 +547,15 @@ export const Condominios: React.FC = () => {
                       {condo.plan === 'professional' ? 'Profissional' : condo.plan}
                     </p>
                   </div>
+                  <div className="bg-slate-50 dark:bg-slate-900/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/50 flex flex-col justify-center">
+                    <p className="text-[8px] font-black uppercase text-slate-400 tracking-wider mb-0.5">Multa/Hora</p>
+                    <p className="text-xs font-bold text-slate-600 dark:text-slate-200">
+                      R$ {condo.late_fee_per_hour || 50}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
                   <div className="bg-slate-50 dark:bg-slate-900/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/50 flex flex-col justify-center">
                     <p className="text-[8px] font-black uppercase text-slate-400 tracking-wider mb-0.5 whitespace-nowrap">Situação</p>
                     <div className="flex items-center gap-1.5">
@@ -654,7 +721,7 @@ export const Condominios: React.FC = () => {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     <div className="space-y-0.5">
                       <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">CNPJ</label>
                       <input 
@@ -663,6 +730,16 @@ export const Condominios: React.FC = () => {
                         onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
                         className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border-none rounded-lg text-xs font-medium shadow-inner"
                         placeholder="00.000.000/0001-00"
+                      />
+                    </div>
+                    <div className="space-y-0.5">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1" title="Multa por atraso">R$ Multa/h</label>
+                      <input 
+                        type="number" 
+                        value={formData.late_fee_per_hour || 0}
+                        onChange={(e) => setFormData({ ...formData, late_fee_per_hour: Number(e.target.value) })}
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border-none rounded-lg text-xs font-bold text-rose-500 shadow-inner"
+                        placeholder="50"
                       />
                     </div>
                     <div className="space-y-0.5">
@@ -694,15 +771,27 @@ export const Condominios: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-0.5">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Localização</label>
-                    <input 
-                      type="text" 
-                      value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border-none rounded-lg text-xs font-medium shadow-inner"
-                      placeholder="Endereço Completo"
-                    />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-0.5">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Multa Atraso (R$/h)</label>
+                      <input 
+                        type="number" 
+                        value={formData.late_fee_per_hour}
+                        onChange={(e) => setFormData({ ...formData, late_fee_per_hour: Number(e.target.value) })}
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border-none rounded-lg text-xs font-bold shadow-inner"
+                        placeholder="50"
+                      />
+                    </div>
+                    <div className="space-y-0.5">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Localização</label>
+                      <input 
+                        type="text" 
+                        value={formData.address}
+                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border-none rounded-lg text-xs font-medium shadow-inner"
+                        placeholder="Endereço Completo"
+                      />
+                    </div>
                   </div>
 
                   <div className="pt-1 flex gap-4">

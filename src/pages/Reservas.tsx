@@ -25,9 +25,10 @@ import {
   Plus,
   Star
 } from 'lucide-react';
+import { format } from 'date-fns';
 import { FeatureHeader } from '../components/FeatureHeader';
 import { useTenant } from '../contexts/TenantContext';
-import { ReservationService, Reserva as IReserva } from '../services/supabaseService';
+import { ReservationService, Reserva as IReserva, ProfileService, CondominioService, FinanceiroService, Profile, Condominio } from '../services/supabaseService';
 
 interface ReservasProps {
   userId: string;
@@ -91,7 +92,16 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
   const [condoReservations, setCondoReservations] = useState<IReserva[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCalendar, setShowCalendar] = useState(false);
-  const [bookingError, setBookingError] = useState<string | null>(null);
+  const [bookingForm, setBookingForm] = useState({
+    requester_name: '',
+    start_time: '08:00',
+    end_time: '22:00',
+    end_date: ''
+  });
+  const [hasDebt, setHasDebt] = useState(false);
+  const [userProfile, setUserProfile] = useState<Profile | null>(null);
+  const [condoData, setCondoData] = useState<Condominio | null>(null);
+  const [bookingError, setBookingError] = useState<any>(null);
   const loadingRef = React.useRef(false);
 
   const nextMonth = () => {
@@ -124,6 +134,16 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
       setReservations(uRes);
       const cRes = await ReservationService.getCondoReservations(condoId);
       setCondoReservations(cRes);
+
+      // Carregar dados extras
+      const profile = await ProfileService.getProfile(userId);
+      setUserProfile(profile);
+      
+      const condo = (await CondominioService.getAllCondominios()).find(c => c.id === condoId);
+      if (condo) setCondoData(condo);
+
+      const debt = await FinanceiroService.hasPendingFines(userId);
+      setHasDebt(debt);
     } catch (error) {
       console.error('[Reservas] Error details:', error);
     } finally {
@@ -147,6 +167,13 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
       alert("⚠️ Sem condomínio selecionado!\n\nSe você for Administrador Global, selecione um condomínio no menu superior antes de realizar uma reserva.");
       return;
     }
+
+    const validRoles = ['resident', 'syndic', 'global_admin'];
+    if (!user?.role || !validRoles.includes(user.role)) {
+      setBookingError("Morador não pode realizar reserva pois não está cadastrado no sistema.");
+      setTimeout(() => setBookingError(null), 5000);
+      return;
+    }
     
     if (isDayReserved(selectedDate)) {
       setBookingError("já existe agendamentos ativos para essa data");
@@ -163,11 +190,14 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
             condominio_id: condoId,
             tenant_id: tenant?.id,
             user_id: userId,
+            requester_name: bookingForm.requester_name || userProfile?.full_name || '',
             area_name: selectedArea.name,
             reservation_date: dateStr,
-            start_time: '12:00:00',
-            end_time: '22:00:00',
-            status: 'confirmed'
+            end_date: bookingForm.end_date || dateStr,
+            start_time: bookingForm.start_time,
+            end_time: bookingForm.end_time,
+            status: 'confirmed',
+            late_fee_per_hour: condoData?.late_fee_per_hour || 50
         });
         setIsSuccess(true);
         fetchReservations();
@@ -179,7 +209,26 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
         }, 2000);
     } catch (error: any) {
         console.error('Error booking:', error);
-        alert('Erro ao reservar: ' + (error?.message || 'Erro de permissão ou dados inválidos. Verifique se seu perfil está completo.'));
+        setBookingError(error?.message || 'Erro ao reservar. Verifique seus dados.');
+        
+        // Se for erro de cadastro, mostrar link do whatsapp
+        if (error?.message?.includes("não está cadastrado")) {
+           setBookingError(
+            <span>
+              Morador não pode realizar reserva pois não está cadastrado no sistema.
+              {condoData?.syndic_phone && (
+                <a 
+                  href={`https://wa.me/55${condoData.syndic_phone.replace(/\D/g, '')}?text=Olá,%20sou%20morador%20e%20não%20estou%20conseguindo%20realizar%20reservas.`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-2 underline font-black"
+                >
+                  Falar com Administrador
+                </a>
+              )}
+            </span>
+           );
+        }
     } finally {
         setLoading(false);
     }
@@ -347,6 +396,48 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
                         </AnimatePresence>
 
                         <div className="flex flex-col gap-3 p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
+                          <div className="space-y-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 mb-3 shadow-sm">
+                            <div>
+                              <label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Nome do Solicitante</label>
+                              <input 
+                                type="text" 
+                                value={bookingForm.requester_name}
+                                onChange={(e) => setBookingForm({...bookingForm, requester_name: e.target.value})}
+                                placeholder="Nome completo"
+                                className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-lg p-2 text-[10px] font-bold text-slate-700 dark:text-white placeholder:text-slate-300"
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Início</label>
+                                <input 
+                                  type="time" 
+                                  value={bookingForm.start_time}
+                                  onChange={(e) => setBookingForm({...bookingForm, start_time: e.target.value})}
+                                  className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-lg p-2 text-[10px] font-bold text-slate-700 dark:text-white"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Fim</label>
+                                <input 
+                                  type="time" 
+                                  value={bookingForm.end_time}
+                                  onChange={(e) => setBookingForm({...bookingForm, end_time: e.target.value})}
+                                  className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-lg p-2 text-[10px] font-bold text-slate-700 dark:text-white"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Data de Fim (se diferente)</label>
+                              <input 
+                                type="date" 
+                                value={bookingForm.end_date}
+                                onChange={(e) => setBookingForm({...bookingForm, end_date: e.target.value})}
+                                className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-lg p-2 text-[10px] font-bold text-slate-700 dark:text-white"
+                              />
+                            </div>
+                          </div>
+
                           <div>
                             <h6 className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
                               <ShieldCheck size={10} className="text-emerald-500" /> Regras Básicas
@@ -358,25 +449,69 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
                                   {rule}
                                 </li>
                               ))}
+                              <li className="flex items-center gap-1.5 text-[9px] font-bold text-rose-500">
+                                <span className="w-1 h-1 bg-rose-500 rounded-full flex-shrink-0" />
+                                Multa por atraso na entrega: R$ {condoData?.late_fee_per_hour || 50},00 por hora
+                              </li>
                             </ul>
+
+                            <div className="mt-4 p-3 bg-blue-50/50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
+                              <h6 className="text-[8px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-2">Resumo do Agendamento</h6>
+                              <div className="space-y-1.5">
+                                <div className="flex justify-between text-[10px]">
+                                  <span className="text-slate-500">Período:</span>
+                                  <span className="font-bold text-slate-700 dark:text-slate-200">
+                                    {bookingForm.start_time} às {bookingForm.end_time}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between text-[10px]">
+                                  <span className="text-slate-500">Data Fim:</span>
+                                  <span className="font-bold text-slate-700 dark:text-slate-200">
+                                    {bookingForm.end_date || 'Mesmo dia'}
+                                  </span>
+                                </div>
+                                <div className="pt-1.5 border-t border-blue-100/50 dark:border-blue-800/50">
+                                  <p className="text-[8px] text-rose-500 font-bold leading-tight">
+                                    ⚠ ATENÇÃO: O atraso na devolução implicará em multa automática e impedirá a realização de novos agendamentos até a quitação.
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          
-                          <button 
-                            disabled={!selectedDate || isSuccess}
-                            onClick={handleBooking}
-                            className={`py-2.5 mt-1 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all w-full relative ${
-                              selectedDate 
-                              ? 'bg-slate-900 text-white hover:bg-black active:scale-95' 
-                              : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                            }`}
-                          >
-                            {isSuccess ? 'Reservado!' : 'Confirmar Data'}
-                          </button>
+                            {hasDebt && (
+                              <div className="mt-2 p-2 bg-rose-50 border border-rose-100 rounded-lg">
+                                <p className="text-[7px] text-rose-500 font-bold uppercase tracking-wider leading-tight mt-0.5">
+                                  Você possui multas pendentes. O sistema bloqueou novas reservas até a regularização.
+                                </p>
+                                {condoData?.syndic_phone && (
+                                  <a 
+                                    href={`https://wa.me/55${condoData.syndic_phone.replace(/\D/g, '')}?text=Olá,%20gostaria%20de%20falar%20sobre%20o%20bloqueio%20da%20minha%20reserva.`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="mt-2 inline-flex items-center gap-1.5 text-[8px] font-black text-emerald-600 uppercase tracking-tight bg-emerald-50 px-2 py-1 rounded hover:bg-emerald-100 transition-colors"
+                                  >
+                                    <Wind size={10} /> Falar com Administrador
+                                  </a>
+                                )}
+                              </div>
+                            )}
+
+                            <button 
+                              disabled={!selectedDate || isSuccess || hasDebt}
+                              onClick={handleBooking}
+                              className={`py-2.5 mt-1 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all w-full relative ${
+                                selectedDate && !hasDebt
+                                ? 'bg-slate-900 text-white hover:bg-black active:scale-95' 
+                                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                              }`}
+                            >
+                              {isSuccess ? 'Reservado!' : hasDebt ? 'Bloqueado por Multa' : 'Confirmar Data'}
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 
                 {!showCalendar && (
                   <div className="p-4 bg-slate-50/50 dark:bg-slate-900/20 text-center">
@@ -449,10 +584,40 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
                 </div>
                 <div className="flex flex-col items-end gap-3">
                   <div className={`px-3 py-1 rounded-full text-[8px] font-bold uppercase tracking-widest border ${
-                    res.status === 'confirmed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'
+                    res.status === 'confirmed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
+                    res.status === 'finished' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-amber-50 text-amber-600 border-amber-100'
                   }`}>
-                    {res.status === 'confirmed' ? 'Auditado v.12' : 'Pendente'}
+                    {res.status === 'confirmed' ? 'Auditado v.12' : res.status === 'finished' ? 'Finalizado' : 'Pendente'}
                   </div>
+                  {res.status === 'confirmed' && (tenant?.isGlobalAdmin || res.user_id === userId) && (
+                    <button 
+                      onClick={async () => {
+                        const actualEndTime = prompt('Informe o horário real de saída (HH:MM)', format(new Date(), 'HH:mm'));
+                        if (!actualEndTime) return;
+                        const actualEndDate = prompt('Informe a data real de saída (AAAA-MM-DD)', format(new Date(), 'yyyy-MM-dd'));
+                        if (!actualEndDate) return;
+                        
+                        try {
+                          setLoading(true);
+                          await ReservationService.finishReserva(res.id, actualEndTime, actualEndDate);
+                          alert('Reserva finalizada com sucesso!');
+                          fetchReservations();
+                        } catch (err) {
+                          alert('Erro ao finalizar reserva.');
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      className="text-[9px] font-bold uppercase text-emerald-600 tracking-wider hover:text-emerald-800 transition-colors bg-emerald-50 px-2 py-1 rounded-lg"
+                    >
+                      Finalizar Reserva
+                    </button>
+                  )}
+                  {res.total_late_fee && res.total_late_fee > 0 && (
+                    <div className="text-[9px] font-bold text-rose-500 uppercase tracking-tighter">
+                      Multa: R$ {res.total_late_fee}
+                    </div>
+                  )}
                   <button 
                     onClick={async () => {
                       if (window.confirm('Cancelar esta reserva?')) {

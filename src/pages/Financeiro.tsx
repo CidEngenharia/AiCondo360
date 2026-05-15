@@ -26,7 +26,8 @@ import {
   Trash2,
   Eye,
   BarChart3,
-  Pencil
+  Pencil,
+  Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
@@ -42,8 +43,9 @@ interface DespesaItem {
   id: string;
   nome: string;
   valor: number;
-  origem: 'manutencao' | 'limpeza' | 'seguranca' | 'utilitarios' | 'pessoal' | 'outros';
+  origem: 'manutencao' | 'limpeza' | 'seguranca' | 'utilitarios' | 'pessoal' | 'multa_reserva' | 'outros';
   observacao: string;
+  status?: string;
   created_at: string;
 }
 
@@ -88,14 +90,16 @@ const FinanceiroPage: React.FC = () => {
   // Dados combinados para relatórios
   const reportItems = useMemo(() => {
     return [
-      ...despesas,
+      ...despesas.map(d => ({ ...d, _tipo: 'despesa' as const })),
       ...boletos.map(b => ({
         id: b.id,
         nome: b.nome,
         valor: b.valor,
         origem: 'outros' as const,
         observacao: `Boleto - Status: ${b.status}`,
-        created_at: b.created_at
+        status: b.status,
+        created_at: b.created_at,
+        _tipo: 'boleto' as const
       }))
     ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [despesas, boletos]);
@@ -150,6 +154,7 @@ const FinanceiroPage: React.FC = () => {
           valor: x.valor,
           origem: x.origem as any,
           observacao: x.observacao || '',
+          status: x.status,
           created_at: x.created_at
       })));
     } catch (err) {
@@ -247,6 +252,17 @@ const FinanceiroPage: React.FC = () => {
       fetchData();
     } catch (err) {
       alert('Erro ao excluir.');
+    }
+  };
+
+  const handleMarkAsPaid = async (type: 'despesa' | 'boleto', id: string) => {
+    if (!confirm('Deseja marcar este registro como PAGO?')) return;
+    try {
+      if (type === 'despesa') await FinanceiroService.updateExpense(id, { status: 'pago' });
+      else await BoletoService.updateBoleto(id, { status: 'paid' });
+      fetchData();
+    } catch (err) {
+      alert('Erro ao marcar como pago.');
     }
   };
 
@@ -381,11 +397,19 @@ const FinanceiroPage: React.FC = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
-                           <span className="text-sm font-medium text-slate-800 dark:text-white">{fmt(item.valor)}</span>
+                           <div className="flex flex-col items-end">
+                             <span className="text-sm font-medium text-slate-800 dark:text-white">{fmt(item.valor)}</span>
+                             {(item.status === 'pendente' || item.status === 'pending') && (
+                               <span className="text-[9px] font-medium text-rose-500 uppercase tracking-widest">Pendente</span>
+                             )}
+                           </div>
                            {user?.role !== 'resident' && (
                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => handleEdit(item.origem === 'outros' ? 'boleto' : 'despesa', item)} className="p-1.5 text-slate-400 hover:text-indigo-500"><Pencil size={12}/></button>
-                                <button onClick={() => handleDelete(item.origem === 'outros' ? 'boleto' : 'despesa', item.id)} className="p-1.5 text-slate-400 hover:text-rose-500"><Trash2 size={12}/></button>
+                                {(item.status === 'pendente' || item.status === 'pending') && (
+                                  <button onClick={() => handleMarkAsPaid(item._tipo, item.id)} title="Marcar como pago" className="p-1.5 text-slate-400 hover:text-emerald-500"><Check size={12}/></button>
+                                )}
+                                <button onClick={() => handleEdit(item._tipo, item)} className="p-1.5 text-slate-400 hover:text-indigo-500"><Pencil size={12}/></button>
+                                <button onClick={() => handleDelete(item._tipo, item.id)} className="p-1.5 text-slate-400 hover:text-rose-500"><Trash2 size={12}/></button>
                              </div>
                            )}
                         </div>
@@ -416,6 +440,9 @@ const FinanceiroPage: React.FC = () => {
                       <span className="text-md font-medium text-slate-800 dark:text-white">{fmt(boleto.valor)}</span>
                       {user?.role !== 'resident' && (
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                           {(boleto.status === 'pendente' || boleto.status === 'pending') && (
+                             <button onClick={() => handleMarkAsPaid('boleto', boleto.id)} title="Marcar como pago" className="p-1.5 text-slate-400 hover:text-emerald-500"><Check size={14}/></button>
+                           )}
                            <button onClick={() => handleEdit('boleto', boleto)} className="p-1.5 text-slate-400 hover:text-indigo-500"><Pencil size={14}/></button>
                            <button onClick={() => handleDelete('boleto', boleto.id)} className="p-1.5 text-slate-400 hover:text-rose-500"><Trash2 size={14}/></button>
                         </div>
@@ -475,6 +502,7 @@ const FinanceiroPage: React.FC = () => {
                           <option value="seguranca">Segurança</option>
                           <option value="utilitarios">Utilitários</option>
                           <option value="outros">Outros</option>
+                          <option value="multa_reserva">Multa Reserva</option>
                         </select>
                       </div>
                     )}

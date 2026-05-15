@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase, createAdminClient } from '../lib/supabase';
 
 // --- Interfaces ---
 
@@ -27,6 +27,7 @@ export interface Condominio {
   syndic_phone?: string;
   stripe_customer_id?: string;
   stripe_subscription_id?: string;
+  late_fee_per_hour?: number;
   created_at: string;
 }
 
@@ -90,11 +91,15 @@ export interface Reserva {
   condominio_id: string;
   tenant_id?: string;
   user_id: string;
+  requester_name?: string;
   area_name: string;
   reservation_date: string;
+  end_date?: string;
   start_time?: string;
   end_time?: string;
-  status: 'confirmed' | 'pending' | 'cancelled';
+  late_fee_per_hour?: number;
+  total_late_fee?: number;
+  status: 'confirmed' | 'pending' | 'cancelled' | 'finished';
   created_at: string;
 }
 
@@ -262,7 +267,9 @@ export const ProfileService = {
     }
 
     // Step 1: Create the auth user with a temp password
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    // Use a non-persisting client to avoid switching the admin's session
+    const adminClient = createAdminClient();
+    const { data: authData, error: authError } = await adminClient.auth.signUp({
       email,
       password: tempPassword,
       options: {
@@ -368,6 +375,7 @@ export const BoletoService = {
   },
 
   async getCondoBoletos(condoId: string): Promise<Boleto[]> {
+    console.log(`[BoletoService] Fetching boletos for condo: ${condoId}`);
     const { data, error } = await supabase
       .from('boletos')
       .select('*')
@@ -682,6 +690,23 @@ export const ReservationService = {
 
   async createReserva(reserva: any) {
     console.log("[ReservaService] Attempting to create reserva for user:", reserva.user_id);
+    
+    // 1. Validar Role
+    const profile = await ProfileService.getProfile(reserva.user_id);
+    const validRoles = ['morador', 'resident', 'sindico', 'syndic', 'admin_global', 'global_admin', 'administrador'];
+    
+    if (!profile || !validRoles.includes(profile.role)) {
+      throw new Error("morador não pode realizar reserva pois não está cadastrado no sistema");
+    }
+
+    // 2. Verificar Inadimplência (apenas para moradores)
+    if (['morador', 'resident'].includes(profile.role)) {
+      const hasDebt = await FinanceiroService.hasPendingFines(reserva.user_id);
+      if (hasDebt) {
+        throw new Error("Você possui multas pendentes e está impossibilitado de realizar novas reservas.");
+      }
+    }
+
     const { data, error } = await supabase
       .from('reservas')
       .insert([{
@@ -695,6 +720,64 @@ export const ReservationService = {
       console.error("[ReservaService] Error details:", error.message, error.details, error.hint);
       throw error;
     }
+    return data as Reserva;
+  },
+
+  async finishReserva(reservaId: string, actualEndTime: string, actualEndDate: string) {
+    // 1. Fetch the reservation
+    const { data: reserva, error: fetchError } = await supabase
+      .from('reservas')
+      .select('*')
+      .eq('id', reservaId)
+      .single();
+
+    if (fetchError || !reserva) throw fetchError || new Error('Reserva não encontrada');
+
+    const expectedEnd = new Date(`${reserva.end_date || reserva.reservation_date}T${reserva.end_time || '22:00:00'}`);
+    const actualEnd = new Date(`${actualEndDate}T${actualEndTime}`);
+
+    let totalLateFee = 0;
+    if (actualEnd > expectedEnd) {
+      const diffMs = actualEnd.getTime() - expectedEnd.getTime();
+      const diffHours = Math.ceil(diffMs / (1000 * 60 * 60));
+      
+      // Buscar valor da multa do condomínio
+      const { data: condo } = await supabase
+        .from('condominios')
+        .select('late_fee_per_hour')
+        .eq('id', reserva.condominio_id)
+        .single();
+
+      const hourlyFee = condo?.late_fee_per_hour || 50; 
+      totalLateFee = diffHours * hourlyFee;
+
+      // 2. Criar registro financeiro automático para o morador
+      await FinanceiroService.createExpense({
+        condominio_id: reserva.condominio_id,
+        tenant_id: reserva.tenant_id,
+        user_id: reserva.user_id,
+        nome: `Multa por atraso: ${reserva.area_name}`,
+        valor: totalLateFee,
+        origem: 'multa_reserva',
+        tipo: 'receita', // Receita para o condomínio
+        status: 'pendente',
+        categoria: 'Multas',
+        observacao: `Atraso de ${diffHours}h detectado na finalização da reserva #${reservaId}.`
+      });
+    }
+
+    // 3. Update reservation status
+    const { data, error } = await supabase
+      .from('reservas')
+      .update({
+        status: 'finished',
+        total_late_fee: totalLateFee
+      })
+      .eq('id', reservaId)
+      .select()
+      .single();
+
+    if (error) throw error;
     return data as Reserva;
   },
 
@@ -1299,10 +1382,12 @@ export interface FinanceiroRecord {
   id: string;
   condominio_id: string;
   tenant_id?: string;
+  user_id?: string;
   nome: string;
   valor: number;
   origem: string;
   tipo?: 'receita' | 'despesa';
+  status?: 'pendente' | 'pago' | 'cancelado';
   categoria?: string;
   observacao?: string;
   created_at: string;
@@ -1313,6 +1398,7 @@ export interface FinanceiroRecord {
 
 export const FinanceiroService = {
   async getCondoExpenses(condoId: string): Promise<FinanceiroRecord[]> {
+    console.log(`[FinanceiroService] Fetching expenses for condo: ${condoId}`);
     const { data, error } = await supabase
       .from('financeiro')
       .select('*')
@@ -1324,6 +1410,22 @@ export const FinanceiroService = {
       return [];
     }
     return data as FinanceiroRecord[];
+  },
+
+  async hasPendingFines(userId: string): Promise<boolean> {
+    const { data, error } = await supabase
+      .from('financeiro')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('origem', 'multa_reserva')
+      .eq('status', 'pendente')
+      .limit(1);
+
+    if (error) {
+      console.error('[FinanceiroService] Error checking debts:', error);
+      return false;
+    }
+    return data && data.length > 0;
   },
 
   async createExpense(expense: Omit<FinanceiroRecord, 'id' | 'created_at'>) {
