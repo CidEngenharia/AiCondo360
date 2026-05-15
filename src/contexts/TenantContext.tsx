@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { getTenantSlugFromUrl, getTenantBySlug, Tenant } from '../lib/tenant';
 import { useAuth } from './AuthContext';
@@ -9,7 +9,7 @@ interface TenantContextType {
   loading: boolean;
   userTenants: any[];
   isGlobalAdmin: boolean;
-  switchTenant: (slug: string) => void;
+  switchTenant: (condoId: string) => void;
 }
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
@@ -17,7 +17,6 @@ const TenantContext = createContext<TenantContextType | undefined>(undefined);
 export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [userTenants, setUserTenants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,11 +25,61 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     const initializeTenant = async () => {
       setLoading(true);
-      
-      // 1. Detect from URL
+
+      // ── GLOBAL ADMIN ─────────────────────────────────────────
+      // Ignora o slug da URL (pode ser 'default') e carrega TODOS os condomínios
+      if (isGlobalAdmin) {
+        let allCondos: any[] = [];
+
+        // 1ª tentativa: RPC com SECURITY DEFINER (bypassa RLS)
+        const { data: rpcData, error: rpcError } = await supabase
+          .rpc('get_all_condominios_for_admin');
+
+        if (!rpcError && Array.isArray(rpcData) && rpcData.length > 0) {
+          allCondos = rpcData;
+          console.log('[TenantContext] Global admin: carregados via RPC:', allCondos.length);
+        } else {
+          // 2ª tentativa: query direta (funciona se RLS já corrigido)
+          const { data: directData, error: directError } = await supabase
+            .from('condominios')
+            .select('id, name, plan, address, status, syndic_name, syndic_phone')
+            .order('name', { ascending: true });
+
+          if (!directError && directData) {
+            allCondos = directData;
+            console.log('[TenantContext] Global admin: carregados via query:', allCondos.length);
+          } else {
+            console.error('[TenantContext] Falha ao carregar condomínios:', rpcError, directError);
+          }
+        }
+
+        if (allCondos.length > 0) {
+          setUserTenants(allCondos);
+          // Restaura seleção anterior do localStorage
+          const savedId = localStorage.getItem('admin_selected_condo');
+          const saved = allCondos.find((c: any) => c.id === savedId);
+          setTenant(saved ?? allCondos[0]);
+        } else {
+          // Último recurso: tabela tenants
+          const { data: tenants } = await supabase
+            .from('tenants')
+            .select('*')
+            .order('name', { ascending: true });
+          if (tenants && tenants.length > 0) {
+            setUserTenants(tenants);
+            setTenant(tenants[0]);
+          }
+        }
+
+        setLoading(false);
+        return;
+      }
+
+      // ── USUÁRIOS NORMAIS ──────────────────────────────────────
+      // Detecta tenant pelo slug da URL
       const slug = getTenantSlugFromUrl();
-      let detectedTenant = null;
-      
+      let detectedTenant: Tenant | null = null;
+
       if (slug) {
         const tenantData = await getTenantBySlug(slug);
         if (tenantData) {
@@ -39,62 +88,35 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       }
 
-      // 2. Detect from User's primary membership (if logged in)
       if (user) {
-        if (isGlobalAdmin) {
-          // Global Admins can see ALL condos
-          const { data: allTenants } = await supabase
-            .from('condominios')
-            .select('*');
-          
-          if (allTenants) {
-            setUserTenants(allTenants);
-            
-            // Check for saved selection if not in URL
-            const savedCondoId = localStorage.getItem('admin_selected_condo');
-            const savedTenant = allTenants.find(t => t.id === savedCondoId);
+        // Busca via memberships
+        const { data: memberships } = await supabase
+          .from('memberships')
+          .select('tenant_id, tenants(*)')
+          .eq('user_id', user.id);
 
-            if (detectedTenant) {
-              setTenant(detectedTenant);
-            } else if (savedTenant) {
-              setTenant(savedTenant);
-            } else if (allTenants.length > 0) {
-              setTenant(allTenants[0]);
-            }
+        if (memberships && memberships.length > 0) {
+          const tenants = memberships.map((m: any) => m.tenants).filter(Boolean);
+          setUserTenants(tenants);
+          if (!detectedTenant && tenants.length > 0) {
+            setTenant(tenants[0]);
           }
-        } else {
-          // Standard users must have a membership
-          const { data: memberships } = await supabase
-            .from('memberships')
-            .select('tenant_id, tenants(*)')
-            .eq('user_id', user.id);
+        } else if (user.condoId) {
+          // Fallback: busca pelo condoId do perfil
+          const { data: condoData } = await supabase
+            .from('condominios')
+            .select('id, name, plan')
+            .eq('id', user.condoId)
+            .maybeSingle();
 
-          if (memberships && memberships.length > 0) {
-            const tenants = memberships.map(m => m.tenants).filter(Boolean);
-            setUserTenants(tenants);
-            
-            // If no slug in URL or invalid slug, use first membership
-            if (!detectedTenant) {
-              setTenant(tenants[0]);
-            }
-          } else if (user.condoId) {
-            // Fallback to user's condoId from profile if memberships table is empty
-            const { data: tenantData } = await supabase
-              .from('tenants')
-              .select('*')
-              .eq('id', user.condoId)
-              .maybeSingle();
-              
-            if (tenantData) {
-              setUserTenants([tenantData]);
-              if (!detectedTenant) {
-                setTenant(tenantData);
-              }
-            }
+          if (condoData) {
+            const t = { id: condoData.id, name: condoData.name, slug: condoData.id, plan: condoData.plan };
+            setUserTenants([t]);
+            if (!detectedTenant) setTenant(t);
           }
         }
       } else {
-        // 3. Fallback to default tenant for anonymous/public access or legacy support
+        // Anônimo: usa tenant default
         if (!detectedTenant) {
           const defaultTenant = await getTenantBySlug('default');
           setTenant(defaultTenant);
@@ -108,9 +130,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [user, location.pathname]);
 
   const switchTenant = (condoId: string) => {
-    // Persist selection for next load
     localStorage.setItem('admin_selected_condo', condoId);
-    // Update active tenant in state immediately
     const found = userTenants.find(t => t.id === condoId || t.slug === condoId);
     if (found) {
       setTenant(found);

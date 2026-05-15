@@ -1466,18 +1466,33 @@ export const FinanceiroService = {
 
 export const CondominioService = {
   async getAllCondominios(): Promise<Condominio[]> {
+    // Tenta via RPC (SECURITY DEFINER - bypassa RLS para global_admin)
+    const { data: rpcData, error: rpcError } = await supabase
+      .rpc('get_all_condominios_for_admin');
+
+    if (!rpcError && Array.isArray(rpcData) && rpcData.length > 0) {
+      console.log('[CondominioService] Dados via RPC:', rpcData.length, 'condomínios');
+      return rpcData as Condominio[];
+    }
+
+    if (rpcError) {
+      console.warn('[CondominioService] RPC indisponível, usando query direta:', rpcError.message);
+    }
+
+    // Fallback: query direta (funciona quando RLS já está corrigido)
     const { data, error } = await supabase
       .from('condominios')
       .select('*')
       .order('name', { ascending: true });
 
     if (error) {
-      console.error('Error fetching condominios:', error);
+      console.error('[CondominioService] Erro ao buscar condomínios:', error);
       return [];
     }
 
-    return data as Condominio[];
+    return (data || []) as Condominio[];
   },
+
 
   async createCondominio(condo: Omit<Condominio, 'id' | 'created_at'>) {
     console.log("[CondominioService] Creating condo:", condo.name);
