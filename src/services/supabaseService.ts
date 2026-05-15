@@ -1488,7 +1488,6 @@ export const CondominioService = {
 
     // 3ª tentativa: cliente anônimo (igual à tela de Login — sem token de sessão, sem bloqueio RLS)
     console.warn('[CondominioService] Usando cliente anônimo (como Login):', error?.message);
-    const { createAdminClient } = await import('../lib/supabase');
     const anonClient = createAdminClient();
     const { data: anonData, error: anonError } = await anonClient
       .from('condominios')

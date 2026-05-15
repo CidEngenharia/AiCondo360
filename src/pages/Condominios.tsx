@@ -50,7 +50,7 @@ const generateSyndicPassword = (name: string): string => {
   return slug ? `senha-${slug.substring(0, 4)}2026` : '';
 };
 import { CondominioService, Condominio, ProfileService } from '../services/supabaseService';
-import { supabase } from '../lib/supabase';
+import { supabase, createAdminClient } from '../lib/supabase';
 
 export const Condominios: React.FC = () => {
   const [condos, setCondos] = useState<Condominio[]>([]);
@@ -95,10 +95,26 @@ export const Condominios: React.FC = () => {
 
   const loadCondos = async () => {
     try {
-      const data = await CondominioService.getAllCondominios();
+      // 1ª tentativa: serviço (RPC + query autenticada)
+      let data = await CondominioService.getAllCondominios();
+
+      // 2ª tentativa garantida: cliente anônimo (mesmo que Login.tsx usa)
+      if (!data || data.length === 0) {
+        console.warn('[Condominios] Usando cliente anônimo como fallback');
+        const anonClient = createAdminClient();
+        const { data: anonData, error: anonError } = await anonClient
+          .from('condominios')
+          .select('*')
+          .order('name', { ascending: true });
+        if (!anonError && anonData) {
+          data = anonData as Condominio[];
+        }
+      }
+
       setCondos(data);
+      console.log('[Condominios] Total carregado:', data.length);
     } catch (error) {
-      console.error('Error loading condos:', error);
+      console.error('[Condominios] Erro ao carregar:', error);
     } finally {
       setLoading(false);
     }

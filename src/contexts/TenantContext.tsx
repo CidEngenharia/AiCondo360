@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { supabase, createAdminClient } from '../lib/supabase';
 import { getTenantSlugFromUrl, getTenantBySlug, Tenant } from '../lib/tenant';
 import { useAuth } from './AuthContext';
 
@@ -51,7 +51,6 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           } else {
             // 3ª tentativa: cliente anônimo (mesmo que a tela de Login usa)
             console.warn('[TenantContext] Usando cliente anônimo:', authError?.message);
-            const { createAdminClient } = await import('../lib/supabase');
             const anonClient = createAdminClient();
             const { data: anonData } = await anonClient
               .from('condominios')
