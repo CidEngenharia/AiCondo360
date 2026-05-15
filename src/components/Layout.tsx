@@ -22,17 +22,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [condos, setCondos] = useState<Condominio[]>([]);
   const { user } = useAuth();
   const { tenant, userTenants, isGlobalAdmin, switchTenant } = useTenant();
   const navigate = useNavigate();
   const location = useLocation();
-
-  useEffect(() => {
-    if (userRole === 'global_admin') {
-      CondominioService.getAllCondominios().then(setCondos);
-    }
-  }, [userRole]);
 
   useEffect(() => {
     setIsSidebarOpen(false);
@@ -285,15 +278,15 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                   </span>
                   <span className="text-[10px] text-blue-600 dark:text-blue-400 font-black uppercase tracking-widest truncate max-w-[180px]">
-                    {tenant?.name || condoName || 'Acesso Global'}
+                    {tenant?.name || 'Acesso Global'}
                   </span>
                   {isGlobalAdmin && userTenants.length > 1 && (
-                    <select 
+                    <select
                       onChange={(e) => switchTenant(e.target.value)}
-                      value={tenant?.id || ''}
+                      value={tenant?.id ?? ''}
                       className="ml-2 bg-transparent text-[8px] border-none font-bold text-slate-400 focus:ring-0 cursor-pointer"
                     >
-                      {userTenants.map(t => (
+                      {userTenants.map((t: any) => (
                         <option key={t.id} value={t.id}>{t.name}</option>
                       ))}
                     </select>

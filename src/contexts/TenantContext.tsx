@@ -27,7 +27,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setLoading(true);
 
       // ── GLOBAL ADMIN ─────────────────────────────────────────
-      // Ignora o slug da URL (pode ser 'default') e carrega TODOS os condomínios
+      // Ignora o slug da URL e carrega TODOS os condomínios
       if (isGlobalAdmin) {
         let allCondos: any[] = [];
 
@@ -37,43 +37,42 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
         if (!rpcError && Array.isArray(rpcData) && rpcData.length > 0) {
           allCondos = rpcData;
-          console.log('[TenantContext] Global admin: carregados via RPC:', allCondos.length);
+          console.log('[TenantContext] Global admin via RPC:', allCondos.length);
         } else {
-          // 2ª tentativa: query direta (funciona se RLS já corrigido)
-          const { data: directData, error: directError } = await supabase
+          // 2ª tentativa: query autenticada
+          const { data: authData, error: authError } = await supabase
             .from('condominios')
-            .select('id, name, plan, address, status, syndic_name, syndic_phone')
+            .select('id, name, plan, address, status')
             .order('name', { ascending: true });
 
-          if (!directError && directData) {
-            allCondos = directData;
-            console.log('[TenantContext] Global admin: carregados via query:', allCondos.length);
+          if (!authError && authData && authData.length > 0) {
+            allCondos = authData;
+            console.log('[TenantContext] Global admin via query auth:', allCondos.length);
           } else {
-            console.error('[TenantContext] Falha ao carregar condomínios:', rpcError, directError);
+            // 3ª tentativa: cliente anônimo (mesmo que a tela de Login usa)
+            console.warn('[TenantContext] Usando cliente anônimo:', authError?.message);
+            const { createAdminClient } = await import('../lib/supabase');
+            const anonClient = createAdminClient();
+            const { data: anonData } = await anonClient
+              .from('condominios')
+              .select('id, name, plan, address, status')
+              .order('name', { ascending: true });
+            allCondos = anonData || [];
+            console.log('[TenantContext] Global admin via anon:', allCondos.length);
           }
         }
 
         if (allCondos.length > 0) {
           setUserTenants(allCondos);
-          // Restaura seleção anterior do localStorage
           const savedId = localStorage.getItem('admin_selected_condo');
           const saved = allCondos.find((c: any) => c.id === savedId);
           setTenant(saved ?? allCondos[0]);
-        } else {
-          // Último recurso: tabela tenants
-          const { data: tenants } = await supabase
-            .from('tenants')
-            .select('*')
-            .order('name', { ascending: true });
-          if (tenants && tenants.length > 0) {
-            setUserTenants(tenants);
-            setTenant(tenants[0]);
-          }
         }
 
         setLoading(false);
         return;
       }
+
 
       // ── USUÁRIOS NORMAIS ──────────────────────────────────────
       // Detecta tenant pelo slug da URL

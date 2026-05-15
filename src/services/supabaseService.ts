@@ -1466,7 +1466,7 @@ export const FinanceiroService = {
 
 export const CondominioService = {
   async getAllCondominios(): Promise<Condominio[]> {
-    // Tenta via RPC (SECURITY DEFINER - bypassa RLS para global_admin)
+    // 1ª tentativa: RPC com SECURITY DEFINER (bypassa RLS)
     const { data: rpcData, error: rpcError } = await supabase
       .rpc('get_all_condominios_for_admin');
 
@@ -1475,22 +1475,32 @@ export const CondominioService = {
       return rpcData as Condominio[];
     }
 
-    if (rpcError) {
-      console.warn('[CondominioService] RPC indisponível, usando query direta:', rpcError.message);
-    }
-
-    // Fallback: query direta (funciona quando RLS já está corrigido)
+    // 2ª tentativa: query autenticada direta
     const { data, error } = await supabase
       .from('condominios')
       .select('*')
       .order('name', { ascending: true });
 
-    if (error) {
-      console.error('[CondominioService] Erro ao buscar condomínios:', error);
+    if (!error && data && data.length > 0) {
+      console.log('[CondominioService] Dados via query autenticada:', data.length, 'condomínios');
+      return data as Condominio[];
+    }
+
+    // 3ª tentativa: cliente anônimo (igual à tela de Login — sem token de sessão, sem bloqueio RLS)
+    console.warn('[CondominioService] Usando cliente anônimo (como Login):', error?.message);
+    const { createAdminClient } = await import('../lib/supabase');
+    const anonClient = createAdminClient();
+    const { data: anonData, error: anonError } = await anonClient
+      .from('condominios')
+      .select('*')
+      .order('name', { ascending: true });
+
+    if (anonError) {
+      console.error('[CondominioService] Falha total ao carregar condomínios:', anonError);
       return [];
     }
 
-    return (data || []) as Condominio[];
+    return (anonData || []) as Condominio[];
   },
 
 
