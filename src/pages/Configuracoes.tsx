@@ -312,7 +312,7 @@ export const Configuracoes: React.FC = () => {
             </div>
 
             <div className="flex gap-4 pt-4">
-              {['emerald', 'blue', 'purple', 'rose'].map((c) => (
+              {['emerald', 'blue', 'indigo', 'rose'].map((c) => (
                 <button
                   key={c}
                   onClick={() => setVisual({...visual, theme: c})}

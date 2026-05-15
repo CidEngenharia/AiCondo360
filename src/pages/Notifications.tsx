@@ -56,7 +56,7 @@ const notifications = [
     time: '05 Fev, 15:30',
     unread: false,
     icon: MessageSquare,
-    color: 'bg-purple-600',
+    color: 'bg-indigo-600',
     action: 'Ver Edital'
   }
 ];

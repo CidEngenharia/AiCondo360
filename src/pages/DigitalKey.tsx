@@ -217,7 +217,7 @@ export const DigitalKey: React.FC<DigitalKeyProps> = ({ userId, condoId, unitNum
                   icon={Clock} 
                   label="Agendar" 
                   onClick={() => {}} 
-                  colorClass="bg-purple-600" 
+                  colorClass="bg-indigo-600" 
                 />
                 <ActionCard 
                   icon={Lock} 

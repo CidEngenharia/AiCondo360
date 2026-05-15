@@ -58,6 +58,16 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await onLogout();
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error('Erro ao sair:', error);
+      window.location.href = '/login';
+    }
+  };
+
   const isTrialUser = user?.email === 'teste.sindico@aicondo360.com';
   const trialStartDate = new Date(user?.createdAt || new Date());
   const trialEndDate = new Date(trialStartDate);
@@ -232,27 +242,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
             <span className="text-sm font-medium flex-1 text-left">Suporte</span>
           </a>
 
-          {/* User Profile & Logout */}
-          <div className="pt-4 pb-2 mt-4 border-t border-slate-100 dark:border-slate-800">
-            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold">
-                  {userName.charAt(0)}
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[120px]">{userName}</span>
-                  <span className="text-[10px] text-slate-500">{getRoleLabel(userRole)}</span>
-                </div>
-              </div>
-              <button 
-                onClick={onLogout}
-                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
-              >
-                <LogOut size={14} />
-                Sair da Conta
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </aside>
@@ -314,6 +303,15 @@ export const Layout: React.FC<LayoutProps> = ({ children, condoName, userName, o
                 <Bell size={18} className="text-slate-600 dark:text-slate-300" />
                 <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border border-white dark:border-slate-800"></span>
               </button>
+              
+              <button 
+                onClick={handleLogout}
+                className="p-2.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+                title="Sair da Conta"
+              >
+                <LogOut size={18} />
+              </button>
+
               <div className="h-6 w-px bg-slate-200 dark:bg-slate-700/50 mx-1"></div>
               <button 
                 onClick={() => navigate(tenant?.slug ? `/${tenant.slug}/settings` : '/settings')}

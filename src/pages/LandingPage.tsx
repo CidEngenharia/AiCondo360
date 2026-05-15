@@ -21,10 +21,13 @@ import {
   Instagram,
   Linkedin,
   ChevronUp,
+  ChevronDown,
+  HelpCircle,
   X,
   GraduationCap
 } from 'lucide-react';
 import { LoginForm } from '../components/LoginForm';
+import { PLANS } from '../constants';
 
 const FeatureCard = ({ icon: Icon, title, description, delay = 0 }: any) => (
   <motion.div
@@ -151,10 +154,103 @@ const PricingCard = ({ title, price, features, highlighted = false, delay = 0, v
   );
 };
 
+const FAQItem = ({ question, answer, isOpen, onClick, delay = 0 }: any) => (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true }}
+    transition={{ delay }}
+    className="border-b border-white/5 last:border-0"
+  >
+    <button
+      onClick={onClick}
+      className="w-full py-6 flex items-center justify-between gap-4 text-left group"
+    >
+      <span className={`text-lg font-bold transition-colors ${isOpen ? 'text-blue-400' : 'text-slate-200 group-hover:text-white'}`}>
+        {question}
+      </span>
+      <div className={`p-2 rounded-lg transition-all ${isOpen ? 'bg-blue-500/10 text-blue-400' : 'bg-slate-900 text-slate-500 group-hover:text-slate-300'}`}>
+        <ChevronDown size={20} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+      </div>
+    </button>
+    <motion.div
+      initial={false}
+      animate={{ height: isOpen ? 'auto' : 0, opacity: isOpen ? 1 : 0 }}
+      transition={{ duration: 0.3, ease: 'easeInOut' }}
+      className="overflow-hidden"
+    >
+      <div className="pb-8 text-slate-400 leading-relaxed max-w-3xl">
+        {answer}
+      </div>
+    </motion.div>
+  </motion.div>
+);
+
 export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUser }) => {
   const navigate = useNavigate();
   const [isDemoModalOpen, setIsDemoModalOpen] = React.useState(false);
   const [loginPrefill, setLoginPrefill] = React.useState<any>(null);
+  const [activeAudience, setActiveAudience] = React.useState('sindico');
+  const [openFaqIndex, setOpenFaqIndex] = React.useState<number | null>(0);
+
+  const faqs = [
+    {
+      question: "O que é o AiCondo360?",
+      answer: "O AiCondo360 é uma plataforma completa de gestão condominial que integra síndicos, administradores e moradores em um ecossistema 360º para facilitar a convivência e a administração."
+    },
+    {
+      question: "Como posso começar a usar o AiCondo360 no meu condomínio?",
+      answer: "Você pode começar com nosso plano Essencial ou agendar uma demonstração gratuita com nossos especialistas para entender qual plano melhor atende às suas necessidades."
+    },
+    {
+      question: "O AiCondo360 oferece suporte especializado?",
+      answer: "Sim! Oferecemos suporte via e-mail no plano Profissional e suporte prioritário via WhatsApp no plano Premium, garantindo que você nunca fique na mão."
+    },
+    {
+      question: "Meus dados estão seguros na plataforma?",
+      answer: "Totalmente. Utilizamos criptografia de ponta e servidores seguros para garantir que todas as informações do condomínio e dos moradores estejam protegidas."
+    },
+    {
+      question: "O AiCondo360 substitui o trabalho da administradora?",
+      answer: "Não, o AiCondo360 é uma ferramenta que potencializa o trabalho da administradora, automatizando tarefas burocráticas e permitindo que ela foque em uma gestão mais estratégica."
+    }
+  ];
+
+  const audienceContent = {
+    sindico: {
+      title: "Para o síndico que busca uma gestão sem conflitos",
+      description: "Centralize toda a comunicação, reduza a inadimplência e tenha total transparência nas contas do condomínio.",
+      features: [
+        "Assembleias virtuais e votações seguras",
+        "Controle rigoroso de prestação de contas",
+        "Mural de avisos inteligente e segmentado",
+        "Gestão de manutenção e áreas comuns"
+      ],
+      image: "/syndic_landing.png"
+    },
+    administradora: {
+      title: "Para a administradora que quer atender mais condomínios",
+      description: "Automatize processos burocráticos e ganhe escala para gerenciar múltiplos condomínios com eficiência máxima.",
+      features: [
+        "Automação completa de boletos e cobranças",
+        "Relatórios financeiros detalhados em tempo real",
+        "Atendimento centralizado via plataforma",
+        "Redução de custos operacionais drástica"
+      ],
+      image: "/admin_landing.png"
+    },
+    morador: {
+      title: "Para o morador que valoriza cada minuto no seu lar",
+      description: "Tenha a chave do condomínio na palma da mão. Comodidade, segurança e integração total com seus vizinhos.",
+      features: [
+        "Reserva de áreas comuns em poucos cliques",
+        "Notificação em tempo real de encomendas",
+        "Autorização de visitantes via QR Code",
+        "Interação com a comunidade no marketplace"
+      ],
+      image: "/resident_landing.png"
+    }
+  };
 
   const mainFeatures = [
     { icon: Building2, title: "Gestão Unificada", description: "Controle total de unidades, moradores e veículos em uma única interface intuitiva." },
@@ -286,6 +382,99 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
         </motion.div>
       </section>
 
+      {/* Target Audience Section */}
+      <section className="py-24 relative overflow-hidden bg-slate-900/10">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16 space-y-4">
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-4xl md:text-6xl font-black text-white tracking-tight"
+            >
+              Para quem é <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-600 animate-gradient">AiCondo360?</span>
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="text-slate-400 text-lg md:text-xl font-medium max-w-2xl mx-auto"
+            >
+              Para administradores, Síndicos e Moradores que querem gerenciar melhor seu condomínio.
+            </motion.p>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex flex-wrap justify-center gap-4 mb-16">
+            {Object.keys(audienceContent).map((key) => (
+              <button
+                key={key}
+                onClick={() => setActiveAudience(key)}
+                className={`px-8 py-3 rounded-full text-sm font-bold transition-all ${
+                  activeAudience === key
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20 border border-blue-400/50'
+                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700 border border-white/5'
+                }`}
+              >
+                {key.charAt(0).toUpperCase() + key.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {/* Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <motion.div
+              key={activeAudience + '-img'}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+              className="relative group"
+            >
+              <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-[2.5rem] blur-2xl group-hover:opacity-100 transition-opacity opacity-0" />
+              <img
+                src={(audienceContent as any)[activeAudience].image}
+                alt={activeAudience}
+                className="rounded-[2.5rem] border border-white/10 shadow-2xl relative z-10 w-full object-cover aspect-[4/3]"
+              />
+            </motion.div>
+
+            <motion.div
+              key={activeAudience + '-text'}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+              className="space-y-8"
+            >
+              <h3 className="text-3xl font-black text-white leading-tight">
+                {(audienceContent as any)[activeAudience].title}
+              </h3>
+              <p className="text-slate-400 text-lg leading-relaxed">
+                {(audienceContent as any)[activeAudience].description}
+              </p>
+              
+              <div className="space-y-4">
+                {(audienceContent as any)[activeAudience].features.map((feature: string, i: number) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
+                      <Check size={14} />
+                    </div>
+                    <span className="text-slate-300 font-medium">{feature}</span>
+                  </div>
+                ))}
+              </div>
+
+              <button 
+                onClick={() => setIsDemoModalOpen(true)}
+                className="flex items-center gap-2 text-blue-400 font-bold hover:gap-4 transition-all"
+              >
+                Solicitar demonstração <ArrowRight size={20} />
+              </button>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* Features Grid */}
       <section id="funcionalidades" className="py-32 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-6">
@@ -321,7 +510,7 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12 space-y-4">
             <span className="text-blue-500 font-black text-xs uppercase tracking-[0.3em]">DEPOIMENTOS</span>
-            <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">O que dizem quem já vive o <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-600 animate-gradient">Futuro.</span></h2>
+            <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">Testemunho de quem já vive o <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-600 animate-gradient">Futuro.</span></h2>
             <p className="text-slate-400 font-medium max-w-2xl mx-auto">Histórias reais de transformação digital em condomínios de todo o país.</p>
             <div className="flex items-center justify-center gap-4 text-white">
               <div className="flex text-yellow-500">
@@ -372,50 +561,28 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-center lg:px-4">
             <PricingCard
-              title="Essencial"
-              price="299,00"
-              features={[
-                "Condomínios Pequenos", 
-                "Gestão de moradores simples", 
-                "Mural digital", 
-                "Suporte email",
-                "no:Gestão de Encomendas",
-                "no:Gestão de garagem",
-                "no:Dashboard inteligente"
-              ]}
+              title={PLANS[0].name}
+              price={PLANS[0].price}
+              features={PLANS[0].features}
               variant="plan-light"
-              stripeLink="https://buy.stripe.com/00w28kfhd9Vq1nc3a2f3a0f"
+              stripeLink={PLANS[0].checkoutUrl}
               delay={0.1}
             />
             <PricingCard
-              title="Profissional"
-              price="399,00"
-              features={[
-                "Até 50 unidades", 
-                "Gestão de Boletos", 
-                "Assembleias virtuais", 
-                "Suporte 24/7", 
-                "Gestão Global Inteligente"
-              ]}
+              title={PLANS[1].name}
+              price={PLANS[1].price}
+              features={PLANS[1].features}
               highlighted={true}
               variant="plan-medium"
-              stripeLink="https://buy.stripe.com/bJedR20mj6Jec1QaCuf3a0d"
+              stripeLink={PLANS[1].checkoutUrl}
               delay={0.2}
             />
             <PricingCard
-              title="Premium"
-              price="599,00"
-              features={[
-                "50+ unidades", 
-                "Gestão de Boletos",
-                "Gestão de Garagem",
-                "Gestão de Encomendas Inteligente",
-                "Marketplace Interno",
-                "Assembleias virtuais", 
-                "Suporte 24/7"
-              ]}
+              title={PLANS[2].name}
+              price={PLANS[2].price}
+              features={PLANS[2].features}
               variant="plan-dark"
-              stripeLink="https://buy.stripe.com/dRmcMYc514B63vkaCuf3a0e"
+              stripeLink={PLANS[2].checkoutUrl}
               delay={0.3}
             />
           </div>
@@ -451,6 +618,48 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
                 Falar com Comercial
               </button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-32 bg-slate-900/10">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-blue-500 font-black text-xs uppercase tracking-[0.3em]">
+                <HelpCircle size={16} />
+                <span>FAQ</span>
+              </div>
+              <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">
+                Dúvidas <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-600 animate-gradient">Frequentes.</span>
+              </h2>
+            </div>
+            <p className="text-slate-400 font-medium max-w-sm">
+              Tudo o que você precisa saber sobre o AiCondo360 para transformar seu condomínio.
+            </p>
+          </div>
+
+          <div className="bg-slate-900/30 border border-white/5 rounded-[2.5rem] p-4 md:p-10 backdrop-blur-xl">
+            {faqs.map((faq, i) => (
+              <FAQItem
+                key={i}
+                {...faq}
+                isOpen={openFaqIndex === i}
+                onClick={() => setOpenFaqIndex(openFaqIndex === i ? null : i)}
+                delay={i * 0.1}
+              />
+            ))}
+          </div>
+
+          <div className="mt-16 p-8 rounded-3xl bg-gradient-to-r from-blue-600/10 to-indigo-600/10 border border-blue-500/20 text-center">
+            <p className="text-slate-300 font-medium mb-6">Ainda tem dúvidas? Estamos prontos para te ajudar.</p>
+            <button
+              onClick={() => window.open('https://wa.me/5571984184782', '_blank')}
+              className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20"
+            >
+              Falar com um Consultor
+            </button>
           </div>
         </div>
       </section>
@@ -512,8 +721,15 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-20">
             <div className="space-y-8">
-              <div className="flex items-center mb-8">
+              <div className="flex flex-col items-start mb-8">
                 <img src="/AICondo_Full_v2.png" alt="Logo AiCondo360" className="h-28 md:h-36 w-auto object-contain hover:scale-110 transition-transform drop-shadow-xl" />
+                <motion.span
+                  animate={{ opacity: [0.4, 1, 0.4], scale: [0.98, 1, 0.98] }}
+                  transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                  className="text-[10px] font-bold text-green-500 tracking-[0.2em] ml-2 mt-2"
+                >
+                  V-BETA03
+                </motion.span>
               </div>
               <p className="text-slate-500 text-sm leading-relaxed">Software de gestão inteligente que conecta síndicos e moradores em uma experiência 360º.</p>
               <div className="flex gap-4">

@@ -82,25 +82,28 @@ export const Encomendas: React.FC<EncomendasProps> = ({ userId, condoId, userRol
 
   useEffect(() => {
     fetchPackages();
-  }, [userId]);
+  }, [userId, tenant?.id]);
 
   const fetchPackages = async () => {
     setLoading(true);
     try {
-      const data = await PackageService.getUserPackages(userId);
+      // Admins vêem todas as encomendas do condomínio
+      // Residentes vêem apenas as próprias
+      const effectiveCondoId = tenant?.id || condoId;
+
+      let data;
+      if (canManage && effectiveCondoId) {
+        data = await PackageService.getCondoPackages(effectiveCondoId);
+      } else {
+        data = await PackageService.getUserPackages(userId);
+      }
       
-      // Fallback para mocks se necessário (ajustando nomes de campos)
       const mappedData = data.map(pkg => ({
         ...pkg,
-        image_url: pkg.image_url || pkg.photo_url // suporte a ambos
+        image_url: pkg.image_url || pkg.photo_url
       }));
 
-      if (mappedData.length === 0 && !canManage) {
-        // Only show mock if empty and user is NOT admin (meaning they might not have packages yet)
-        setPackages([]);
-      } else {
-        setPackages(mappedData as Encomenda[]);
-      }
+      setPackages(mappedData as Encomenda[]);
     } catch (error) {
       console.error('Error fetching packages:', error);
     } finally {

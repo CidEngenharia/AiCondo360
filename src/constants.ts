@@ -39,7 +39,7 @@ export const FEATURES: Feature[] = [
   { id: 'moradores', label: 'Moradores', icon: Users, color: 'bg-emerald-600', category: 'social', roles: ['resident', 'admin', 'syndic', 'global_admin'], plans: ['basic', 'professional', 'premium'] },
   { id: 'boletos', label: 'Financeiro', icon: CreditCard, color: 'bg-emerald-500', category: 'financial', roles: ['resident', 'admin', 'syndic', 'global_admin'], plans: ['professional', 'premium'] },
   { id: 'comunicados', label: 'Mensagens', icon: MessageSquare, color: 'bg-blue-500', category: 'communication', roles: ['resident', 'admin', 'syndic', 'global_admin'], plans: ['basic', 'professional', 'premium'] },
-  { id: 'reservas', label: 'Reservas', icon: Calendar, color: 'bg-purple-500', category: 'operations', roles: ['resident', 'admin', 'syndic', 'global_admin'], plans: ['professional', 'premium'] },
+  { id: 'reservas', label: 'Reservas', icon: Calendar, color: 'bg-indigo-500', category: 'operations', roles: ['resident', 'admin', 'syndic', 'global_admin'], plans: ['professional', 'premium'] },
   { id: 'ocorrencias', label: 'Ocorrências', icon: ShieldAlert, color: 'bg-red-500', category: 'communication', roles: ['resident', 'admin', 'syndic', 'global_admin'], plans: ['basic', 'professional', 'premium'] },
   { id: 'pets', label: 'Meus Pets', icon: Dog, color: 'bg-rose-500', category: 'social', roles: ['resident', 'admin', 'syndic', 'global_admin'], plans: ['professional', 'premium'] },
   { id: 'encomendas', label: 'Encomendas', icon: Package, color: 'bg-orange-600', category: 'operations', roles: ['resident', 'admin', 'syndic', 'global_admin'], plans: ['basic', 'professional', 'premium'] },
@@ -54,7 +54,53 @@ export const FEATURES: Feature[] = [
 ];
 
 export const PLANS = [
-  { id: 'basic', name: 'Essencial', price: '299', features: 'Funções essenciais' },
-  { id: 'professional', name: 'Profissional', price: '399', features: 'Gestão completa' },
-  { id: 'premium', name: 'Premium', price: '599', features: 'Todas as funções + Suporte dedicado' },
+  { 
+    id: 'basic', 
+    name: 'Essencial', 
+    price: '99,99', 
+    monthlyPrice: 99.99,
+    checkoutUrl: 'https://buy.stripe.com/aFabIUb0X5Fa1ncdOGf3a0g',
+    description: 'Funções essenciais',
+    features: [
+      "Condomínios Pequenos", 
+      "Gestão de moradores simples", 
+      "Mural digital", 
+      "Suporte email",
+      "no:Gestão de Encomendas",
+      "no:Gestão de garagem",
+      "no:Dashboard inteligente"
+    ]
+  },
+  { 
+    id: 'professional', 
+    name: 'Profissional', 
+    price: '299,00', 
+    monthlyPrice: 299.00,
+    checkoutUrl: 'https://buy.stripe.com/14AcMYd95gjOc1QfWOf3a0h',
+    description: 'Gestão completa',
+    features: [
+      "Até 50 unidades", 
+      "Gestão de Boletos", 
+      "Assembleias virtuais", 
+      "Suporte via E-mail", 
+      "Gestão Global Inteligente"
+    ]
+  },
+  { 
+    id: 'premium', 
+    name: 'Premium', 
+    price: '399,00', 
+    monthlyPrice: 399.00,
+    checkoutUrl: 'https://buy.stripe.com/6oUcMY6KHgjO2rgbGyf3a0i',
+    description: 'Todas as funções + Suporte dedicado',
+    features: [
+      "50+ unidades", 
+      "Gestão de Boletos",
+      "Gestão de Garagem",
+      "Gestão de Encomendas Inteligente",
+      "Marketplace Interno",
+      "Assembleias virtuais", 
+      "Suporte via WhatsApp"
+    ]
+  },
 ];

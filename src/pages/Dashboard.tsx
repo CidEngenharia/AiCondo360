@@ -55,7 +55,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
   const { tenant } = useTenant();
 
   const fetchData = async () => {
-    const effectiveCondoId = (userRole === 'global_admin' && condoId) ? condoId : (tenant?.id || condoId);
+    // Prioriza sempre o tenant do TenantContext (sincronizado via localStorage + DB)
+    // O condoId prop pode vir vazio para global_admin (sem condominio_id no perfil)
+    const effectiveCondoId = tenant?.id || condoId;
     
     console.log('[Dashboard] Context Debug:', { 
       propCondoId: condoId, 
@@ -174,8 +176,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
     // Set interval for every minute
     const interval = setInterval(updateUIState, 60000);
 
-    // Initial Fetch
-    fetchData();
+    // Initial Fetch — só executa quando tenant estiver disponível
+    if (tenant?.id || condoId) {
+      fetchData();
+    }
 
     // Realtime Subscriptions
     const effectiveCondoId = tenant?.id || condoId;

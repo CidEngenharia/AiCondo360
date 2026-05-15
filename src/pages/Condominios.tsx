@@ -51,6 +51,7 @@ const generateSyndicPassword = (name: string): string => {
 };
 import { CondominioService, Condominio, ProfileService } from '../services/supabaseService';
 import { supabase, createAdminClient } from '../lib/supabase';
+import { PLANS } from '../constants';
 
 export const Condominios: React.FC = () => {
   const [condos, setCondos] = useState<Condominio[]>([]);
@@ -73,10 +74,10 @@ export const Condominios: React.FC = () => {
 
   // Simulated Stripe payment data (replace with real API when available)
   const stripePayments = [
-    { id: 'pi_1', condo: 'Condomínio Verde Vale',    amount: 599,   date: new Date(Date.now() - 1 * 3600000), status: 'paid', phone: '71981234567' },
+    { id: 'pi_1', condo: 'Condomínio Verde Vale',    amount: 399,   date: new Date(Date.now() - 1 * 3600000), status: 'paid', phone: '71981234567' },
     { id: 'pi_2', condo: 'Condomínio Jardim',        amount: 299,   date: new Date(Date.now() - 5 * 3600000), status: 'paid', phone: '71982345678' },
     { id: 'pi_3', condo: 'Condomínio Paineiras',     amount: 299,   date: new Date(Date.now() - 48 * 3600000), status: 'overdue', phone: '71983456789' },
-    { id: 'pi_4', condo: 'Edifício Horizonte',       amount: 399,   date: new Date(Date.now() - 72 * 3600000), status: 'overdue', phone: '71984567890' },
+    { id: 'pi_4', condo: 'Edifício Horizonte',       amount: 99.99, date: new Date(Date.now() - 72 * 3600000), status: 'overdue', phone: '71984567890' },
   ];
   const latestPayment = stripePayments[0];
   const monthTotal = stripePayments.reduce((s, p) => s + (p.status === 'paid' ? p.amount : 0), 0);
@@ -278,9 +279,10 @@ export const Condominios: React.FC = () => {
     active: condos.filter(c => c.status === 'active').length
   };
 
-  const totalRevenue = condos.reduce((acc, c) => 
-    acc + (c.plan === 'premium' ? 599 : c.plan === 'professional' ? 399 : 299), 0
-  );
+  const totalRevenue = condos.reduce((acc, c) => {
+    const plan = PLANS.find(p => p.id === c.plan);
+    return acc + (plan?.monthlyPrice || 0);
+  }, 0);
 
   const formatWhatsAppLink = (phone: string) => {
     const clean = phone.replace(/\D/g, '');
@@ -522,7 +524,7 @@ export const Condominios: React.FC = () => {
 
               <div className="space-y-4">
                 <div className="flex items-start gap-3 pr-8">
-                  <div className={`p-2.5 rounded-xl ${condo.plan === 'premium' ? 'bg-purple-100 text-purple-600' : condo.plan === 'enterprise' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'} dark:bg-slate-700 shrink-0`}>
+                  <div className={`p-2.5 rounded-xl ${condo.plan === 'premium' ? 'bg-indigo-100 text-indigo-600' : condo.plan === 'enterprise' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'} dark:bg-slate-700 shrink-0`}>
                     <Building2 size={20} />
                   </div>
                   <div className="min-w-0">
@@ -560,7 +562,7 @@ export const Condominios: React.FC = () => {
                   <div className="bg-slate-50 dark:bg-slate-900/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/50 flex flex-col justify-center">
                     <p className="text-[8px] font-black uppercase text-slate-400 tracking-wider mb-0.5">Plano</p>
                     <p className="text-xs font-bold text-slate-600 dark:text-slate-200 capitalize">
-                      {condo.plan === 'professional' ? 'Profissional' : condo.plan}
+                      {PLANS.find(p => p.id === condo.plan)?.name || condo.plan}
                     </p>
                   </div>
                   <div className="bg-slate-50 dark:bg-slate-900/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/50 flex flex-col justify-center">
@@ -781,7 +783,7 @@ export const Condominios: React.FC = () => {
                            onClick={() => setFormData({ ...formData, plan: p as any })}
                            className={`flex-1 py-1.5 rounded-lg border-2 text-[9px] font-black uppercase tracking-widest transition-all ${formData.plan === p ? 'border-blue-600 bg-blue-50 text-blue-600 shadow-md' : 'border-slate-100 bg-slate-50 text-slate-400 dark:border-slate-800'}`}
                          >
-                           {p === 'professional' ? 'Profiss.' : p}
+                           {PLANS.find(plan => plan.id === p)?.name || p}
                          </button>
                        ))}
                     </div>

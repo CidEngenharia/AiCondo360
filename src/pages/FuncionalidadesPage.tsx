@@ -23,6 +23,7 @@ import {
   Send,
   Share2,
 } from 'lucide-react';
+import { PLANS } from '../constants';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Review {
@@ -77,62 +78,19 @@ const screenshots: Screenshot[] = [
   },
 ];
 
-const plans = [
-  {
-    name: 'Essencial',
-    price: '299,00',
-    color: 'from-blue-400 to-blue-600',
-    border: 'border-blue-500/30',
-    glow: 'shadow-blue-500/20',
-    tag: null,
-    features: [
-      { label: 'Condomínios pequenos', ok: true },
-      { label: 'Gestão de moradores', ok: true },
-      { label: 'Mural digital', ok: true },
-      { label: 'Suporte por e-mail', ok: true },
-      { label: 'Gestão de Encomendas', ok: false },
-      { label: 'Gestão de Garagem', ok: false },
-      { label: 'Dashboard Inteligente', ok: false },
-    ],
-    stripe: 'https://buy.stripe.com/00w28kfhd9Vq1nc3a2f3a0f',
-  },
-  {
-    name: 'Profissional',
-    price: '399,00',
-    color: 'from-blue-600 to-indigo-700',
-    border: 'border-blue-400/50',
-    glow: 'shadow-blue-400/30',
-    tag: 'Mais Popular',
-    features: [
-      { label: 'Até 50 unidades', ok: true },
-      { label: 'Gestão de Boletos', ok: true },
-      { label: 'Assembleias virtuais', ok: true },
-      { label: 'Suporte 24/7', ok: true },
-      { label: 'Gestão Global Inteligente', ok: true },
-      { label: 'Gestão de Garagem', ok: false },
-      { label: 'Marketplace Interno', ok: false },
-    ],
-    stripe: 'https://buy.stripe.com/bJedR20mj6Jec1QaCuf3a0d',
-  },
-  {
-    name: 'Premium',
-    price: '599,00',
-    color: 'from-indigo-700 to-slate-800',
-    border: 'border-indigo-500/30',
-    glow: 'shadow-indigo-500/20',
-    tag: 'Completo',
-    features: [
-      { label: '50+ unidades', ok: true },
-      { label: 'Gestão de Boletos', ok: true },
-      { label: 'Gestão de Garagem', ok: true },
-      { label: 'Encomendas Inteligente', ok: true },
-      { label: 'Marketplace Interno', ok: true },
-      { label: 'Assembleias virtuais', ok: true },
-      { label: 'Suporte 24/7', ok: true },
-    ],
-    stripe: 'https://buy.stripe.com/dRmcMYc514B63vkaCuf3a0e',
-  },
-];
+const plans = PLANS.map((plan, index) => ({
+  name: plan.name,
+  price: plan.price,
+  color: index === 0 ? 'from-blue-400 to-blue-600' : index === 1 ? 'from-blue-600 to-indigo-700' : 'from-indigo-700 to-slate-800',
+  border: index === 1 ? 'border-blue-400/50' : 'border-blue-500/30',
+  glow: index === 1 ? 'shadow-blue-400/30' : 'shadow-blue-500/20',
+  tag: index === 1 ? 'Mais Popular' : index === 2 ? 'Completo' : null,
+  features: plan.features.map(f => ({
+    label: f.startsWith('no:') ? f.replace('no:', '') : f,
+    ok: !f.startsWith('no:')
+  })),
+  stripe: plan.checkoutUrl,
+}));
 
 const initialReviews: Review[] = [
   {
