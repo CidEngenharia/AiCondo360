@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Calendar, Clock, Truck, Hammer, Package, FileText, ChevronRight, X, User, Trash2, CheckCircle2 } from 'lucide-react';
 import { FeatureHeader } from '../components/FeatureHeader';
 import { cn } from '../lib/utils';

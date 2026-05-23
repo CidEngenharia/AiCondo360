@@ -5,8 +5,8 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 async function run() {
-  console.log("\nSearching for all condominios...");
-  let { data, error } = await supabase.from('condominios').select('*');
+  console.log("\nSearching for all assembleias...");
+  let { data, error } = await supabase.from('assembleias').select('*').limit(5);
   if (error) console.error("Error:", error);
   else console.log("Found:", data);
 }

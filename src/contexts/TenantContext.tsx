@@ -72,6 +72,22 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return;
       }
 
+      // ── USUÁRIOS DE TESTE/DEMO ────────────────────────────────
+      if (user && user.id && user.id.startsWith('00000000-')) {
+        const currentSlug = getTenantSlugFromUrl() || 'default';
+        const isUUID = (str?: string) => !!(str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str));
+        const validCondoId = isUUID(user.condoId) ? user.condoId : '00000000-0000-0000-0000-000000000003';
+        const mockTenant = {
+          id: validCondoId,
+          name: user.condo || 'Condomínio Paineiras',
+          slug: currentSlug,
+          plan: user.plan || 'premium'
+        };
+        setUserTenants([mockTenant]);
+        setTenant(mockTenant);
+        setLoading(false);
+        return;
+      }
 
       // ── USUÁRIOS NORMAIS ──────────────────────────────────────
       // Detecta tenant pelo slug da URL

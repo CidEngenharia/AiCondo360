@@ -5,9 +5,12 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 async function run() {
-  console.log("\nSearching for all condominios...");
-  let { data, error } = await supabase.from('condominios').select('*');
+  console.log("\nGetting table info...");
+  // Let's do a select for a single row to see all keys
+  let { data, error } = await supabase.from('assembleias').select('*').limit(1);
   if (error) console.error("Error:", error);
-  else console.log("Found:", data);
+  else {
+    console.log("Keys found in row:", Object.keys(data[0] || {}));
+  }
 }
 run();

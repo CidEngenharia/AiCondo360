@@ -5,9 +5,12 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 async function run() {
-  console.log("\nSearching for all condominios...");
-  let { data, error } = await supabase.from('condominios').select('*');
-  if (error) console.error("Error:", error);
-  else console.log("Found:", data);
+  console.log("\nQuerying tenants...");
+  const { data: tenants } = await supabase.from('tenants').select('*');
+  console.log("Tenants:", tenants);
+
+  console.log("\nQuerying memberships...");
+  const { data: memberships } = await supabase.from('memberships').select('*');
+  console.log("Memberships:", memberships);
 }
 run();

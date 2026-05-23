@@ -548,7 +548,7 @@ export const LandingPage: React.FC<{ setUser?: (user: any) => void }> = ({ setUs
                         email: 'teste.sindico@aicondo360.com',
                         password: 'senha-test2026',
                         condoName: 'Condomínio Teste',
-                        condoId: 'demo-test-id'
+                        condoId: '00000000-0000-0000-0000-000000000005'
                       });
                       scrollToTop();
                     }} 

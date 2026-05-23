@@ -28,6 +28,7 @@ import {
 import { format } from 'date-fns';
 import { FeatureHeader } from '../components/FeatureHeader';
 import { useTenant } from '../contexts/TenantContext';
+import { useAuth } from '../hooks/useAuth';
 import { ReservationService, Reserva as IReserva, ProfileService, CondominioService, FinanceiroService, Profile, Condominio } from '../services/supabaseService';
 
 interface ReservasProps {
@@ -84,6 +85,7 @@ const DAYS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
 
 export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
   const { tenant } = useTenant();
+  const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedArea, setSelectedArea] = useState<Area | null>(null);
   const [selectedDate, setSelectedDate] = useState<number | null>(null);

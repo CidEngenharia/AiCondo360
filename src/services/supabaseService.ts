@@ -148,6 +148,9 @@ export interface Assembleia {
   status: 'active' | 'closed';
   start_date: string;
   end_date: string;
+  meeting_link?: string;
+  whatsapp_responsavel?: string;
+  decision?: string;
   created_at: string;
 }
 
@@ -891,7 +894,7 @@ export const PackageService = {
 export const AssembleiaService = {
   async getUpcomingAssembleia(condoId: string): Promise<Assembleia | null> {
     const { data, error } = await supabase
-      .from('assembleia')
+      .from('assembleias')
       .select('*')
       .eq('condominio_id', condoId)
       .eq('status', 'active')

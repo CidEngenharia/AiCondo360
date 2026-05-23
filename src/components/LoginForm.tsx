@@ -59,8 +59,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isAdminOnly = false, setUs
         setCondos([
           { id: '00000000-0000-0000-0000-000000000003', name: 'Condomínio Paineiras', plan: 'basic', location: 'São Paulo' },
           { id: '00000000-0000-0000-0000-000000000004', name: 'Condomínio Jardim', plan: 'enterprise', location: 'Rio de Janeiro' },
-          { id: '00000000-0000-0000-0000-000000000005', name: 'Condomínio Miami', plan: 'premium', location: 'Maceió' },
-          { id: 'demo-test-id', name: 'Condomínio Teste', plan: 'premium', location: 'Salvador' },
+          { id: '00000000-0000-0000-0000-000000000005', name: 'Condomínio Teste', plan: 'premium', location: 'Salvador' },
         ]);
       }
     }
@@ -123,7 +122,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isAdminOnly = false, setUs
           name: 'Síndico Demonstrativo',
           email: email,
           condo: condo || 'Condomínio Teste',
-          condoId: condoId || 'demo-test-id',
+          condoId: condoId || '00000000-0000-0000-0000-000000000005',
           role: 'syndic',
           plan: 'premium'
         });
