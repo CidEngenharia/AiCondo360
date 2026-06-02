@@ -83,6 +83,19 @@ const AREAS: Area[] = [
 
 const DAYS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
 
+const parseLocalDate = (dateStr: any) => {
+  if (!dateStr) return new Date();
+  if (dateStr instanceof Date) return dateStr;
+  
+  if (typeof dateStr === 'string' && dateStr.includes('-')) {
+    const parts = dateStr.split('T')[0].split('-');
+    if (parts.length === 3) {
+      return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    }
+  }
+  return new Date(dateStr);
+};
+
 export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
   const { tenant } = useTenant();
   const { user } = useAuth();
@@ -581,17 +594,17 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
                 <div className="flex-1 min-w-0">
                   <h5 className="text-base font-bold text-slate-800 dark:text-white uppercase tracking-tight leading-none mb-2">{res.area_name}</h5>
                   <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
-                    <Calendar size={12} className="text-emerald-500" /> {new Date(res.reservation_date).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    <Calendar size={12} className="text-emerald-500" /> {parseLocalDate(res.reservation_date).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
                   </p>
                   <div className="text-[10px] font-semibold space-y-1">
                     <div className="text-blue-600 dark:text-blue-400 uppercase tracking-wide">
                       Reservado por: Nome: {res.requester_name || 'Não informado'}
                     </div>
                     <div className="text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
-                      Data início: {new Date(res.reservation_date).toLocaleDateString('pt-BR')} {res.start_time ? `às ${res.start_time.substring(0, 5)}` : ''}
+                      Data início: {parseLocalDate(res.reservation_date).toLocaleDateString('pt-BR')} {res.start_time ? `às ${res.start_time.substring(0, 5)}` : ''}
                     </div>
                     <div className="text-rose-600 dark:text-rose-400 uppercase tracking-wide">
-                      Data fim: {new Date(res.end_date || res.reservation_date).toLocaleDateString('pt-BR')} {res.end_time ? `às ${res.end_time.substring(0, 5)}` : ''}
+                      Data fim: {parseLocalDate(res.end_date || res.reservation_date).toLocaleDateString('pt-BR')} {res.end_time ? `às ${res.end_time.substring(0, 5)}` : ''}
                     </div>
                   </div>
                 </div>
