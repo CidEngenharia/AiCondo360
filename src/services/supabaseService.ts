@@ -741,35 +741,6 @@ export const ReservationService = {
 
     let totalLateFee = 0;
     if (actualEnd > expectedEnd) {
-      const diffMs = actualEnd.getTime() - expectedEnd.getTime();
-      const diffHours = Math.ceil(diffMs / (1000 * 60 * 60));
-      
-      // Buscar valor da multa do condomínio
-      const { data: condo } = await supabase
-        .from('condominios')
-        .select('late_fee_per_hour')
-        .eq('id', reserva.condominio_id)
-        .single();
-
-      const hourlyFee = condo?.late_fee_per_hour || 50; 
-      totalLateFee = diffHours * hourlyFee;
-
-      // Buscar nome do morador real
-      let userName = reserva.requester_name || '';
-      try {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('id', reserva.user_id)
-          .single();
-        if (profile?.full_name) {
-          userName = profile.full_name;
-        }
-      } catch (profileErr) {
-        console.error('[finishReserva] Erro ao buscar nome do morador:', profileErr);
-      }
-      if (!userName) userName = 'Não informado';
-
       // Utilitários para formatação e cálculo do período de atraso
       const formatToBrDate = (dateStr: string) => {
         if (!dateStr) return '';
@@ -794,6 +765,32 @@ export const ReservationService = {
       const expectedDateFmt = formatToBrDate(reserva.end_date || reserva.reservation_date);
       const actualDateFmt = formatToBrDate(actualEndDate);
       const diffDays = getDaysDiff(reserva.end_date || reserva.reservation_date, actualEndDate);
+
+      // Buscar valor da multa diária do condomínio (salva na coluna late_fee_per_hour)
+      const { data: condo } = await supabase
+        .from('condominios')
+        .select('late_fee_per_hour')
+        .eq('id', reserva.condominio_id)
+        .single();
+
+      const dailyFee = condo?.late_fee_per_hour || 50; 
+      totalLateFee = diffDays * dailyFee;
+
+      // Buscar nome do morador real
+      let userName = reserva.requester_name || '';
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', reserva.user_id)
+          .single();
+        if (profile?.full_name) {
+          userName = profile.full_name;
+        }
+      } catch (profileErr) {
+        console.error('[finishReserva] Erro ao buscar nome do morador:', profileErr);
+      }
+      if (!userName) userName = 'Não informado';
 
       const daysText = diffDays === 1 ? 'um dia' : `${numToWords(diffDays)} dias`;
       const observacaoText = `Reservado por: ${userName}, de ${expectedDateFmt} a ${actualDateFmt}, - ${daysText} de atraso Total da multa R$ ${totalLateFee.toFixed(2)}`;
