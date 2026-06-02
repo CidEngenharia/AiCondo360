@@ -453,7 +453,7 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
                               ))}
                               <li className="flex items-center gap-1.5 text-[9px] font-bold text-rose-500">
                                 <span className="w-1 h-1 bg-rose-500 rounded-full flex-shrink-0" />
-                                Multa por atraso na entrega: R$ {condoData?.late_fee_per_hour || 50},00 por hora
+                                Multa por atraso na entrega: R$ {condoData?.late_fee_per_hour || 50},00 por dia
                               </li>
                             </ul>
 
