@@ -87,7 +87,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ isAdminOnly = false, setUs
     if (email === 'admin@aicondo360.com' && password === 'admin123') {
       if (setUser) {
         setUser({
-          id: '00000000-0000-0000-0000-00000000000A',
+          id: '65d16f39-6e22-4fb6-b83e-2821ce8951db',
           name: 'Administrador Demo',
           email: 'admin@aicondo360.com',
           condo: condo || 'Acesso Global',
