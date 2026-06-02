@@ -1586,40 +1586,39 @@ export const CondominioService = {
   },
 
   async updateCondominio(condoId: string, updates: Partial<Condominio>) {
-    console.log("[CondominioService] Updating condo:", condoId);
-    const { data, error } = await supabase
-      .from('condominios')
-      .update(updates)
-      .eq('id', condoId)
-      .select()
-      .maybeSingle();
+    console.log("[CondominioService] Updating condo via RPC:", condoId);
+
+    // Usa RPC SECURITY DEFINER para bypassa RLS corretamente
+    const { data, error } = await supabase.rpc('admin_update_condominio', {
+      p_id:              condoId,
+      p_name:            updates.name            ?? null,
+      p_address:         updates.address          ?? null,
+      p_cnpj:            updates.cnpj             ?? null,
+      p_plan:            updates.plan             ?? null,
+      p_status:          updates.status           ?? null,
+      p_syndic_name:     updates.syndic_name      ?? null,
+      p_syndic_phone:    updates.syndic_phone     ?? null,
+      p_late_fee_per_hour: updates.late_fee_per_hour ?? null,
+    });
 
     if (error) {
-      console.error("[CondominioService] Update error:", error.message, error.details);
-       const missingColumns = ['syndic_name', 'syndic_phone', 'address', 'cnpj', 'status'];
-       if (missingColumns.some(col => error.message?.includes(col))) {
-          console.warn("[CondominioService] Columns missing on update, retrying basic update...");
-          const { syndic_name, syndic_phone, address, cnpj, status, ...basicUpdates } = updates as any;
-          const { data: data2, error: error2 } = await supabase
-            .from('condominios')
-            .update(basicUpdates)
-            .eq('id', condoId)
-            .select()
-            .maybeSingle();
-          if (error2) throw error2;
-          return data2 as Condominio;
-       }
+      console.error("[CondominioService] RPC update error:", error.message);
       throw error;
     }
     return data as Condominio;
   },
 
   async deleteCondominio(condoId: string) {
-    const { error } = await supabase
-      .from('condominios')
-      .delete()
-      .eq('id', condoId);
+    console.log("[CondominioService] Deleting condo via RPC:", condoId);
 
-    if (error) throw error;
+    // Usa RPC SECURITY DEFINER para bypassa RLS corretamente
+    const { error } = await supabase.rpc('admin_delete_condominio', {
+      p_id: condoId,
+    });
+
+    if (error) {
+      console.error("[CondominioService] RPC delete error:", error.message);
+      throw error;
+    }
   }
 };
