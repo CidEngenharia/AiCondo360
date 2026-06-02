@@ -754,19 +754,67 @@ export const ReservationService = {
       const hourlyFee = condo?.late_fee_per_hour || 50; 
       totalLateFee = diffHours * hourlyFee;
 
-      // 2. Criar registro financeiro automático para o morador
-      await FinanceiroService.createExpense({
-        condominio_id: reserva.condominio_id,
-        tenant_id: reserva.tenant_id,
-        user_id: reserva.user_id,
-        nome: `Multa por atraso: ${reserva.area_name}`,
-        valor: totalLateFee,
-        origem: 'multa_reserva',
-        tipo: 'receita', // Receita para o condomínio
-        status: 'pendente',
-        categoria: 'Multas',
-        observacao: `Atraso de ${diffHours}h detectado na finalização da reserva #${reservaId}.`
-      });
+      // Buscar nome do morador real
+      let userName = reserva.requester_name || '';
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', reserva.user_id)
+          .single();
+        if (profile?.full_name) {
+          userName = profile.full_name;
+        }
+      } catch (profileErr) {
+        console.error('[finishReserva] Erro ao buscar nome do morador:', profileErr);
+      }
+      if (!userName) userName = 'Não informado';
+
+      // Utilitários para formatação e cálculo do período de atraso
+      const formatToBrDate = (dateStr: string) => {
+        if (!dateStr) return '';
+        const parts = dateStr.split('-');
+        if (parts.length !== 3) return dateStr;
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      };
+
+      const getDaysDiff = (startStr: string, endStr: string) => {
+        const d1 = new Date(startStr + 'T00:00:00');
+        const d2 = new Date(endStr + 'T00:00:00');
+        const diffMsLocal = d2.getTime() - d1.getTime();
+        const diffDaysLocal = Math.ceil(diffMsLocal / (1000 * 60 * 60 * 24));
+        return diffDaysLocal >= 0 ? diffDaysLocal + 1 : 0;
+      };
+
+      const numToWords = (n: number) => {
+        const words = ['zero', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez'];
+        return words[n] || n.toString();
+      };
+
+      const expectedDateFmt = formatToBrDate(reserva.end_date || reserva.reservation_date);
+      const actualDateFmt = formatToBrDate(actualEndDate);
+      const diffDays = getDaysDiff(reserva.end_date || reserva.reservation_date, actualEndDate);
+
+      const daysText = diffDays === 1 ? 'um dia' : `${numToWords(diffDays)} dias`;
+      const observacaoText = `Reservado por: ${userName}, de ${expectedDateFmt} a ${actualDateFmt}, - ${daysText} de atraso Total da multa R$ ${totalLateFee.toFixed(2)}`;
+
+      // 2. Criar registro financeiro automático — em bloco separado para não bloquear finalização
+      try {
+        await FinanceiroService.createExpense({
+          condominio_id: reserva.condominio_id,
+          tenant_id: reserva.tenant_id,
+          user_id: reserva.user_id,
+          nome: `Multa por atraso: ${reserva.area_name}`,
+          valor: totalLateFee,
+          origem: 'multa_reserva',
+          tipo: 'receita',
+          status: 'pendente',
+          categoria: 'Multas',
+          observacao: observacaoText
+        });
+      } catch (feeErr) {
+        console.error('[finishReserva] Falha ao registrar multa financeira (reserva ainda será finalizada):', feeErr);
+      }
     }
 
     // 3. Update reservation status

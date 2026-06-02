@@ -393,7 +393,10 @@ const FinanceiroPage: React.FC = () => {
                           </div>
                           <div>
                             <p className="text-sm font-normal text-slate-700 dark:text-white">{item.nome}</p>
-                            <p className="text-[10px] text-slate-400 uppercase">{format(new Date(item.created_at), 'dd/MM/yyyy')}</p>
+                            {item.observacao && (
+                              <p className="text-xs text-indigo-600 dark:text-indigo-400 font-normal mt-0.5">{item.observacao}</p>
+                            )}
+                            <p className="text-[10px] text-slate-400 uppercase mt-1">{format(new Date(item.created_at), 'dd/MM/yyyy')}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-4">

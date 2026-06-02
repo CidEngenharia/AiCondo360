@@ -615,8 +615,10 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
                           await ReservationService.finishReserva(res.id, actualEndTime, actualEndDate);
                           alert('Reserva finalizada com sucesso!');
                           fetchReservations();
-                        } catch (err) {
-                          alert('Erro ao finalizar reserva.');
+                        } catch (err: any) {
+                          const msg = err?.message || err?.error_description || JSON.stringify(err);
+                          alert(`Erro ao finalizar reserva: ${msg}`);
+                          console.error('[Reservas] Erro ao finalizar:', err);
                         } finally {
                           setLoading(false);
                         }
