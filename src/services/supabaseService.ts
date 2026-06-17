@@ -167,6 +167,7 @@ export interface Visitante {
   observation?: string;
   exit_time?: string;
   document?: string;
+  photo_url?: string;
   created_at?: string;
 }
 
@@ -185,6 +186,9 @@ export interface Veiculo {
   unit_number?: string;
   image_url?: string;
   type: 'car' | 'motorcycle' | 'bicycle';
+  images?: string[];
+  resident_car_qty?: number;
+  resident_car_models?: string;
   created_at?: string;
 }
 

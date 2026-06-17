@@ -248,6 +248,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
   });
 
   const overdueBoletos = condoBoletos.filter(b => b.status === 'overdue' || b.status === 'atrasado');
+  const isAdmin = userRole === 'admin' || userRole === 'syndic' || userRole === 'global_admin';
 
   const totalNotifications = 
     announcements.length + 
@@ -256,8 +257,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
     expectedVisitors.length + 
     expectedManutencoes.length + 
     openOcorrencias.length + 
-    overdueBoletos.length +
-    (nextBoleto ? 1 : 0);
+    (isAdmin ? condoBoletos.length : (overdueBoletos.length + (nextBoleto ? 1 : 0)));
 
   // Computações baseadas nos dados REAIS do condomínio
   const receitaReal = condoBoletos.filter(b => b.status === 'paid' || b.status === 'pago').reduce((acc, curr) => acc + Number(curr.amount || 0), 0) || 0;
@@ -324,7 +324,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
             <Link to={tenant?.slug ? `/${tenant.slug}/feature/boletos` : '/feature/boletos'} className="bg-emerald-50/30 dark:bg-emerald-900/5 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-800/30 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/10 hover:border-emerald-200">
               <div className="flex items-center gap-2 mb-2 relative">
                 <FileText size={16} className="text-emerald-500" />
-                {nextBoleto && (
+                {(isAdmin ? condoBoletos.length > 0 : !!nextBoleto) && (
                     <span className="absolute -top-1 -right-1 flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
@@ -333,10 +333,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userName, userRole
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Financeiro</span>
               </div>
               <p className="text-lg font-bold text-slate-700 dark:text-slate-200">
-                {nextBoleto ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(nextBoleto.amount) : 'Painel Financeiro'}
+                {isAdmin 
+                  ? (condoBoletos.length > 0 ? `${condoBoletos.length} Cadastrados` : 'Painel Financeiro') 
+                  : (nextBoleto ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(nextBoleto.amount) : 'Painel Financeiro')}
               </p>
               <p className="text-[10px] text-slate-400">
-                {nextBoleto ? `Próximo: ${new Date(nextBoleto.due_date).toLocaleDateString('pt-BR')}` : 'Gerenciar boletos e contas'}
+                {isAdmin 
+                  ? 'Gerenciar boletos e contas' 
+                  : (nextBoleto ? `Próximo: ${new Date(nextBoleto.due_date).toLocaleDateString('pt-BR')}` : 'Gerenciar boletos e contas')}
               </p>
             </Link>
           )}

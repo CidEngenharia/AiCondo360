@@ -264,7 +264,7 @@ export const Comunicados: React.FC<ComunicadosProps> = ({ userId: propUserId }) 
                   </div>
 
                   {isAdmin && (
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1 transition-opacity">
                       <button 
                         onClick={(e) => { e.stopPropagation(); handleEdit(msg); }}
                         className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-xl text-slate-400 hover:text-blue-500 transition-all"

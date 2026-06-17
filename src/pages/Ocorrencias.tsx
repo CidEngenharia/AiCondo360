@@ -295,7 +295,7 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-[340px] sm:max-w-md overflow-hidden shadow-2xl"
+              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-[340px] sm:max-w-md max-h-[90vh] overflow-y-auto shadow-2xl"
             >
               <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                 <div>
@@ -341,7 +341,7 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
               initial={{ opacity: 0, y: 100 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 100 }}
-              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-[340px] sm:max-w-md overflow-hidden shadow-2xl"
+              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-[340px] sm:max-w-md max-h-[90vh] overflow-y-auto shadow-2xl"
             >
               <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                 <div>
@@ -415,7 +415,7 @@ export const Ocorrencias: React.FC<OcorrenciasProps> = ({ userId, condoId, userR
                     initial={{ opacity: 0, y: 100 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 100 }}
-                    className="bg-white dark:bg-slate-900 w-full max-w-[95vw] md:max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-white/10"
+                    className="bg-white dark:bg-slate-900 w-full max-w-[95vw] md:max-w-2xl rounded-3xl max-h-[90vh] overflow-y-auto shadow-2xl border border-white/10"
                   >
                        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                            <div>

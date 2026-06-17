@@ -23,7 +23,10 @@ import {
   History,
   Wind,
   Plus,
-  Star
+  Star,
+  Eye,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { FeatureHeader } from '../components/FeatureHeader';
@@ -118,6 +121,48 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
   const [condoData, setCondoData] = useState<Condominio | null>(null);
   const [bookingError, setBookingError] = useState<any>(null);
   const loadingRef = React.useRef(false);
+  const [selectedResForDetail, setSelectedResForDetail] = useState<IReserva | null>(null);
+  const [selectedResForEdit, setSelectedResForEdit] = useState<IReserva | null>(null);
+  const [editForm, setEditForm] = useState({
+    requester_name: '',
+    reservation_date: '',
+    start_time: '08:00',
+    end_time: '22:00',
+    end_date: ''
+  });
+  const [editingResSaving, setEditingResSaving] = useState(false);
+
+  const handleOpenEditModal = (res: IReserva) => {
+    setSelectedResForEdit(res);
+    setEditForm({
+      requester_name: res.requester_name || '',
+      reservation_date: res.reservation_date.split('T')[0],
+      start_time: res.start_time || '08:00',
+      end_time: res.end_time || '22:00',
+      end_date: (res.end_date || res.reservation_date).split('T')[0]
+    });
+  };
+
+  const handleSaveResEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedResForEdit) return;
+    setEditingResSaving(true);
+    try {
+      await ReservationService.updateReserva(selectedResForEdit.id, {
+        requester_name: editForm.requester_name,
+        reservation_date: editForm.reservation_date,
+        start_time: editForm.start_time,
+        end_time: editForm.end_time,
+        end_date: editForm.end_date
+      });
+      fetchReservations();
+      setSelectedResForEdit(null);
+    } catch (err: any) {
+      alert('Erro ao editar reserva: ' + (err.message || err));
+    } finally {
+      setEditingResSaving(false);
+    }
+  };
 
   const nextMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
@@ -615,48 +660,68 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
                   }`}>
                     {res.status === 'confirmed' ? 'Auditado v.12' : res.status === 'finished' ? 'Finalizado' : 'Pendente'}
                   </div>
-                  {res.status === 'confirmed' && (tenant?.isGlobalAdmin || res.user_id === userId) && (
-                    <button 
-                      onClick={async () => {
-                        const actualEndTime = prompt('Informe o horário real de saída (HH:MM)', format(new Date(), 'HH:mm'));
-                        if (!actualEndTime) return;
-                        const actualEndDate = prompt('Informe a data real de saída (AAAA-MM-DD)', format(new Date(), 'yyyy-MM-dd'));
-                        if (!actualEndDate) return;
-                        
-                        try {
-                          setLoading(true);
-                          await ReservationService.finishReserva(res.id, actualEndTime, actualEndDate);
-                          alert('Reserva finalizada com sucesso!');
-                          fetchReservations();
-                        } catch (err: any) {
-                          const msg = err?.message || err?.error_description || JSON.stringify(err);
-                          alert(`Erro ao finalizar reserva: ${msg}`);
-                          console.error('[Reservas] Erro ao finalizar:', err);
-                        } finally {
-                          setLoading(false);
-                        }
-                      }}
-                      className="text-[9px] font-bold uppercase text-emerald-600 tracking-wider hover:text-emerald-800 transition-colors bg-emerald-50 px-2 py-1 rounded-lg"
-                    >
-                      Finalizar Reserva
-                    </button>
-                  )}
                   {res.total_late_fee && res.total_late_fee > 0 && (
                     <div className="text-[9px] font-bold text-rose-500 uppercase tracking-tighter">
                       Multa: R$ {res.total_late_fee}
                     </div>
                   )}
-                  <button 
-                    onClick={async () => {
-                      if (window.confirm('Cancelar esta reserva?')) {
-                        await ReservationService.deleteReserva(res.id);
-                        fetchReservations();
-                      }
-                    }}
-                    className="text-[9px] font-bold uppercase text-rose-500 tracking-wider hover:text-rose-700 transition-colors"
-                  >
-                    Remover
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => setSelectedResForDetail(res)} 
+                      title="Visualizar" 
+                      className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-500 hover:text-white rounded-lg text-slate-500 dark:text-slate-400 transition-all"
+                    >
+                      <Eye size={13} />
+                    </button>
+                    {res.status === 'confirmed' && (tenant?.isGlobalAdmin || res.user_id === userId) && (
+                      <button 
+                        onClick={() => handleOpenEditModal(res)} 
+                        title="Editar" 
+                        className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-amber-500 hover:text-white rounded-lg text-slate-500 dark:text-slate-400 transition-all"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                    )}
+                    {res.status === 'confirmed' && (tenant?.isGlobalAdmin || res.user_id === userId) && (
+                      <button 
+                        onClick={async () => {
+                          const actualEndTime = prompt('Informe o horário real de saída (HH:MM)', format(new Date(), 'HH:mm'));
+                          if (!actualEndTime) return;
+                          const actualEndDate = prompt('Informe a data real de saída (AAAA-MM-DD)', format(new Date(), 'yyyy-MM-dd'));
+                          if (!actualEndDate) return;
+                          
+                          try {
+                            setLoading(true);
+                            await ReservationService.finishReserva(res.id, actualEndTime, actualEndDate);
+                            alert('Reserva finalizada com sucesso!');
+                            fetchReservations();
+                          } catch (err: any) {
+                            const msg = err?.message || err?.error_description || JSON.stringify(err);
+                            alert(`Erro ao finalizar reserva: ${msg}`);
+                            console.error('[Reservas] Erro ao finalizar:', err);
+                          } finally {
+                            setLoading(false);
+                          }
+                        }}
+                        title="Finalizar Reserva"
+                        className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500 hover:text-white rounded-lg text-slate-500 dark:text-slate-400 transition-all"
+                      >
+                        <CheckCircle2 size={13} />
+                      </button>
+                    )}
+                    <button 
+                      onClick={async () => {
+                        if (window.confirm('Cancelar esta reserva?')) {
+                          await ReservationService.deleteReserva(res.id);
+                          fetchReservations();
+                        }
+                      }}
+                      title="Remover"
+                      className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-rose-500 hover:text-white rounded-lg text-slate-500 dark:text-slate-400 transition-all"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))
@@ -668,6 +733,158 @@ export const Reservas: React.FC<ReservasProps> = ({ userId, condoId }) => {
           )}
         </div>
       </div>
+
+      {/* Modal de Detalhes da Reserva */}
+      <AnimatePresence>
+        {selectedResForDetail && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto"
+            >
+              <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold dark:text-white uppercase tracking-tight">Detalhes do Agendamento</h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">AiCondo360 Reservas</p>
+                </div>
+                <button onClick={() => setSelectedResForDetail(null)} className="p-2 bg-slate-50 dark:bg-slate-700 hover:bg-rose-500 hover:text-white rounded-xl transition-all">
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="p-6 space-y-6">
+                <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-3">
+                  <div>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Espaço</span>
+                    <p className="font-bold text-sm text-zinc-800 dark:text-slate-200 uppercase">{selectedResForDetail.area_name}</p>
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Responsável</span>
+                    <p className="font-bold text-sm text-zinc-800 dark:text-slate-200">{selectedResForDetail.requester_name || 'Não informado'}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Data Início</span>
+                      <p className="font-bold text-xs text-zinc-800 dark:text-slate-200">
+                        {parseLocalDate(selectedResForDetail.reservation_date).toLocaleDateString('pt-BR')} {selectedResForDetail.start_time ? `às ${selectedResForDetail.start_time.substring(0, 5)}` : ''}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Data Fim</span>
+                      <p className="font-bold text-xs text-zinc-800 dark:text-slate-200">
+                        {parseLocalDate(selectedResForDetail.end_date || selectedResForDetail.reservation_date).toLocaleDateString('pt-BR')} {selectedResForDetail.end_time ? `às ${selectedResForDetail.end_time.substring(0, 5)}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Status</span>
+                    <span className={`inline-block px-2.5 py-1 rounded-full text-[8px] font-bold uppercase tracking-widest border mt-1 ${
+                      selectedResForDetail.status === 'confirmed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
+                      selectedResForDetail.status === 'finished' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-amber-50 text-amber-600 border-amber-100'
+                    }`}>
+                      {selectedResForDetail.status === 'confirmed' ? 'Auditado v.12' : selectedResForDetail.status === 'finished' ? 'Finalizado' : 'Pendente'}
+                    </span>
+                  </div>
+                  {selectedResForDetail.total_late_fee && selectedResForDetail.total_late_fee > 0 && (
+                    <div>
+                      <span className="text-[9px] font-bold text-rose-500 uppercase tracking-widest block mb-0.5">Multa por Atraso</span>
+                      <p className="font-bold text-sm text-rose-600">R$ {selectedResForDetail.total_late_fee}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Edição da Reserva */}
+      <AnimatePresence>
+        {selectedResForEdit && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto"
+            >
+              <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
+                <div>
+                  <h3 className="text-lg font-bold dark:text-white uppercase tracking-tight">Editar Agendamento</h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">{selectedResForEdit.area_name}</p>
+                </div>
+                <button onClick={() => setSelectedResForEdit(null)} className="p-2 bg-slate-50 dark:bg-slate-700 hover:bg-rose-500 hover:text-white rounded-xl transition-all">
+                  <X size={18} />
+                </button>
+              </div>
+              <form onSubmit={handleSaveResEdit} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Nome do Solicitante</label>
+                  <input 
+                    type="text" 
+                    required 
+                    value={editForm.requester_name}
+                    onChange={e => setEditForm({ ...editForm, requester_name: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs font-bold text-slate-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Data Início</label>
+                  <input 
+                    type="date" 
+                    required 
+                    value={editForm.reservation_date}
+                    onChange={e => setEditForm({ ...editForm, reservation_date: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs font-bold text-slate-700 dark:text-white"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Horário de Início</label>
+                    <input 
+                      type="time" 
+                      required 
+                      value={editForm.start_time}
+                      onChange={e => setEditForm({ ...editForm, start_time: e.target.value })}
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs font-bold text-slate-700 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Horário de Fim</label>
+                    <input 
+                      type="time" 
+                      required 
+                      value={editForm.end_time}
+                      onChange={e => setEditForm({ ...editForm, end_time: e.target.value })}
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs font-bold text-slate-700 dark:text-white"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Data de Fim (se diferente)</label>
+                  <input 
+                    type="date" 
+                    value={editForm.end_date}
+                    onChange={e => setEditForm({ ...editForm, end_date: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs font-bold text-slate-700 dark:text-white"
+                  />
+                </div>
+                <button 
+                  type="submit" 
+                  disabled={editingResSaving}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all mt-4"
+                >
+                  {editingResSaving ? 'Salvando...' : 'Salvar Alterações'}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
+
+export default Reservas;
+

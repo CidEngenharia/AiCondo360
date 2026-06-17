@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, Search, Calendar, Clock, CheckCircle2, Shield, Trash2, Plus, X, Edit2, Phone, Briefcase, Truck, MoreHorizontal, FileText, Download } from 'lucide-react';
+import { User, Search, Calendar, Clock, CheckCircle2, Shield, Trash2, Plus, X, Edit2, Phone, Briefcase, Truck, FileText, Download, Eye, Upload } from 'lucide-react';
 import { FeatureHeader } from '../components/FeatureHeader';
 import { VisitorService, Visitante as IVisitante } from '../services/supabaseService';
 import { useAuth } from '../hooks/useAuth';
@@ -13,6 +13,35 @@ interface VisitantesProps {
   userRole?: string;
 }
 
+// Helper to compress image
+const compressImage = (base64Str: string, maxWidth = 400, maxHeight = 400): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+      if (width > height) {
+        if (width > maxWidth) { height *= maxWidth / width; width = maxWidth; }
+      } else {
+        if (height > maxHeight) { width *= maxHeight / height; height = maxHeight; }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', 0.7));
+    };
+  });
+};
+
+const WhatsAppIcon = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+  </svg>
+);
+
 export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRole }) => {
   const { user } = useAuth();
   const { tenant } = useTenant();
@@ -23,6 +52,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
   const [searchTerm, setSearchTerm] = useState('');
   const canManage = userRole === 'admin' || userRole === 'syndic' || userRole === 'global_admin';
   const [showReportModal, setShowReportModal] = useState<{show: boolean, days: number}>({show: false, days: 0});
+  const [viewingVisitor, setViewingVisitor] = useState<IVisitante | null>(null);
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
@@ -34,7 +64,10 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
     time: '',
     status: 'autorizado' as 'pendente' | 'autorizado' | 'finalizado',
     observation: '',
-    authorizedBy: ''
+    authorizedBy: '',
+    photo_url: '',
+    doc_type: 'RG',
+    doc_number: ''
   });
 
   useEffect(() => {
@@ -44,7 +77,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
   const fetchVisitors = async () => {
     setLoading(true);
     try {
-      const data = canManage 
+      const data = canManage
         ? await VisitorService.getCondoVisitors(condoId)
         : await VisitorService.getUserVisitors(userId);
       setVisitors(data.length > 0 ? data : []);
@@ -53,6 +86,17 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const compressed = await compressImage(reader.result as string);
+      setFormData(prev => ({ ...prev, photo_url: compressed }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleOpenModal = (visitor?: IVisitante) => {
@@ -65,6 +109,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
         obs = parts[0];
         authBy = parts[1] || '';
       }
+      const docParts = visitor.document?.split(':') || [];
       setFormData({
         name: visitor.name,
         type: visitor.type,
@@ -72,7 +117,10 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
         time: visitor.time,
         status: visitor.status,
         observation: obs,
-        authorizedBy: authBy
+        authorizedBy: authBy,
+        photo_url: visitor.photo_url || '',
+        doc_type: docParts[0] || 'RG',
+        doc_number: docParts[1] || ''
       });
     } else {
       setEditingVisitor(null);
@@ -83,7 +131,10 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
         time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         status: 'autorizado',
         observation: '',
-        authorizedBy: ''
+        authorizedBy: '',
+        photo_url: '',
+        doc_type: 'RG',
+        doc_number: ''
       });
     }
     setShowModal(true);
@@ -98,17 +149,21 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
         return;
       }
 
-      const finalObservation = formData.authorizedBy 
+      const finalObservation = formData.authorizedBy
         ? `${formData.observation}${formData.observation ? ' || ' : ''}Autorizado por: ${formData.authorizedBy}`
         : formData.observation;
 
-      const submitData = {
-          name: formData.name,
-          type: formData.type,
-          date: formData.date,
-          time: formData.time,
-          status: formData.status,
-          observation: finalObservation
+      const documentStr = formData.doc_number ? `${formData.doc_type}:${formData.doc_number}` : undefined;
+
+      const submitData: any = {
+        name: formData.name,
+        type: formData.type,
+        date: formData.date,
+        time: formData.time,
+        status: formData.status,
+        observation: finalObservation,
+        photo_url: formData.photo_url || undefined,
+        document: documentStr
       };
 
       if (editingVisitor) {
@@ -158,7 +213,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
   const filteredVisitors = visitors.filter(visitor => {
     const isExpected = visitor.status === 'pendente' || visitor.status === 'autorizado';
     const isMaintenance = visitor.type === 'Prestador de Serviço';
-    const matchesFilter = filter === 'all' || 
+    const matchesFilter = filter === 'all' ||
                          (filter === 'expected' && isExpected) ||
                          (filter === 'historic' && visitor.status === 'finalizado');
     const matchesSearch = visitor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -178,14 +233,14 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
     const cutOff = new Date();
     cutOff.setDate(cutOff.getDate() - days);
     return visitors.filter(v => {
-        const visitDate = new Date(v.date || v.created_at || '');
-        return visitDate >= cutOff;
+      const visitDate = new Date(v.date || v.created_at || '');
+      return visitDate >= cutOff;
     });
   };
 
   return (
     <div className="max-w-6xl mx-auto py-6 px-4">
-      <FeatureHeader 
+      <FeatureHeader
         icon={User}
         title="Visitantes e Permissões"
         description="Gerencie as permissões de entrada na sua unidade, convidados e prestadores de serviço."
@@ -194,13 +249,13 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
 
        {/* Botões de Relatório */}
        <div className="flex justify-end gap-2 mb-4">
-          <button 
+          <button
             onClick={() => setShowReportModal({show: true, days: 7})}
             className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 hover:text-sky-600 flex items-center gap-1 transition-colors px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full"
           >
               <FileText size={12} /> Relatório 7 Dias
           </button>
-          <button 
+          <button
             onClick={() => setShowReportModal({show: true, days: 15})}
             className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 hover:text-sky-600 flex items-center gap-1 transition-colors px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full"
           >
@@ -211,7 +266,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
       <div className="flex flex-col md:flex-row gap-4 mb-8">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-          <input 
+          <input
             type="text"
             placeholder="Buscar por nome ou tipo..."
             className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all font-medium text-sm text-slate-700 dark:text-slate-300 placeholder:text-slate-400"
@@ -222,19 +277,19 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
         
         <div className="flex flex-wrap gap-3">
           <div className="flex bg-white dark:bg-slate-800 p-1 rounded-2xl border border-slate-100 dark:border-slate-700">
-            <button 
+            <button
               onClick={() => setFilter('all')}
               className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${filter === 'all' ? 'bg-sky-600 text-white shadow-lg shadow-sky-500/20' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
             >
               Todos
             </button>
-            <button 
+            <button
               onClick={() => setFilter('expected')}
               className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${filter === 'expected' ? 'bg-sky-600 text-white shadow-lg shadow-sky-500/20' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
             >
               Esperados
             </button>
-            <button 
+            <button
               onClick={() => setFilter('historic')}
               className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${filter === 'historic' ? 'bg-sky-600 text-white shadow-lg shadow-sky-500/20' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
             >
@@ -242,7 +297,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
             </button>
           </div>
           
-          <button 
+          <button
             onClick={() => handleOpenModal()}
             className="flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-5 py-2.5 rounded-2xl font-semibold transition-all shadow-lg shadow-sky-500/20 hover:scale-105"
           >
@@ -276,34 +331,60 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                     visitor.status === 'pendente' ? 'bg-amber-500 text-white' :
                     'bg-blue-600 text-white'
                   }`}>
-                    {getTypeIcon(visitor.type)}
+                    {visitor.photo_url ? (
+                      <img src={visitor.photo_url} alt={visitor.name} className="w-5 h-5 rounded-full object-cover" />
+                    ) : (
+                      getTypeIcon(visitor.type)
+                    )}
                   </div>
                   
-                  <div className="flex items-center gap-2">
-                    <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                  <div className="flex items-center gap-1.5">
+                    <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
                       visitor.status === 'autorizado' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' :
                       visitor.status === 'pendente' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' :
                       'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
                     }`}>
                       {visitor.status}
                     </div>
-                    
-                    <div className="flex items-center gap-1">
-                      <button 
-                        onClick={() => handleOpenModal(visitor)}
-                        className="p-2 text-slate-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-500/10 rounded-xl transition-all"
-                        title="Editar"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(visitor.id)}
-                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
-                        title="Excluir"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
+
+                    {/* Ícone WhatsApp */}
+                    <a
+                      href={`https://wa.me/?text=${encodeURIComponent(`Visitante autorizado: ${visitor.name} — ${visitor.type} — Data: ${visitor.date} às ${visitor.time}`)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      title="Compartilhar no WhatsApp"
+                      className="w-7 h-7 rounded-full bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 text-emerald-500 flex items-center justify-center transition-all active:scale-95"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <WhatsAppIcon />
+                    </a>
+
+                    {/* Visualizar */}
+                    <button
+                      onClick={() => setViewingVisitor(visitor)}
+                      title="Visualizar"
+                      className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-sky-100 dark:hover:bg-sky-900/30 text-slate-400 hover:text-sky-600 flex items-center justify-center transition-all active:scale-95"
+                    >
+                      <Eye size={14} />
+                    </button>
+
+                    {/* Editar */}
+                    <button
+                      onClick={() => handleOpenModal(visitor)}
+                      title="Editar"
+                      className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-slate-400 hover:text-indigo-600 flex items-center justify-center transition-all active:scale-95"
+                    >
+                      <Edit2 size={14} />
+                    </button>
+
+                    {/* Excluir */}
+                    <button
+                      onClick={() => handleDelete(visitor.id)}
+                      title="Excluir"
+                      className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-rose-100 dark:hover:bg-rose-900/30 text-slate-400 hover:text-rose-500 flex items-center justify-center transition-all active:scale-95"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 </div>
 
@@ -313,6 +394,11 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                   </h3>
                   <div className="flex flex-col gap-1 mt-1">
                     <span className="text-sky-600 font-semibold text-xs uppercase tracking-tight italic opacity-80">{visitor.type}</span>
+                    {visitor.document && (
+                      <span className="text-[10px] text-slate-400 font-medium">
+                        Doc: {visitor.document.replace(':', ' ')}
+                      </span>
+                    )}
                     {visitor.observation && (
                       <div className="bg-slate-50 dark:bg-slate-900/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/50 mt-1">
                         <p className="italic text-[11px] text-slate-500 leading-relaxed font-normal">
@@ -354,7 +440,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
 
                 <div className="pt-4 border-t border-slate-50 dark:border-slate-700/50 flex items-center justify-between gap-3">
                    {visitor.status !== 'finalizado' && (
-                     <button 
+                     <button
                         onClick={() => updateStatus(visitor.id, 'finalizado')}
                         className="flex-1 bg-slate-100 dark:bg-slate-700 hover:bg-sky-600 dark:hover:bg-sky-600 hover:text-white text-slate-600 dark:text-slate-300 px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 mt-2"
                      >
@@ -362,7 +448,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                      </button>
                    )}
                    {visitor.status === 'pendente' && (
-                     <button 
+                     <button
                         onClick={() => updateStatus(visitor.id, 'autorizado')}
                         className="flex-1 bg-sky-600 hover:bg-sky-700 text-white px-4 py-3 rounded-2xl text-xs font-bold transition-all shadow-lg shadow-sky-500/20 flex items-center justify-center gap-2 mt-2"
                      >
@@ -407,7 +493,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white dark:bg-slate-800 rounded-[24px] w-full max-w-[300px] overflow-hidden shadow-2xl flex flex-col border border-white/10"
+              className="bg-white dark:bg-slate-800 rounded-[24px] w-full max-w-md overflow-hidden shadow-2xl flex flex-col border border-white/10"
             >
               <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-white dark:bg-slate-800 z-10">
                 <div>
@@ -421,10 +507,49 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="px-5 py-5 space-y-3.5 max-h-[70vh] overflow-y-auto custom-scrollbar">
+              <form onSubmit={handleSubmit} className="px-5 py-4 space-y-3 max-h-[75vh] overflow-y-auto custom-scrollbar">
+                {/* Foto do Visitante */}
+                <div>
+                  <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 px-1">Foto do Visitante</label>
+                  <div className="relative group h-28 rounded-2xl overflow-hidden bg-slate-50 dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-sky-500 transition-all">
+                    {formData.photo_url ? (
+                      <>
+                        <img src={formData.photo_url} alt="Preview" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => document.getElementById('visitor-photo-input')?.click()}
+                            className="p-2.5 bg-white rounded-full text-zinc-900 shadow-xl transition-all hover:scale-110"
+                          >
+                            <Upload size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, photo_url: '' })}
+                            className="p-2.5 bg-rose-500 rounded-full text-white shadow-xl transition-all hover:scale-110"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('visitor-photo-input')?.click()}
+                        className="w-full h-full flex flex-col items-center justify-center gap-1"
+                      >
+                        <Upload size={20} className="text-sky-400" />
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Adicionar Foto</span>
+                      </button>
+                    )}
+                  </div>
+                  <input id="visitor-photo-input" type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+                </div>
+
+                {/* Nome */}
                 <div>
                   <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 px-1">Nome Completo</label>
-                  <input 
+                  <input
                     required
                     maxLength={50}
                     placeholder="Nome do visitante..."
@@ -432,6 +557,27 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                     value={formData.name}
                     onChange={e => setFormData({...formData, name: e.target.value})}
                   />
+                </div>
+
+                {/* Documento */}
+                <div>
+                  <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 px-1">Documento</label>
+                  <div className="flex gap-2">
+                    <select
+                      className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-lg px-3 py-2 text-[11px] text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium appearance-none cursor-pointer w-20"
+                      value={formData.doc_type}
+                      onChange={e => setFormData({...formData, doc_type: e.target.value})}
+                    >
+                      <option value="RG">RG</option>
+                      <option value="CPF">CPF</option>
+                    </select>
+                    <input
+                      placeholder="Número do documento..."
+                      className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-lg px-3.5 py-2 text-[11px] text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium placeholder:font-normal"
+                      value={formData.doc_number}
+                      onChange={e => setFormData({...formData, doc_number: e.target.value})}
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -465,7 +611,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 px-1">Data</label>
-                    <input 
+                    <input
                       required
                       type="date"
                       className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-lg px-3.5 py-2 text-[11px] text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium"
@@ -475,7 +621,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                   </div>
                   <div>
                     <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 px-1">Horário</label>
-                    <input 
+                    <input
                       required
                       type="time"
                       className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-lg px-3.5 py-2 text-[11px] text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium"
@@ -487,9 +633,9 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
 
                 <div>
                   <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 px-1">Autorizado por</label>
-                  <input 
+                  <input
                     placeholder="Nome de quem autorizou..."
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-lg px-3.5 py-1.5 text-[11px] text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium placeholder:font-normal mb-3"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-lg px-3.5 py-1.5 text-[11px] text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-medium placeholder:font-normal"
                     value={formData.authorizedBy}
                     onChange={e => setFormData({...formData, authorizedBy: e.target.value})}
                   />
@@ -497,7 +643,7 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
 
                 <div>
                   <label className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 px-1">Observação</label>
-                  <textarea 
+                  <textarea
                     rows={2}
                     placeholder="Motivo da visita..."
                     className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-lg px-3.5 py-2 text-[11px] text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all font-normal placeholder:font-normal resize-none"
@@ -527,11 +673,80 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
         )}
       </AnimatePresence>
 
+      {/* Modal Visualizar Visitante */}
+      <AnimatePresence>
+        {viewingVisitor && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm" onClick={() => setViewingVisitor(null)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="relative h-36 bg-slate-100 dark:bg-slate-900 overflow-hidden">
+                {viewingVisitor.photo_url ? (
+                  <img src={viewingVisitor.photo_url} alt={viewingVisitor.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <User size={48} className="text-slate-300" />
+                  </div>
+                )}
+                <button onClick={() => setViewingVisitor(null)} className="absolute top-3 right-3 p-2 bg-black/30 hover:bg-black/50 backdrop-blur-sm text-white rounded-full transition-all">
+                  <X size={16} />
+                </button>
+                <div className="absolute bottom-3 left-4">
+                  <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest ${
+                    viewingVisitor.status === 'autorizado' ? 'bg-emerald-500 text-white' :
+                    viewingVisitor.status === 'pendente' ? 'bg-amber-500 text-white' :
+                    'bg-blue-600 text-white'
+                  }`}>{viewingVisitor.status}</span>
+                </div>
+              </div>
+              <div className="p-6 space-y-4">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">{viewingVisitor.name}</h3>
+                  <span className="text-sky-600 text-xs font-semibold uppercase tracking-tight">{viewingVisitor.type}</span>
+                </div>
+                {viewingVisitor.document && (
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Documento</p>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{viewingVisitor.document.replace(':', ' ')}</p>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Data</p>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{viewingVisitor.date}</p>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Horário</p>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{viewingVisitor.time}</p>
+                  </div>
+                </div>
+                {viewingVisitor.observation && (
+                  <div className="bg-slate-50 dark:bg-slate-900/40 p-3 rounded-xl">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Observação</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 italic">"{viewingVisitor.observation.split(' || Autorizado por: ')[0]}"</p>
+                  </div>
+                )}
+                <button
+                  onClick={() => setViewingVisitor(null)}
+                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
+                >
+                  Fechar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Modal Relatório */}
       <AnimatePresence>
           {showReportModal.show && (
               <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-2xl">
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: 100 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 100 }}
@@ -565,8 +780,8 @@ export const Visitantes: React.FC<VisitantesProps> = ({ userId, condoId, userRol
                                             <td className="py-4 px-2 text-xs font-semibold text-slate-500">{v.type}</td>
                                             <td className="py-4 px-2">
                                                 <span className={`text-[9px] font-bold uppercase px-3 py-1 rounded-full ${
-                                                    v.status === 'autorizado' ? 'bg-emerald-500 text-white' : 
-                                                    v.status === 'pendente' ? 'bg-amber-500 text-white' : 
+                                                    v.status === 'autorizado' ? 'bg-emerald-500 text-white' :
+                                                    v.status === 'pendente' ? 'bg-amber-500 text-white' :
                                                     'bg-blue-600 text-white'
                                                 }`}>
                                                     {v.status}

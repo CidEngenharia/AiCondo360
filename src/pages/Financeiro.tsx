@@ -37,13 +37,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTenant } from '../contexts/TenantContext';
 
 // --- Types ---
-type FinanceiroTab = 'geral' | 'boletos' | 'relatorios';
+type FinanceiroTab = 'geral' | 'boletos' | 'relatorios' | 'caixa';
 
 interface DespesaItem {
   id: string;
   nome: string;
   valor: number;
-  origem: 'manutencao' | 'limpeza' | 'seguranca' | 'utilitarios' | 'pessoal' | 'multa_reserva' | 'outros';
+  origem: 'manutencao' | 'limpeza' | 'seguranca' | 'utilitarios' | 'pessoal' | 'multa_reserva' | 'outros' | 'caixa';
   observacao: string;
   status?: string;
   created_at: string;
@@ -60,7 +60,7 @@ interface BoletoItem {
 }
 
 const EMPTY_FORM = {
-  activeTab: 'despesa' as 'despesa' | 'boleto',
+  activeTab: 'despesa' as 'despesa' | 'boleto' | 'caixa',
   nome: '',
   valor: '',
   vencimento: format(new Date(), 'yyyy-MM-dd'),
@@ -75,17 +75,20 @@ const fmt = (v: number) =>
 const FinanceiroPage: React.FC = () => {
   const { user } = useAuth();
   const { tenant } = useTenant();
+  const isResident = user?.role === 'resident';
   const [activeTab, setActiveTab] = useState<FinanceiroTab>('geral');
   const [boletos, setBoletos] = useState<BoletoItem[]>([]);
   const [despesas, setDespesas] = useState<DespesaItem[]>([]);
+  const [caixaRecords, setCaixaRecords] = useState<DespesaItem[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<{type: 'despesa' | 'boleto', id: string} | null>(null);
+  const [editingRecord, setEditingRecord] = useState<{type: 'despesa' | 'boleto' | 'caixa', id: string} | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [reportDays, setReportDays] = useState(7);
 
   // ── Computed ──────────────────────────────────────────────────────────────
   const totalGasto = useMemo(() => despesas.reduce((s, d) => s + d.valor, 0), [despesas]);
+  const totalCaixa = useMemo(() => caixaRecords.reduce((s, d) => s + d.valor, 0), [caixaRecords]);
 
   // Dados combinados para relatórios
   const reportItems = useMemo(() => {
@@ -148,7 +151,7 @@ const FinanceiroPage: React.FC = () => {
           created_at: x.created_at
       })));
 
-      setDespesas(e.map(x => ({
+      const mappedExpenses = e.map(x => ({
           id: x.id,
           nome: x.nome,
           valor: x.valor,
@@ -156,7 +159,15 @@ const FinanceiroPage: React.FC = () => {
           observacao: x.observacao || '',
           status: x.status,
           created_at: x.created_at
-      })));
+      }));
+
+      setDespesas(mappedExpenses.filter(x => x.origem !== 'caixa'));
+
+      if (user?.role !== 'resident') {
+        setCaixaRecords(mappedExpenses.filter(x => x.origem === 'caixa'));
+      } else {
+        setCaixaRecords([]);
+      }
     } catch (err) {
        console.error("Error fetching financial data:", err);
     }
@@ -188,6 +199,14 @@ const FinanceiroPage: React.FC = () => {
             origem: form.origem,
             observacao: form.observacao.trim()
           });
+        } else if (editingRecord.type === 'caixa') {
+          await FinanceiroService.updateExpense(editingRecord.id, {
+            nome: form.nome.trim(),
+            valor: parseFloat(String(form.valor).replace(',', '.')),
+            origem: 'caixa',
+            tipo: 'receita',
+            observacao: form.observacao.trim()
+          });
         } else {
           await BoletoService.updateBoleto(editingRecord.id, {
             amount: parseFloat(String(form.valor).replace(',', '.')),
@@ -204,6 +223,18 @@ const FinanceiroPage: React.FC = () => {
             nome: form.nome.trim(),
             valor: parseFloat(String(form.valor).replace(',', '.')),
             origem: form.origem,
+            tipo: 'despesa',
+            observacao: form.observacao.trim()
+          });
+        } else if (form.activeTab === 'caixa') {
+          await FinanceiroService.createExpense({
+            condominio_id: user.condoId,
+            tenant_id: tenant?.id,
+            nome: form.nome.trim(),
+            valor: parseFloat(String(form.valor).replace(',', '.')),
+            origem: 'caixa',
+            tipo: 'receita',
+            status: 'pago',
             observacao: form.observacao.trim()
           });
         } else {
@@ -231,23 +262,23 @@ const FinanceiroPage: React.FC = () => {
     }
   };
 
-  const handleEdit = (type: 'despesa' | 'boleto', record: any) => {
+  const handleEdit = (type: 'despesa' | 'boleto' | 'caixa', record: any) => {
     setEditingRecord({ type, id: record.id });
     setForm({
-      nome: type === 'despesa' ? record.nome : record.barcode,
-      valor: type === 'despesa' ? record.valor : record.amount,
-      vencimento: type === 'despesa' ? new Date().toISOString().split('T')[0] : record.due_date,
-      origem: type === 'despesa' ? record.origem : 'Outros',
-      observacao: type === 'despesa' ? record.observacao : '',
+      nome: type === 'boleto' ? record.barcode : record.nome,
+      valor: type === 'boleto' ? record.amount : record.valor,
+      vencimento: type === 'boleto' ? record.due_date : (record.created_at ? new Date(record.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+      origem: type === 'boleto' ? 'outros' : record.origem,
+      observacao: type === 'boleto' ? '' : record.observacao,
       activeTab: type
     });
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (type: 'despesa' | 'boleto', id: string) => {
+  const handleDelete = async (type: 'despesa' | 'boleto' | 'caixa', id: string) => {
     if (!confirm('Deseja realmente excluir este registro?')) return;
     try {
-      if (type === 'despesa') await FinanceiroService.deleteExpense(id);
+      if (type === 'despesa' || type === 'caixa') await FinanceiroService.deleteExpense(id);
       else await BoletoService.deleteBoleto(id);
       fetchData();
     } catch (err) {
@@ -255,10 +286,10 @@ const FinanceiroPage: React.FC = () => {
     }
   };
 
-  const handleMarkAsPaid = async (type: 'despesa' | 'boleto', id: string) => {
+  const handleMarkAsPaid = async (type: 'despesa' | 'boleto' | 'caixa', id: string) => {
     if (!confirm('Deseja marcar este registro como PAGO?')) return;
     try {
-      if (type === 'despesa') await FinanceiroService.updateExpense(id, { status: 'pago' });
+      if (type === 'despesa' || type === 'caixa') await FinanceiroService.updateExpense(id, { status: 'pago' });
       else await BoletoService.updateBoleto(id, { status: 'paid' });
       fetchData();
     } catch (err) {
@@ -294,7 +325,7 @@ const FinanceiroPage: React.FC = () => {
         </header>
 
         {/* Dashboard Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 ${!isResident ? 'xl:grid-cols-5' : ''} gap-4`}>
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm relative group">
             <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1">Balanço Total</p>
             <h3 className="text-lg font-medium text-slate-800 dark:text-white">{fmt(stats.total)}</h3>
@@ -330,23 +361,43 @@ const FinanceiroPage: React.FC = () => {
               DISPONÍVEL
             </div>
           </motion.div>
+
+          {!isResident && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="p-5 bg-emerald-600 rounded-3xl shadow-lg shadow-emerald-200 dark:shadow-none">
+              <p className="text-[10px] font-medium text-emerald-100 uppercase tracking-widest mb-1">Caixa (Receitas Extras)</p>
+              <h3 className="text-lg font-medium text-white">{fmt(totalCaixa)}</h3>
+              <div className="mt-2 text-emerald-100 text-[10px] font-medium flex items-center gap-1">
+                <TrendingUp size={14} />
+                {caixaRecords.length} REGISTROS
+              </div>
+            </motion.div>
+          )}
         </div>
 
         {/* Tabs Control */}
         <div className="flex p-1 bg-slate-200/50 dark:bg-slate-800/50 rounded-2xl w-fit border border-white/10 mt-4">
-          {(['geral', 'boletos', 'relatorios'] as FinanceiroTab[]).map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-6 py-1.5 rounded-xl font-medium text-[11px] uppercase transition-all ${
-                activeTab === tab 
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
+          {(['geral', 'boletos', 'relatorios', 'caixa'] as FinanceiroTab[]).map(tab => {
+            const isTabCaixa = tab === 'caixa';
+            const isTabDisabled = isTabCaixa && isResident;
+            
+            return (
+              <button
+                key={tab}
+                disabled={isTabDisabled}
+                onClick={() => setActiveTab(tab)}
+                className={`px-6 py-1.5 rounded-xl font-medium text-[11px] uppercase transition-all flex items-center gap-1.5 ${
+                  activeTab === tab 
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
+                    : isTabDisabled
+                      ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed opacity-50'
+                      : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {tab}
+                {isTabDisabled && <span className="text-[10px]">🔒</span>}
+              </button>
+            );
+          })}
         </div>
 
         {/* Content Section */}
@@ -407,7 +458,7 @@ const FinanceiroPage: React.FC = () => {
                              )}
                            </div>
                            {user?.role !== 'resident' && (
-                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                             <div className="flex gap-1 transition-opacity">
                                 {(item.status === 'pendente' || item.status === 'pending') && (
                                   <button onClick={() => handleMarkAsPaid(item._tipo, item.id)} title="Marcar como pago" className="p-1.5 text-slate-400 hover:text-emerald-500"><Check size={12}/></button>
                                 )}
@@ -442,7 +493,7 @@ const FinanceiroPage: React.FC = () => {
                     <div className="mt-4 flex items-center justify-between border-t border-slate-50 dark:border-slate-800 pt-3">
                       <span className="text-md font-medium text-slate-800 dark:text-white">{fmt(boleto.valor)}</span>
                       {user?.role !== 'resident' && (
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex gap-1 transition-opacity">
                            {(boleto.status === 'pendente' || boleto.status === 'pending') && (
                              <button onClick={() => handleMarkAsPaid('boleto', boleto.id)} title="Marcar como pago" className="p-1.5 text-slate-400 hover:text-emerald-500"><Check size={14}/></button>
                            )}
@@ -453,6 +504,57 @@ const FinanceiroPage: React.FC = () => {
                     </div>
                   </div>
                 ))}
+              </motion.div>
+            )}
+
+            {activeTab === 'caixa' && !isResident && (
+              <motion.div 
+                key="caixa" 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <h4 className="font-medium text-sm text-slate-800 dark:text-white uppercase tracking-tight">Fluxo de Caixa (Receitas Extras)</h4>
+                  <span className="text-xs text-slate-500 font-normal">Somente visível para síndicos e administradores</span>
+                </div>
+                <div className="divide-y divide-slate-50 dark:divide-slate-800">
+                  {caixaRecords.length === 0 ? (
+                    <p className="text-center py-6 text-sm text-slate-400">Nenhum lançamento no caixa.</p>
+                  ) : (
+                    caixaRecords.map(item => (
+                      <div key={item.id} className="flex items-center justify-between py-3 group">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 group-hover:scale-105 transition-transform">
+                            <TrendingUp size={14} className="text-emerald-500" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-normal text-slate-700 dark:text-white">{item.nome}</p>
+                            {item.observacao && (
+                              <p className="text-xs text-indigo-600 dark:text-indigo-400 font-normal mt-0.5">{item.observacao}</p>
+                            )}
+                            <p className="text-[10px] text-slate-400 uppercase mt-1">{format(new Date(item.created_at), 'dd/MM/yyyy')}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                           <div className="flex flex-col items-end">
+                             <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">{fmt(item.valor)}</span>
+                             {item.status === 'pendente' && (
+                               <span className="text-[9px] font-medium text-rose-500 uppercase tracking-widest">Pendente</span>
+                             )}
+                           </div>
+                           <div className="flex gap-1 transition-opacity">
+                              {item.status === 'pendente' && (
+                                <button onClick={() => handleMarkAsPaid('caixa', item.id)} title="Marcar como pago" className="p-1.5 text-slate-400 hover:text-emerald-500"><Check size={12}/></button>
+                              )}
+                              <button onClick={() => handleEdit('caixa', item)} className="p-1.5 text-slate-400 hover:text-indigo-500"><Pencil size={12}/></button>
+                              <button onClick={() => handleDelete('caixa', item.id)} className="p-1.5 text-slate-400 hover:text-rose-500"><Trash2 size={12}/></button>
+                           </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -475,8 +577,33 @@ const FinanceiroPage: React.FC = () => {
                   </div>
 
                   <div className="flex gap-2 mb-6 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-fit">
-                    <button onClick={() => setForm({...form, activeTab: 'despesa'})} className={`px-4 py-1.5 rounded-lg text-[10px] font-medium uppercase transition-all ${form.activeTab === 'despesa' ? 'bg-white dark:bg-slate-700 text-slate-900 shadow-sm' : 'text-slate-400'}`}>Despesa</button>
-                    <button onClick={() => setForm({...form, activeTab: 'boleto'})} className={`px-4 py-1.5 rounded-lg text-[10px] font-medium uppercase transition-all ${form.activeTab === 'boleto' ? 'bg-white dark:bg-slate-700 text-slate-900 shadow-sm' : 'text-slate-400'}`}>Boleto</button>
+                    <button 
+                      type="button"
+                      onClick={() => setForm({...form, activeTab: 'despesa'})} 
+                      className={`px-4 py-1.5 rounded-lg text-[10px] font-medium uppercase transition-all ${form.activeTab === 'despesa' ? 'bg-white dark:bg-slate-700 text-slate-900 shadow-sm' : 'text-slate-400'}`}
+                    >
+                      Despesa
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setForm({...form, activeTab: 'boleto'})} 
+                      className={`px-4 py-1.5 rounded-lg text-[10px] font-medium uppercase transition-all ${form.activeTab === 'boleto' ? 'bg-white dark:bg-slate-700 text-slate-900 shadow-sm' : 'text-slate-400'}`}
+                    >
+                      Boleto
+                    </button>
+                    <button 
+                      type="button"
+                      disabled={isResident}
+                      onClick={() => setForm({...form, activeTab: 'caixa'})} 
+                      className={`px-4 py-1.5 rounded-lg text-[10px] font-medium uppercase transition-all flex items-center gap-1 ${
+                        form.activeTab === 'caixa' 
+                          ? 'bg-white dark:bg-slate-700 text-slate-900 shadow-sm' 
+                          : isResident ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed opacity-50' : 'text-slate-400'
+                      }`}
+                    >
+                      Caixa
+                      {isResident && <span className="text-[10px]">🔒</span>}
+                    </button>
                   </div>
 
                   <form onSubmit={handleSave} className="space-y-4">
